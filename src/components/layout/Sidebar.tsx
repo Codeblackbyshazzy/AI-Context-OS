@@ -17,16 +17,12 @@ const navItems = [
 
 export function Sidebar() {
   return (
-    <aside className="flex w-[220px] flex-col border-r border-[var(--border)] bg-[color:var(--bg-0)] px-3 py-3">
-      <div className="mb-4 flex items-center gap-2 px-1 py-1">
-        <Brain className="h-4.5 w-4.5 text-[color:var(--text-1)]" />
-        <div>
-          <p className="text-sm font-semibold text-[color:var(--text-0)]">AI Context OS</p>
-          <p className="text-[11px] text-[color:var(--text-2)]">Workspace</p>
-        </div>
+    <aside className="flex w-12 flex-col items-center border-r border-[var(--border)] bg-[color:var(--bg-0)] py-3">
+      <div className="mb-4">
+        <Brain className="h-5 w-5 text-[color:var(--accent)]" />
       </div>
 
-      <div className="space-y-1.5">
+      <nav className="flex flex-col gap-1">
         {navItems.map((item) => (
           <NavLink
             key={item.to}
@@ -34,19 +30,18 @@ export function Sidebar() {
             end={item.to === "/"}
             className={({ isActive }) =>
               clsx(
-                "flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm transition-colors",
+                "flex h-8 w-8 items-center justify-center rounded-md transition-colors",
                 isActive
-                  ? "bg-[color:var(--bg-3)] text-[color:var(--text-0)]"
-                  : "text-[color:var(--text-1)] hover:bg-[color:var(--bg-2)] hover:text-[color:var(--text-0)]",
+                  ? "bg-[color:var(--accent-muted)] text-[color:var(--accent)]"
+                  : "text-[color:var(--text-2)] hover:bg-[color:var(--bg-2)] hover:text-[color:var(--text-1)]",
               )
             }
             title={item.label}
           >
-            <item.icon className="h-4 w-4" />
-            <span>{item.label}</span>
+            <item.icon className="h-[18px] w-[18px]" />
           </NavLink>
         ))}
-      </div>
+      </nav>
     </aside>
   );
 }

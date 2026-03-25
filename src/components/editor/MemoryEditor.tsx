@@ -85,11 +85,6 @@ export function MemoryEditor() {
     await deleteMemory(meta.id);
   }, [deleteMemory, meta]);
 
-  const modifiedLabel = useMemo(() => {
-    if (!meta) return "";
-    return new Date(meta.modified).toLocaleString();
-  }, [meta]);
-
   const outgoingLinks = useMemo<OutgoingLink[]>(() => {
     if (!meta) return [];
 
@@ -169,14 +164,11 @@ export function MemoryEditor() {
     }
 
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-3 text-center text-[color:var(--text-2)]">
-        <div className="rounded-xl border border-[var(--border)] bg-[color:var(--bg-2)]/45 p-4">
-          <FileText className="h-10 w-10 text-[color:var(--text-1)]" />
-        </div>
-        <p className="text-base text-[color:var(--text-1)]">Selecciona una memoria para editar</p>
-        <p className="max-w-md text-sm">
-          Usa el panel izquierdo para abrir una nota y empezar a escribir en modo
-          enfocado.
+      <div className="flex h-full flex-col items-center justify-center gap-2 text-center text-[color:var(--text-2)]">
+        <FileText className="h-8 w-8 text-[color:var(--text-2)]" />
+        <p className="text-sm text-[color:var(--text-1)]">Select a memory to edit</p>
+        <p className="max-w-sm text-xs">
+          Use the sidebar to open a note.
         </p>
       </div>
     );
@@ -184,20 +176,16 @@ export function MemoryEditor() {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex items-center gap-3 border-b border-[var(--border)] px-4 py-3">
+      <div className="flex items-center gap-2 border-b border-[var(--border)] px-4 py-2">
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-[color:var(--text-0)]">{meta.id}</p>
-          <p className="truncate text-xs text-[color:var(--text-2)]">{meta.l0 || "Sin resumen L0"}</p>
+          <p className="truncate text-sm font-medium text-[color:var(--text-0)]">{meta.id}</p>
+          <p className="truncate text-[11px] text-[color:var(--text-2)]">{meta.l0 || "No L0 summary"}</p>
         </div>
         <button
           type="button"
           onClick={() => setShowInspector((prev) => !prev)}
-          className="rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-2.5 py-1.5 text-[color:var(--text-1)] transition-colors hover:text-[color:var(--text-0)]"
-          title={
-            showInspector
-              ? "Ocultar panel derecho (Cmd/Ctrl + \\)"
-              : "Mostrar panel derecho (Cmd/Ctrl + \\)"
-          }
+          className="rounded p-1.5 text-[color:var(--text-2)] transition-colors hover:text-[color:var(--text-1)]"
+          title={showInspector ? "Hide inspector" : "Show inspector"}
         >
           {showInspector ? (
             <PanelRightClose className="h-4 w-4" />
@@ -209,20 +197,20 @@ export function MemoryEditor() {
           type="button"
           onClick={handleDelete}
           disabled={loading}
-          className="inline-flex items-center gap-1.5 rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-2.5 py-1.5 text-xs font-medium text-[color:var(--text-1)] transition-colors hover:bg-[color:var(--bg-3)] hover:text-[color:var(--text-0)] disabled:opacity-50"
+          className="rounded p-1.5 text-[color:var(--text-2)] transition-colors hover:text-[color:var(--danger)] disabled:opacity-50"
+          title="Delete memory"
         >
-          <Trash2 className="h-3.5 w-3.5" />
-          Delete
+          <Trash2 className="h-4 w-4" />
         </button>
         <button
           type="button"
           onClick={() => void handleSave()}
           disabled={!dirty || loading}
           className={clsx(
-            "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors",
+            "inline-flex items-center gap-1.5 rounded-md px-3 py-1 text-xs font-medium transition-all",
             dirty
-              ? "bg-[color:var(--accent)] text-white hover:brightness-110"
-              : "cursor-not-allowed bg-[color:var(--bg-3)] text-[color:var(--text-2)]",
+              ? "bg-[color:var(--accent)] text-white hover:opacity-90"
+              : "text-[color:var(--text-2)]",
           )}
         >
           <Save className="h-3.5 w-3.5" />
@@ -230,8 +218,8 @@ export function MemoryEditor() {
         </button>
       </div>
 
-      <div className="flex min-h-0 flex-1 gap-2 p-2">
-        <div className="min-w-0 flex-1 overflow-y-auto p-2">
+      <div className="flex min-h-0 flex-1">
+        <div className="min-w-0 flex-1 overflow-y-auto p-3">
           <TipTapEditor
             content={l2}
             onChange={(val) => {
@@ -250,27 +238,7 @@ export function MemoryEditor() {
             showInspector ? "w-[348px] opacity-100" : "pointer-events-none w-0 opacity-0",
           )}
         >
-          <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-md border border-[var(--border)] bg-[color:var(--bg-1)]">
-            <div className="border-b border-[var(--border)] px-3 py-2.5">
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--text-1)]">
-                Inspector
-              </p>
-              <p className="mt-1 text-xs text-[color:var(--text-2)]">
-                Propiedades y relaciones de la memoria
-              </p>
-            </div>
-            <div className="grid grid-cols-2 gap-2 border-b border-[var(--border)] px-3 py-2">
-              <InspectorMetric label="Type" value={meta.memory_type} />
-              <InspectorMetric label="Importance" value={meta.importance.toFixed(2)} />
-              <InspectorMetric label="Confidence" value={meta.confidence.toFixed(2)} />
-              <InspectorMetric
-                label="Links"
-                value={String(outgoingLinks.length + incomingLinks.length)}
-              />
-              <InspectorMetric label="Version" value={`v${meta.version}`} />
-              <InspectorMetric label="Última edición" value={modifiedLabel} />
-            </div>
-
+          <div className="flex h-full min-h-0 flex-col overflow-hidden border-l border-[var(--border)] bg-[color:var(--bg-0)]">
             <div className="flex items-center gap-1 border-b border-[var(--border)] px-2 py-1.5">
               <InspectorTabButton
                 active={inspectorTab === "properties"}
@@ -311,15 +279,6 @@ export function MemoryEditor() {
   );
 }
 
-function InspectorMetric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg border border-[var(--border)] bg-[color:var(--bg-2)]/55 px-2 py-1.5">
-      <p className="text-[10px] uppercase tracking-[0.1em] text-[color:var(--text-2)]">{label}</p>
-      <p className="truncate text-xs text-[color:var(--text-1)]">{value}</p>
-    </div>
-  );
-}
-
 function InspectorTabButton({
   active,
   label,
@@ -333,11 +292,12 @@ function InspectorTabButton({
     <button
       type="button"
       onClick={onClick}
-      className={
+      className={clsx(
+        "rounded px-2 py-1 text-[11px] font-medium transition-colors",
         active
-          ? "rounded-md bg-[color:var(--bg-3)] px-2 py-1 text-xs font-medium text-[color:var(--text-0)]"
-          : "rounded-md px-2 py-1 text-xs text-[color:var(--text-2)] transition-colors hover:text-[color:var(--text-0)]"
-      }
+          ? "bg-[color:var(--bg-2)] text-[color:var(--text-0)]"
+          : "text-[color:var(--text-2)] hover:text-[color:var(--text-1)]",
+      )}
     >
       {label}
     </button>

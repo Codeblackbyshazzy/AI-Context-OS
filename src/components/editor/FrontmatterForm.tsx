@@ -32,20 +32,13 @@ function ChipEditor({
   };
 
   return (
-    <div className="space-y-1.5">
-      <span className="text-[10px] uppercase tracking-[0.12em] text-[color:var(--text-2)]">
-        {label}
-      </span>
-      <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[color:var(--bg-2)]/55 px-2 py-2">
+    <div className="space-y-1">
+      <span className="text-[10px] text-[color:var(--text-2)]">{label}</span>
+      <div className="flex flex-wrap items-center gap-1 rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-2 py-1.5">
         {values.map((value) => (
           <span
             key={value}
-            className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px]"
-            style={{
-              borderColor: "var(--border)",
-              color: "var(--text-1)",
-              backgroundColor: "var(--bg-3)",
-            }}
+            className="inline-flex items-center gap-0.5 rounded bg-[color:var(--bg-3)] px-1.5 py-0.5 text-[11px] text-[color:var(--text-1)]"
           >
             {value}
             <button
@@ -68,8 +61,8 @@ function ChipEditor({
               commit();
             }
           }}
-          placeholder={placeholder}
-          className="min-w-[88px] flex-1 bg-transparent px-1 py-0.5 text-xs text-[color:var(--text-1)] placeholder:text-[color:var(--text-2)] focus:outline-none"
+          placeholder={values.length === 0 ? placeholder : ""}
+          className="min-w-[80px] flex-1 bg-transparent px-0.5 py-0.5 text-xs text-[color:var(--text-1)] placeholder:text-[color:var(--text-2)] focus:outline-none"
         />
       </div>
     </div>
@@ -98,190 +91,181 @@ export function FrontmatterForm({ meta, onChange }: FrontmatterFormProps) {
 
   return (
     <div className="space-y-3 p-3">
-      <section className="space-y-2 rounded-lg border border-[var(--border)] bg-[color:var(--bg-1)]/75 p-2.5">
-        <div className="space-y-1">
-          <span className="text-[10px] uppercase tracking-[0.12em] text-[color:var(--text-2)]">ID</span>
-          <input
-            type="text"
-            value={meta.id}
-            onChange={(e) => update({ id: toMemoryRef(e.target.value) })}
-            className="w-full rounded-lg border border-[var(--border)] bg-[color:var(--bg-2)] px-2 py-1.5 text-xs text-[color:var(--text-0)] focus:border-[color:var(--accent)] focus:outline-none"
-            placeholder="memory-id"
-          />
-        </div>
-
-        <div className="space-y-1">
-          <span className="text-[10px] uppercase tracking-[0.12em] text-[color:var(--text-2)]">
-            Type
-          </span>
-          <select
-            value={meta.memory_type}
-            onChange={(e) => update({ memory_type: e.target.value as MemoryType })}
-            className="w-full rounded-lg border bg-[color:var(--bg-2)] px-2 py-1.5 text-xs text-[color:var(--text-1)]"
-            style={{ borderColor: "var(--border)" }}
-          >
-            {(Object.keys(MEMORY_TYPE_LABELS) as MemoryType[]).map((t) => (
-              <option key={t} value={t}>
-                {MEMORY_TYPE_LABELS[t]}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <label className="flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[color:var(--bg-2)]/45 px-2 py-1.5 text-xs text-[color:var(--text-1)]">
-          <input
-            type="checkbox"
-            checked={meta.always_load}
-            onChange={(e) => update({ always_load: e.target.checked })}
-            className="accent-[color:var(--accent)]"
-          />
-          Always load
-        </label>
-      </section>
-
-      <section className="space-y-2 rounded-lg border border-[var(--border)] bg-[color:var(--bg-1)]/75 p-2.5">
-        <div className="space-y-1">
-          <span className="text-[10px] uppercase tracking-[0.12em] text-[color:var(--text-2)]">
-            Importance ({meta.importance.toFixed(2)})
-          </span>
-          <input
-            type="range"
-            min="0"
-            max="1"
-            step="0.05"
-            value={meta.importance}
-            onChange={(e) => update({ importance: parseFloat(e.target.value) })}
-            className="w-full"
-            style={{ accentColor: "var(--accent)" }}
-          />
-        </div>
-        <div className="space-y-1">
-          <span className="text-[10px] uppercase tracking-[0.12em] text-[color:var(--text-2)]">
-            Confidence ({meta.confidence.toFixed(2)})
-          </span>
-          <input
-            type="range"
-            min="0"
-            max="1"
-            step="0.05"
-            value={meta.confidence}
-            onChange={(e) => update({ confidence: parseFloat(e.target.value) })}
-            className="w-full"
-            style={{ accentColor: "var(--accent)" }}
-          />
-        </div>
-        <div className="space-y-1">
-          <span className="text-[10px] uppercase tracking-[0.12em] text-[color:var(--text-2)]">
-            Decay Rate ({meta.decay_rate.toFixed(4)})
-          </span>
-          <input
-            type="range"
-            min="0.95"
-            max="0.9999"
-            step="0.0001"
-            value={meta.decay_rate}
-            onChange={(e) => update({ decay_rate: parseFloat(e.target.value) })}
-            className="w-full"
-            style={{ accentColor: "var(--accent)" }}
-          />
-        </div>
-      </section>
-
-      <section className="space-y-2 rounded-lg border border-[var(--border)] bg-[color:var(--bg-1)]/75 p-2.5">
-        <div className="space-y-1">
-          <span className="text-[10px] uppercase tracking-[0.12em] text-[color:var(--text-2)]">
-            L0 Summary
-          </span>
-          <input
-            type="text"
-            value={meta.l0}
-            onChange={(e) => update({ l0: e.target.value })}
-            placeholder="Resumen de una línea..."
-            className="w-full rounded-lg border border-[var(--border)] bg-[color:var(--bg-2)] px-2 py-1.5 text-xs text-[color:var(--text-0)] placeholder:text-[color:var(--text-2)] focus:border-[color:var(--accent)] focus:outline-none"
-          />
-        </div>
-
-        <ChipEditor
-          label="Tags"
-          values={meta.tags}
-          placeholder="Añadir tag..."
-          onAdd={(value) =>
-            update({
-              tags: addUnique(meta.tags, value, false),
-            })
-          }
-          onRemove={(value) => update({ tags: meta.tags.filter((tag) => tag !== value) })}
+      {/* Identity */}
+      <Field label="ID">
+        <input
+          type="text"
+          value={meta.id}
+          onChange={(e) => update({ id: toMemoryRef(e.target.value) })}
+          className="w-full rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-2 py-1.5 text-xs text-[color:var(--text-0)] placeholder:text-[color:var(--text-2)]"
+          placeholder="memory-id"
         />
-        <ChipEditor
-          label="Related"
-          values={meta.related}
-          placeholder="memory-id..."
-          onAdd={(value) =>
-            update({
-              related: addUnique(meta.related, value),
-            })
-          }
-          onRemove={(value) =>
-            update({ related: meta.related.filter((item) => item !== value) })
-          }
+      </Field>
+
+      <Field label="Type">
+        <select
+          value={meta.memory_type}
+          onChange={(e) => update({ memory_type: e.target.value as MemoryType })}
+          className="w-full rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-2 py-1.5 text-xs text-[color:var(--text-1)]"
+        >
+          {(Object.keys(MEMORY_TYPE_LABELS) as MemoryType[]).map((t) => (
+            <option key={t} value={t}>
+              {MEMORY_TYPE_LABELS[t]}
+            </option>
+          ))}
+        </select>
+      </Field>
+
+      <label className="flex items-center gap-2 text-xs text-[color:var(--text-1)]">
+        <input
+          type="checkbox"
+          checked={meta.always_load}
+          onChange={(e) => update({ always_load: e.target.checked })}
+          className="accent-[color:var(--accent)]"
         />
-      </section>
+        Always load
+      </label>
+
+      <div className="border-t border-[var(--border)]" />
+
+      {/* Scores */}
+      <Slider
+        label="Importance"
+        value={meta.importance}
+        min={0}
+        max={1}
+        step={0.05}
+        onChange={(v) => update({ importance: v })}
+      />
+      <Slider
+        label="Confidence"
+        value={meta.confidence}
+        min={0}
+        max={1}
+        step={0.05}
+        onChange={(v) => update({ confidence: v })}
+      />
+      <Slider
+        label="Decay Rate"
+        value={meta.decay_rate}
+        min={0.95}
+        max={0.9999}
+        step={0.0001}
+        onChange={(v) => update({ decay_rate: v })}
+        precision={4}
+      />
+
+      <div className="border-t border-[var(--border)]" />
+
+      {/* Content */}
+      <Field label="L0 Summary">
+        <input
+          type="text"
+          value={meta.l0}
+          onChange={(e) => update({ l0: e.target.value })}
+          placeholder="One-line summary..."
+          className="w-full rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-2 py-1.5 text-xs text-[color:var(--text-0)] placeholder:text-[color:var(--text-2)]"
+        />
+      </Field>
+
+      <ChipEditor
+        label="Tags"
+        values={meta.tags}
+        placeholder="Add tag..."
+        onAdd={(value) => update({ tags: addUnique(meta.tags, value, false) })}
+        onRemove={(value) => update({ tags: meta.tags.filter((tag) => tag !== value) })}
+      />
+      <ChipEditor
+        label="Related"
+        values={meta.related}
+        placeholder="memory-id..."
+        onAdd={(value) => update({ related: addUnique(meta.related, value) })}
+        onRemove={(value) => update({ related: meta.related.filter((item) => item !== value) })}
+      />
 
       {isSkill && (
-        <section className="space-y-2 rounded-lg border border-[var(--border)] bg-[color:var(--bg-1)]/75 p-2.5">
+        <>
+          <div className="border-t border-[var(--border)]" />
           <ChipEditor
             label="Triggers"
             values={meta.triggers}
-            placeholder="frase de activación..."
-            onAdd={(value) =>
-              update({
-                triggers: addUnique(meta.triggers, value, false),
-              })
-            }
-            onRemove={(value) =>
-              update({ triggers: meta.triggers.filter((item) => item !== value) })
-            }
+            placeholder="trigger phrase..."
+            onAdd={(value) => update({ triggers: addUnique(meta.triggers, value, false) })}
+            onRemove={(value) => update({ triggers: meta.triggers.filter((item) => item !== value) })}
           />
-          <div className="space-y-1">
-            <span className="text-[10px] uppercase tracking-[0.12em] text-[color:var(--text-2)]">
-              Output Format
-            </span>
+          <Field label="Output Format">
             <input
               type="text"
               value={meta.output_format ?? ""}
               onChange={(e) => update({ output_format: e.target.value.trim() || null })}
               placeholder="markdown / json / text..."
-              className="w-full rounded-lg border border-[var(--border)] bg-[color:var(--bg-2)] px-2 py-1.5 text-xs text-[color:var(--text-0)] placeholder:text-[color:var(--text-2)] focus:border-[color:var(--accent)] focus:outline-none"
+              className="w-full rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-2 py-1.5 text-xs text-[color:var(--text-0)] placeholder:text-[color:var(--text-2)]"
             />
-          </div>
+          </Field>
           <ChipEditor
             label="Requires"
             values={meta.requires}
-            placeholder="memory-id requerido..."
-            onAdd={(value) =>
-              update({
-                requires: addUnique(meta.requires, value),
-              })
-            }
-            onRemove={(value) =>
-              update({ requires: meta.requires.filter((item) => item !== value) })
-            }
+            placeholder="required memory-id..."
+            onAdd={(value) => update({ requires: addUnique(meta.requires, value) })}
+            onRemove={(value) => update({ requires: meta.requires.filter((item) => item !== value) })}
           />
           <ChipEditor
             label="Optional"
             values={meta.optional}
-            placeholder="memory-id opcional..."
-            onAdd={(value) =>
-              update({
-                optional: addUnique(meta.optional, value),
-              })
-            }
-            onRemove={(value) =>
-              update({ optional: meta.optional.filter((item) => item !== value) })
-            }
+            placeholder="optional memory-id..."
+            onAdd={(value) => update({ optional: addUnique(meta.optional, value) })}
+            onRemove={(value) => update({ optional: meta.optional.filter((item) => item !== value) })}
           />
-        </section>
+        </>
       )}
+    </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-1">
+      <span className="text-[10px] text-[color:var(--text-2)]">{label}</span>
+      {children}
+    </div>
+  );
+}
+
+function Slider({
+  label,
+  value,
+  min,
+  max,
+  step,
+  onChange,
+  precision = 2,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  onChange: (value: number) => void;
+  precision?: number;
+}) {
+  return (
+    <div className="space-y-0.5">
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] text-[color:var(--text-2)]">{label}</span>
+        <span className="font-mono text-[10px] text-[color:var(--text-2)]">
+          {value.toFixed(precision)}
+        </span>
+      </div>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(e) => onChange(parseFloat(e.target.value))}
+        className="w-full"
+        style={{ accentColor: "var(--accent)" }}
+      />
     </div>
   );
 }

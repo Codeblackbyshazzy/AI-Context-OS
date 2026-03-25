@@ -26,8 +26,8 @@ function AppContent() {
 
   if (onboarded === null) {
     return (
-      <div className="flex h-screen items-center justify-center text-zinc-400">
-        Cargando...
+      <div className="flex h-screen items-center justify-center text-[color:var(--text-2)]">
+        <div className="h-4 w-4 animate-spin rounded-full border-2 border-[color:var(--text-2)] border-t-transparent" />
       </div>
     );
   }
@@ -44,7 +44,7 @@ function AppContent() {
   }
 
   return (
-    <div className="h-screen overflow-hidden bg-[color:var(--bg-0)] text-[color:var(--text-0)]">
+    <div className="h-screen overflow-hidden">
       <div className="obs-app-shell flex h-full overflow-hidden">
         <Sidebar />
         <main className="relative flex-1 overflow-hidden">
@@ -57,12 +57,12 @@ function AppContent() {
             </Routes>
           </div>
           {error && (
-            <div className="absolute bottom-4 right-4 max-w-md rounded-lg border border-red-600/40 bg-[#381f24] px-3 py-2.5">
-              <div className="flex items-start gap-3">
-                <p className="flex-1 text-sm text-red-100/95">{error}</p>
+            <div className="absolute bottom-4 right-4 max-w-sm rounded-md border border-[color:var(--danger)]/30 bg-[color:var(--bg-2)] px-3 py-2.5 shadow-lg">
+              <div className="flex items-start gap-2">
+                <p className="flex-1 text-xs text-[color:var(--text-1)]">{error}</p>
                 <button
                   onClick={() => setError(null)}
-                  className="text-red-300 transition-colors hover:text-red-100"
+                  className="text-[color:var(--text-2)] hover:text-[color:var(--text-0)]"
                 >
                   ×
                 </button>

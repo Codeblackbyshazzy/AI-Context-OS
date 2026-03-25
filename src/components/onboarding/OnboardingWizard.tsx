@@ -12,6 +12,7 @@ import {
   Check,
   Loader2,
 } from "lucide-react";
+import { clsx } from "clsx";
 import { runOnboarding, type OnboardingProfile } from "../../lib/tauri";
 
 const TOOLS = ["Claude", "Cursor", "GPT/ChatGPT", "Windsurf", "Copilot", "Gemini"];
@@ -21,25 +22,25 @@ const TEMPLATES = [
     id: "developer",
     label: "Desarrollador",
     icon: Code,
-    desc: "Skills de code review, debugging, arquitectura. Reglas de convenciones y stack técnico.",
+    desc: "Code review, debugging, arquitectura. Convenciones y stack.",
   },
   {
     id: "creator",
-    label: "Creador de Contenido",
+    label: "Creador",
     icon: Pen,
-    desc: "Skills de escritura para LinkedIn, newsletters, repurposing. Reglas de marca y voz.",
+    desc: "Escritura, LinkedIn, newsletters, repurposing. Marca y voz.",
   },
   {
     id: "entrepreneur",
     label: "Emprendedor",
     icon: Briefcase,
-    desc: "Skills de análisis estratégico, actas de reunión, priorización. Reglas de restricciones.",
+    desc: "Análisis estratégico, actas, priorización. Restricciones.",
   },
   {
     id: "custom",
     label: "Personalizado",
     icon: Sparkles,
-    desc: "Empieza con un workspace vacío y configúralo a tu manera.",
+    desc: "Workspace vacío. Configúralo a tu manera.",
   },
 ];
 
@@ -59,13 +60,7 @@ export function OnboardingWizard({ onComplete }: Props) {
   const [template, setTemplate] = useState("developer");
   const [rootDir, setRootDir] = useState("~/AI-Context-OS");
 
-  const steps = [
-    "Ubicación",
-    "Perfil",
-    "Template",
-    "Herramientas",
-    "Finalizar",
-  ];
+  const steps = ["Ubicación", "Perfil", "Template", "Herramientas", "Confirmar"];
 
   const canNext = () => {
     if (step === 0) return rootDir.trim().length > 0;
@@ -98,32 +93,36 @@ export function OnboardingWizard({ onComplete }: Props) {
 
   const toggleTool = (tool: string) => {
     setTools((prev) =>
-      prev.includes(tool) ? prev.filter((t) => t !== tool) : [...prev, tool]
+      prev.includes(tool) ? prev.filter((t) => t !== tool) : [...prev, tool],
     );
   };
 
   return (
-    <div className="flex h-screen items-center justify-center bg-zinc-950 text-zinc-100">
-      <div className="w-full max-w-xl rounded-xl border border-zinc-800 bg-zinc-900/80 shadow-2xl">
+    <div className="flex h-screen items-center justify-center bg-[color:var(--bg-0)]">
+      <div className="w-full max-w-lg">
         {/* Header */}
-        <div className="flex items-center gap-3 border-b border-zinc-800 px-6 py-4">
-          <Brain className="h-6 w-6 text-violet-400" />
-          <h1 className="text-lg font-semibold">AI Context OS — Setup</h1>
+        <div className="mb-6 flex items-center gap-2.5 px-1">
+          <Brain className="h-5 w-5 text-[color:var(--accent)]" />
+          <h1 className="text-base font-semibold text-[color:var(--text-0)]">
+            AI Context OS
+          </h1>
         </div>
 
         {/* Progress */}
-        <div className="flex gap-1 px-6 pt-4">
+        <div className="mb-6 flex gap-1 px-1">
           {steps.map((s, i) => (
             <div key={s} className="flex-1">
               <div
-                className={`h-1 rounded-full transition-colors ${
-                  i <= step ? "bg-violet-500" : "bg-zinc-700"
-                }`}
+                className={clsx(
+                  "h-0.5 rounded-full transition-colors",
+                  i <= step ? "bg-[color:var(--accent)]" : "bg-[color:var(--bg-3)]",
+                )}
               />
               <p
-                className={`mt-1 text-[10px] ${
-                  i === step ? "text-violet-400" : "text-zinc-600"
-                }`}
+                className={clsx(
+                  "mt-1.5 text-[10px]",
+                  i === step ? "text-[color:var(--text-0)]" : "text-[color:var(--text-2)]",
+                )}
               >
                 {s}
               </p>
@@ -131,217 +130,231 @@ export function OnboardingWizard({ onComplete }: Props) {
           ))}
         </div>
 
-        {/* Content */}
-        <div className="min-h-[300px] px-6 py-6">
-          {step === 0 && (
-            <div className="space-y-4">
-              <h2 className="text-base font-medium">Ubicación del workspace</h2>
-              <p className="text-sm text-zinc-400">
-                El sistema creará una carpeta con 9 subdirectorios para organizar tu memoria de IA.
-              </p>
-              <div className="flex items-center gap-2">
-                <FolderOpen className="h-4 w-4 text-zinc-500" />
-                <input
-                  value={rootDir}
-                  onChange={(e) => setRootDir(e.target.value)}
-                  className="flex-1 rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm focus:border-violet-500 focus:outline-none"
-                  placeholder="~/AI-Context-OS"
-                />
-              </div>
-              <p className="text-xs text-zinc-500">
-                Se creará: 01-context/, 02-daily/, 03-intelligence/, 04-projects/,
-                05-resources/, 06-skills/, 07-tasks/, 08-rules/, 09-scratch/
-              </p>
-            </div>
-          )}
-
-          {step === 1 && (
-            <div className="space-y-4">
-              <h2 className="text-base font-medium">Tu perfil</h2>
-              <p className="text-sm text-zinc-400">
-                Esto se guardará como memoria de contexto para que tus IAs te conozcan.
-              </p>
-              <div className="space-y-3">
+        {/* Card */}
+        <div className="rounded-lg border border-[var(--border)] bg-[color:var(--bg-1)]">
+          <div className="min-h-[280px] px-5 py-5">
+            {step === 0 && (
+              <div className="space-y-4">
                 <div>
-                  <label className="mb-1 block text-xs text-zinc-400">Nombre</label>
-                  <div className="flex items-center gap-2">
-                    <User className="h-4 w-4 text-zinc-500" />
-                    <input
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      className="flex-1 rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm focus:border-violet-500 focus:outline-none"
-                      placeholder="Tu nombre"
-                    />
-                  </div>
+                  <h2 className="text-sm font-medium text-[color:var(--text-0)]">
+                    Ubicación del workspace
+                  </h2>
+                  <p className="mt-1 text-xs text-[color:var(--text-2)]">
+                    Se creará una carpeta con 9 subdirectorios para tu memoria de IA.
+                  </p>
                 </div>
-                <div>
-                  <label className="mb-1 block text-xs text-zinc-400">Rol / Profesión</label>
+                <div className="flex items-center gap-2">
+                  <FolderOpen className="h-4 w-4 shrink-0 text-[color:var(--text-2)]" />
                   <input
-                    value={role}
-                    onChange={(e) => setRole(e.target.value)}
-                    className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm focus:border-violet-500 focus:outline-none"
-                    placeholder="ej. Full-stack developer, Content strategist, CEO startup..."
+                    value={rootDir}
+                    onChange={(e) => setRootDir(e.target.value)}
+                    className="flex-1 rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-3 py-2 text-sm text-[color:var(--text-0)] placeholder:text-[color:var(--text-2)]"
+                    placeholder="~/AI-Context-OS"
                   />
                 </div>
+                <p className="font-mono text-[11px] text-[color:var(--text-2)]">
+                  01-context/ · 02-daily/ · 03-intelligence/ · 04-projects/ · 05-resources/ · 06-skills/ · 07-tasks/ · 08-rules/ · 09-scratch/
+                </p>
+              </div>
+            )}
+
+            {step === 1 && (
+              <div className="space-y-4">
                 <div>
-                  <label className="mb-1 block text-xs text-zinc-400">Idioma principal</label>
-                  <select
-                    value={language}
-                    onChange={(e) => setLanguage(e.target.value)}
-                    className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm focus:border-violet-500 focus:outline-none"
-                  >
-                    <option value="es">Español</option>
-                    <option value="en">English</option>
-                    <option value="pt">Português</option>
-                  </select>
+                  <h2 className="text-sm font-medium text-[color:var(--text-0)]">Tu perfil</h2>
+                  <p className="mt-1 text-xs text-[color:var(--text-2)]">
+                    Se guardará como memoria de contexto para tus IAs.
+                  </p>
                 </div>
-              </div>
-            </div>
-          )}
-
-          {step === 2 && (
-            <div className="space-y-4">
-              <h2 className="text-base font-medium">Elige un template</h2>
-              <p className="text-sm text-zinc-400">
-                Se generarán skills y reglas prediseñadas que puedes personalizar después.
-              </p>
-              <div className="grid grid-cols-2 gap-3">
-                {TEMPLATES.map((t) => {
-                  const Icon = t.icon;
-                  const selected = template === t.id;
-                  return (
-                    <button
-                      key={t.id}
-                      onClick={() => setTemplate(t.id)}
-                      className={`rounded-lg border p-3 text-left transition-all ${
-                        selected
-                          ? "border-violet-500 bg-violet-500/10"
-                          : "border-zinc-700 bg-zinc-800/50 hover:border-zinc-600"
-                      }`}
-                    >
-                      <Icon
-                        className={`mb-2 h-5 w-5 ${
-                          selected ? "text-violet-400" : "text-zinc-500"
-                        }`}
+                <div className="space-y-3">
+                  <div>
+                    <label className="mb-1 block text-xs text-[color:var(--text-2)]">Nombre</label>
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4 shrink-0 text-[color:var(--text-2)]" />
+                      <input
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className="flex-1 rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-3 py-2 text-sm text-[color:var(--text-0)] placeholder:text-[color:var(--text-2)]"
+                        placeholder="Tu nombre"
                       />
-                      <p className="text-sm font-medium">{t.label}</p>
-                      <p className="mt-1 text-[11px] leading-tight text-zinc-500">
-                        {t.desc}
-                      </p>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {step === 3 && (
-            <div className="space-y-4">
-              <h2 className="text-base font-medium">Herramientas de IA</h2>
-              <p className="text-sm text-zinc-400">
-                Selecciona las herramientas que usas. Se generarán archivos de compatibilidad.
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {TOOLS.map((tool) => {
-                  const selected = tools.includes(tool);
-                  return (
-                    <button
-                      key={tool}
-                      onClick={() => toggleTool(tool)}
-                      className={`rounded-full border px-3 py-1.5 text-sm transition-all ${
-                        selected
-                          ? "border-violet-500 bg-violet-500/20 text-violet-300"
-                          : "border-zinc-700 text-zinc-400 hover:border-zinc-500"
-                      }`}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs text-[color:var(--text-2)]">
+                      Rol / Profesión
+                    </label>
+                    <input
+                      value={role}
+                      onChange={(e) => setRole(e.target.value)}
+                      className="w-full rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-3 py-2 text-sm text-[color:var(--text-0)] placeholder:text-[color:var(--text-2)]"
+                      placeholder="ej. Full-stack developer, CEO startup..."
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs text-[color:var(--text-2)]">Idioma</label>
+                    <select
+                      value={language}
+                      onChange={(e) => setLanguage(e.target.value)}
+                      className="w-full rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-3 py-2 text-sm text-[color:var(--text-0)]"
                     >
-                      {selected && <Check className="mr-1 inline h-3 w-3" />}
-                      {tool}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {step === 4 && (
-            <div className="space-y-4">
-              <h2 className="text-base font-medium">Todo listo</h2>
-              <div className="rounded-lg border border-zinc-700 bg-zinc-800/50 p-4 text-sm">
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-zinc-400">Nombre:</span>
-                    <span>{name}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-zinc-400">Rol:</span>
-                    <span>{role}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-zinc-400">Template:</span>
-                    <span className="capitalize">{template}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-zinc-400">Herramientas:</span>
-                    <span>{tools.join(", ")}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-zinc-400">Ubicación:</span>
-                    <span className="font-mono text-xs">{rootDir}</span>
+                      <option value="es">Español</option>
+                      <option value="en">English</option>
+                      <option value="pt">Português</option>
+                    </select>
                   </div>
                 </div>
               </div>
-              <p className="text-sm text-zinc-400">
-                Se creará tu workspace con memorias iniciales, skills y reglas del template elegido.
-                El archivo <code className="text-violet-300">claude.md</code> se generará automáticamente.
-              </p>
-              {error && (
-                <p className="rounded-lg bg-red-950/50 p-2 text-sm text-red-300">{error}</p>
-              )}
-            </div>
-          )}
-        </div>
+            )}
 
-        {/* Footer */}
-        <div className="flex items-center justify-between border-t border-zinc-800 px-6 py-4">
-          <button
-            onClick={() => setStep((s) => s - 1)}
-            disabled={step === 0}
-            className="flex items-center gap-1 rounded-lg px-3 py-2 text-sm text-zinc-400 hover:text-zinc-200 disabled:invisible"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            Atrás
-          </button>
+            {step === 2 && (
+              <div className="space-y-4">
+                <div>
+                  <h2 className="text-sm font-medium text-[color:var(--text-0)]">Template</h2>
+                  <p className="mt-1 text-xs text-[color:var(--text-2)]">
+                    Skills y reglas prediseñadas. Personalizables después.
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {TEMPLATES.map((t) => {
+                    const Icon = t.icon;
+                    const selected = template === t.id;
+                    return (
+                      <button
+                        key={t.id}
+                        onClick={() => setTemplate(t.id)}
+                        className={clsx(
+                          "rounded-md border p-3 text-left transition-colors",
+                          selected
+                            ? "border-[color:var(--accent)] bg-[color:var(--accent-muted)]"
+                            : "border-[var(--border)] bg-[color:var(--bg-2)] hover:border-[var(--border-active)]",
+                        )}
+                      >
+                        <Icon
+                          className={clsx(
+                            "mb-1.5 h-4 w-4",
+                            selected ? "text-[color:var(--accent)]" : "text-[color:var(--text-2)]",
+                          )}
+                        />
+                        <p className="text-xs font-medium text-[color:var(--text-0)]">{t.label}</p>
+                        <p className="mt-0.5 text-[11px] leading-tight text-[color:var(--text-2)]">
+                          {t.desc}
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
-          {step < 4 ? (
+            {step === 3 && (
+              <div className="space-y-4">
+                <div>
+                  <h2 className="text-sm font-medium text-[color:var(--text-0)]">
+                    Herramientas de IA
+                  </h2>
+                  <p className="mt-1 text-xs text-[color:var(--text-2)]">
+                    Se generarán archivos de compatibilidad para cada una.
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {TOOLS.map((tool) => {
+                    const selected = tools.includes(tool);
+                    return (
+                      <button
+                        key={tool}
+                        onClick={() => toggleTool(tool)}
+                        className={clsx(
+                          "inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-xs transition-colors",
+                          selected
+                            ? "border-[color:var(--accent)] bg-[color:var(--accent-muted)] text-[color:var(--accent)]"
+                            : "border-[var(--border)] text-[color:var(--text-2)] hover:border-[var(--border-active)] hover:text-[color:var(--text-1)]",
+                        )}
+                      >
+                        {selected && <Check className="h-3 w-3" />}
+                        {tool}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {step === 4 && (
+              <div className="space-y-4">
+                <h2 className="text-sm font-medium text-[color:var(--text-0)]">Resumen</h2>
+                <div className="space-y-2 rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] p-3 text-xs">
+                  <Row label="Nombre" value={name} />
+                  <Row label="Rol" value={role} />
+                  <Row label="Template" value={template} />
+                  <Row label="Herramientas" value={tools.join(", ")} />
+                  <Row label="Ubicación" value={rootDir} mono />
+                </div>
+                <p className="text-xs text-[color:var(--text-2)]">
+                  Se creará el workspace con memorias iniciales y un{" "}
+                  <code className="rounded bg-[color:var(--bg-3)] px-1 py-0.5 font-mono text-[color:var(--accent)]">
+                    claude.md
+                  </code>{" "}
+                  auto-generado.
+                </p>
+                {error && (
+                  <p className="rounded-md bg-[color:var(--danger)]/10 px-3 py-2 text-xs text-[color:var(--danger)]">
+                    {error}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="flex items-center justify-between border-t border-[var(--border)] px-5 py-3">
             <button
-              onClick={() => setStep((s) => s + 1)}
-              disabled={!canNext()}
-              className="flex items-center gap-1 rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-500 disabled:opacity-40"
+              onClick={() => setStep((s) => s - 1)}
+              disabled={step === 0}
+              className="flex items-center gap-1 text-xs text-[color:var(--text-2)] hover:text-[color:var(--text-0)] disabled:invisible"
             >
-              Siguiente
-              <ChevronRight className="h-4 w-4" />
+              <ChevronLeft className="h-3.5 w-3.5" />
+              Atrás
             </button>
-          ) : (
-            <button
-              onClick={handleFinish}
-              disabled={loading}
-              className="flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-500 disabled:opacity-60"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Creando...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="h-4 w-4" />
-                  Crear Workspace
-                </>
-              )}
-            </button>
-          )}
+
+            {step < 4 ? (
+              <button
+                onClick={() => setStep((s) => s + 1)}
+                disabled={!canNext()}
+                className="flex items-center gap-1 rounded-md bg-[color:var(--accent)] px-4 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-30"
+              >
+                Siguiente
+                <ChevronRight className="h-3.5 w-3.5" />
+              </button>
+            ) : (
+              <button
+                onClick={handleFinish}
+                disabled={loading}
+                className="flex items-center gap-1.5 rounded-md bg-[color:var(--accent)] px-4 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Creando...
+                  </>
+                ) : (
+                  "Crear Workspace"
+                )}
+              </button>
+            )}
+          </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function Row({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div className="flex justify-between gap-4">
+      <span className="text-[color:var(--text-2)]">{label}</span>
+      <span className={clsx("text-right text-[color:var(--text-0)]", mono && "font-mono")}>
+        {value}
+      </span>
     </div>
   );
 }

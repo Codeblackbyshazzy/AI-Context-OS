@@ -4,7 +4,6 @@ import {
   ChevronDown,
   FileText,
   Folder,
-  FolderOpen,
   AlertTriangle,
 } from "lucide-react";
 import { clsx } from "clsx";
@@ -40,7 +39,6 @@ function folderToType(folder: string): MemoryType | null {
   return map[folder] ?? null;
 }
 
-/** Compute decay score from last_access and decay_rate */
 function computeDecayOpacity(meta: {
   last_access: string;
   decay_rate: number;
@@ -84,7 +82,6 @@ function TreeNode({
   const hasConflict = conflictIds.has(memoryId);
   const isRawSupported = isRawViewerSupported(node.name);
 
-  // Decay-based opacity for memory files
   const opacity = memoryMeta
     ? computeDecayOpacity(memoryMeta)
     : 1;
@@ -103,13 +100,13 @@ function TreeNode({
     <>
       <div
         className={clsx(
-          "flex cursor-pointer items-center gap-1 rounded-md px-2 py-1.5 text-sm transition-colors",
-          "hover:bg-[color:var(--bg-2)]",
-          isSelected && "bg-[color:var(--bg-3)] text-[color:var(--text-0)]",
-          !isSelected && "text-[color:var(--text-1)]",
+          "flex cursor-pointer items-center gap-1.5 rounded px-2 py-[5px] text-[13px] transition-colors",
+          isSelected
+            ? "bg-[color:var(--accent-muted)] text-[color:var(--text-0)]"
+            : "text-[color:var(--text-1)] hover:bg-[color:var(--bg-2)]",
         )}
         style={{
-          paddingLeft: `${depth * 14 + 8}px`,
+          paddingLeft: `${depth * 12 + 8}px`,
           opacity: node.is_dir ? 1 : opacity,
         }}
         onClick={handleClick}
@@ -117,39 +114,32 @@ function TreeNode({
         {node.is_dir ? (
           <>
             {isExpanded ? (
-              <ChevronDown className="h-3.5 w-3.5 shrink-0 text-[color:var(--text-2)]" />
+              <ChevronDown className="h-3 w-3 shrink-0 text-[color:var(--text-2)]" />
             ) : (
-              <ChevronRight className="h-3.5 w-3.5 shrink-0 text-[color:var(--text-2)]" />
+              <ChevronRight className="h-3 w-3 shrink-0 text-[color:var(--text-2)]" />
             )}
-            {isExpanded ? (
-              <FolderOpen
-                className="h-4 w-4 shrink-0"
-                style={{ color: color ?? "#94a3b8" }}
-              />
-            ) : (
-              <Folder
-                className="h-4 w-4 shrink-0"
-                style={{ color: color ?? "#94a3b8" }}
-              />
-            )}
+            <Folder
+              className="h-3.5 w-3.5 shrink-0"
+              style={{ color: color ?? "var(--text-2)" }}
+            />
           </>
         ) : (
           <>
-            <span className="w-3.5" />
+            <span className="w-3" />
             <FileText
-              className="h-4 w-4 shrink-0"
-              style={{ color: color ?? "#64748b" }}
+              className="h-3.5 w-3.5 shrink-0"
+              style={{ color: color ?? "var(--text-2)" }}
             />
           </>
         )}
         <span className="truncate">{node.name}</span>
         {hasConflict && (
           <span title="Conflict detected">
-            <AlertTriangle className="ml-1 h-3 w-3 shrink-0 text-amber-400" />
+            <AlertTriangle className="ml-auto h-3 w-3 shrink-0 text-[color:var(--warning)]" />
           </span>
         )}
         {memoryMeta && (
-          <span className="ml-auto shrink-0 rounded bg-[color:var(--bg-2)] px-1.5 py-0.5 text-[10px] text-[color:var(--text-2)]">
+          <span className="ml-auto shrink-0 font-mono text-[10px] text-[color:var(--text-2)]">
             {memoryMeta.importance.toFixed(1)}
           </span>
         )}
@@ -190,7 +180,6 @@ export function FileExplorer() {
     loadFileTree();
   }, [loadFileTree]);
 
-  // Load conflicts for alert icons
   useEffect(() => {
     getConflicts()
       .then((conflicts: Conflict[]) => {
@@ -204,7 +193,6 @@ export function FileExplorer() {
       .catch(() => {});
   }, [fileTree]);
 
-  // Auto-expand top-level folders
   useEffect(() => {
     if (fileTree.length > 0 && expanded.size === 0) {
       const topLevel = new Set(
@@ -227,7 +215,7 @@ export function FileExplorer() {
   };
 
   return (
-    <div className="h-full overflow-y-auto px-2 py-1.5">
+    <div className="px-1 py-1">
       {fileTree.map((node) => (
         <TreeNode
           key={node.path}
@@ -239,8 +227,8 @@ export function FileExplorer() {
         />
       ))}
       {fileTree.length === 0 && (
-        <p className="px-4 py-8 text-center text-sm text-[color:var(--text-2)]">
-          No files yet. Initialize workspace first.
+        <p className="px-3 py-8 text-center text-xs text-[color:var(--text-2)]">
+          No files yet.
         </p>
       )}
     </div>
