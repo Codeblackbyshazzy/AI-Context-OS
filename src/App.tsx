@@ -26,7 +26,7 @@ function AppContent() {
 
   if (onboarded === null) {
     return (
-      <div className="flex h-screen items-center justify-center bg-zinc-950 text-zinc-500">
+      <div className="flex h-screen items-center justify-center text-zinc-400">
         Cargando...
       </div>
     );
@@ -44,29 +44,33 @@ function AppContent() {
   }
 
   return (
-    <div className="flex h-screen bg-zinc-950 text-zinc-100">
-      <Sidebar />
-      <main className="flex-1 overflow-hidden relative">
-        <Routes>
-          <Route path="/" element={<ExplorerView />} />
-          <Route path="/graph" element={<GraphViewPage />} />
-          <Route path="/simulation" element={<SimulationView />} />
-          <Route path="/governance" element={<GovernanceView />} />
-        </Routes>
-        {error && (
-          <div className="absolute bottom-4 right-4 max-w-md rounded-lg border border-red-500/20 bg-red-950/90 px-4 py-3 shadow-lg backdrop-blur">
-            <div className="flex items-start gap-2">
-              <p className="text-sm text-red-200 flex-1">{error}</p>
-              <button
-                onClick={() => setError(null)}
-                className="text-red-400 hover:text-red-200 text-sm"
-              >
-                ×
-              </button>
-            </div>
+    <div className="h-screen overflow-hidden p-3 text-zinc-100">
+      <div className="obs-app-shell flex h-full overflow-hidden">
+        <Sidebar />
+        <main className="relative flex-1 overflow-hidden p-2">
+          <div className="h-full overflow-hidden rounded-xl border border-[var(--border)] bg-[color:var(--bg-1)]/70">
+            <Routes>
+              <Route path="/" element={<ExplorerView />} />
+              <Route path="/graph" element={<GraphViewPage />} />
+              <Route path="/simulation" element={<SimulationView />} />
+              <Route path="/governance" element={<GovernanceView />} />
+            </Routes>
           </div>
-        )}
-      </main>
+          {error && (
+            <div className="absolute bottom-5 right-5 max-w-md rounded-xl border border-red-500/30 bg-red-950/90 px-4 py-3 shadow-xl backdrop-blur">
+              <div className="flex items-start gap-3">
+                <p className="flex-1 text-sm text-red-100">{error}</p>
+                <button
+                  onClick={() => setError(null)}
+                  className="text-red-300 transition-colors hover:text-white"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+          )}
+        </main>
+      </div>
     </div>
   );
 }
