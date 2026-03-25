@@ -20,6 +20,7 @@ interface AppStore {
   graphData: GraphData | null;
   loading: boolean;
   error: string | null;
+  explorerOpen: boolean;
 
   // Actions
   initialize: () => Promise<void>;
@@ -34,6 +35,7 @@ interface AppStore {
   loadGraph: () => Promise<void>;
   regenerateRouter: () => Promise<void>;
   setError: (error: string | null) => void;
+  toggleExplorer: () => void;
 }
 
 export const useAppStore = create<AppStore>((set, get) => ({
@@ -46,6 +48,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   graphData: null,
   loading: false,
   error: null,
+  explorerOpen: true,
 
   initialize: async () => {
     try {
@@ -195,6 +198,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   },
 
   setError: (error) => set({ error }),
+  toggleExplorer: () => set((s) => ({ explorerOpen: !s.explorerOpen })),
 }));
 
 function inferRawFileKind(path: string): RawFileKind {

@@ -15,6 +15,7 @@ export function ExplorerView() {
     loadMemories,
     regenerateRouter,
     memories,
+    explorerOpen,
   } = useAppStore();
   const [showCreate, setShowCreate] = useState(false);
   const [newId, setNewId] = useState("");
@@ -71,7 +72,8 @@ export function ExplorerView() {
 
   return (
     <div className="flex h-full">
-      <aside className="flex w-[260px] shrink-0 flex-col border-r border-[var(--border)] bg-[color:var(--bg-0)]">
+      {explorerOpen && (
+        <aside className="flex w-[260px] shrink-0 flex-col border-r border-[var(--border)] bg-[color:var(--bg-0)] transition-all duration-300">
         <div className="flex items-center justify-between px-3 py-2.5">
           <span className="text-[11px] font-medium uppercase tracking-wider text-[color:var(--text-2)]">
             Memories
@@ -153,6 +155,7 @@ export function ExplorerView() {
           <FileExplorer />
         </div>
       </aside>
+      )}
 
       <section className="min-w-0 flex-1 bg-[color:var(--bg-1)]">
         <MemoryEditor />
