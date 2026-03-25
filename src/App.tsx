@@ -54,16 +54,18 @@ function AppContent() {
     <div className="flex h-screen flex-col overflow-hidden bg-[color:var(--bg-0)]">
       <div 
         data-tauri-drag-region 
-        className="flex h-12 w-full shrink-0 flex-row items-center border-b border-[color:var(--border)] relative z-50"
+        className="flex h-[38px] w-full shrink-0 flex-row items-center border-b border-[color:var(--border)] relative z-50 bg-[color:var(--bg-0)]"
       >
-        <div data-tauri-drag-region className="w-[76px] shrink-0" /> {/* Spacer for macOS traffic lights */}
-        <button
-          onClick={toggleExplorer}
-          className="rounded-md p-1.5 text-[color:var(--text-2)] transition-colors hover:bg-[color:var(--bg-2)] hover:text-[color:var(--text-1)]"
-          title="Toggle Explorer"
-        >
-          <PanelLeft className="h-[18px] w-[18px]" pointerEvents="none" />
-        </button>
+        <div data-tauri-drag-region className="w-[72px] shrink-0" /> {/* Spacer for macOS traffic lights */}
+        <div className="flex items-center gap-1">
+          <button
+            onClick={toggleExplorer}
+            className="flex h-6 w-6 items-center justify-center rounded-md text-[color:var(--text-2)] transition-colors hover:bg-[color:var(--bg-2)] hover:text-[color:var(--text-1)]"
+            title="Toggle Explorer"
+          >
+            <PanelLeft className="h-[15px] w-[15px]" pointerEvents="none" />
+          </button>
+        </div>
         <div data-tauri-drag-region className="flex-1 h-full" />
       </div>
 
