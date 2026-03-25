@@ -1,0 +1,71 @@
+mod commands;
+mod core;
+mod state;
+
+use tauri::Manager;
+
+use state::AppState;
+
+#[cfg_attr(mobile, tauri::mobile_entry_point)]
+pub fn run() {
+    tauri::Builder::default()
+        .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_fs::init())
+        .manage(AppState::new())
+        .invoke_handler(tauri::generate_handler![
+            // Config
+            commands::config::init_workspace,
+            commands::config::get_config,
+            commands::config::save_config,
+            // Memory CRUD
+            commands::memory::list_memories,
+            commands::memory::get_memory,
+            commands::memory::create_memory,
+            commands::memory::save_memory,
+            commands::memory::delete_memory,
+            // Filesystem
+            commands::filesystem::get_file_tree,
+            commands::filesystem::read_file,
+            commands::filesystem::write_file,
+            // Router
+            commands::router::regenerate_router,
+            commands::router::get_router_content,
+            // Scoring
+            commands::scoring::simulate_context,
+            // Graph
+            commands::graph::get_graph_data,
+            // Governance
+            commands::governance::get_conflicts,
+            commands::governance::get_decay_candidates,
+            commands::governance::get_consolidation_suggestions,
+            commands::governance::get_scratch_candidates,
+            // Daily
+            commands::daily::get_daily_entries,
+            commands::daily::append_daily_entry,
+            // Onboarding
+            commands::onboarding::run_onboarding,
+            commands::onboarding::is_onboarded,
+        ])
+        .setup(|app| {
+            // Initialize workspace on first launch
+            let state = app.state::<AppState>();
+            let root = state.get_root();
+
+            if !root.join("claude.md").exists() {
+                log::info!("Workspace not found, will initialize on first use");
+            } else {
+                // Load memory index
+                let all = crate::core::index::scan_memories(&root);
+                let mut index = state.memory_index.write().unwrap();
+                for (meta, path) in all {
+                    index.insert(meta.id.clone(), (meta, path));
+                }
+                log::info!("Loaded {} memories from workspace", index.len());
+            }
+
+            Ok(())
+        })
+        .run(tauri::generate_context!())
+        .expect("error while running tauri application");
+}

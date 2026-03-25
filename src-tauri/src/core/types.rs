@@ -1,0 +1,254 @@
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum MemoryType {
+    Context,
+    Daily,
+    Intelligence,
+    Project,
+    Resource,
+    Skill,
+    Task,
+    Rule,
+    Scratch,
+}
+
+impl MemoryType {
+    pub fn folder_name(&self) -> &str {
+        match self {
+            MemoryType::Context => "01-context",
+            MemoryType::Daily => "02-daily",
+            MemoryType::Intelligence => "03-intelligence",
+            MemoryType::Project => "04-projects",
+            MemoryType::Resource => "05-resources",
+            MemoryType::Skill => "06-skills",
+            MemoryType::Task => "07-tasks",
+            MemoryType::Rule => "08-rules",
+            MemoryType::Scratch => "09-scratch",
+        }
+    }
+
+    pub fn from_folder(folder: &str) -> Option<Self> {
+        match folder {
+            "01-context" => Some(MemoryType::Context),
+            "02-daily" => Some(MemoryType::Daily),
+            "03-intelligence" => Some(MemoryType::Intelligence),
+            "04-projects" => Some(MemoryType::Project),
+            "05-resources" => Some(MemoryType::Resource),
+            "06-skills" => Some(MemoryType::Skill),
+            "07-tasks" => Some(MemoryType::Task),
+            "08-rules" => Some(MemoryType::Rule),
+            "09-scratch" => Some(MemoryType::Scratch),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MemoryMeta {
+    pub id: String,
+    #[serde(rename = "type")]
+    pub memory_type: MemoryType,
+    pub l0: String,
+    #[serde(default = "default_importance")]
+    pub importance: f64,
+    #[serde(default)]
+    pub always_load: bool,
+    #[serde(default = "default_decay_rate")]
+    pub decay_rate: f64,
+    #[serde(default = "Utc::now")]
+    pub last_access: DateTime<Utc>,
+    #[serde(default)]
+    pub access_count: u32,
+    #[serde(default = "default_confidence")]
+    pub confidence: f64,
+    #[serde(default)]
+    pub tags: Vec<String>,
+    #[serde(default)]
+    pub related: Vec<String>,
+    #[serde(default = "Utc::now")]
+    pub created: DateTime<Utc>,
+    #[serde(default = "Utc::now")]
+    pub modified: DateTime<Utc>,
+    #[serde(default = "default_version")]
+    pub version: u32,
+    // Skill-specific fields
+    #[serde(default)]
+    pub triggers: Vec<String>,
+    #[serde(default)]
+    pub requires: Vec<String>,
+    #[serde(default)]
+    pub optional: Vec<String>,
+    #[serde(default)]
+    pub output_format: Option<String>,
+}
+
+fn default_importance() -> f64 {
+    0.5
+}
+fn default_decay_rate() -> f64 {
+    0.998
+}
+fn default_confidence() -> f64 {
+    0.9
+}
+fn default_version() -> u32 {
+    1
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Memory {
+    pub meta: MemoryMeta,
+    pub l1_content: String,
+    pub l2_content: String,
+    pub raw_content: String,
+    pub file_path: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum LoadLevel {
+    L0,
+    L1,
+    L2,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ScoreBreakdown {
+    pub semantic: f64,
+    pub bm25: f64,
+    pub recency: f64,
+    pub importance: f64,
+    pub access_frequency: f64,
+    pub graph_proximity: f64,
+    pub final_score: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ScoredMemory {
+    pub memory_id: String,
+    pub l0: String,
+    pub memory_type: MemoryType,
+    pub load_level: LoadLevel,
+    pub score: ScoreBreakdown,
+    pub token_estimate: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GraphNode {
+    pub id: String,
+    pub label: String,
+    pub memory_type: MemoryType,
+    pub importance: f64,
+    pub decay_score: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GraphEdge {
+    pub source: String,
+    pub target: String,
+    pub edge_type: String, // "related", "requires", "optional"
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GraphData {
+    pub nodes: Vec<GraphNode>,
+    pub edges: Vec<GraphEdge>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FileNode {
+    pub name: String,
+    pub path: String,
+    pub is_dir: bool,
+    #[serde(default)]
+    pub children: Vec<FileNode>,
+    pub memory_type: Option<MemoryType>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Config {
+    #[serde(default = "default_root_dir")]
+    pub root_dir: String,
+    #[serde(default = "default_token_budget")]
+    pub default_token_budget: u32,
+    #[serde(default = "default_decay_threshold")]
+    pub decay_threshold: f64,
+    #[serde(default = "default_scratch_ttl")]
+    pub scratch_ttl_days: u32,
+    #[serde(default)]
+    pub active_tools: Vec<String>,
+}
+
+fn default_root_dir() -> String {
+    "~/AI-Context-OS".to_string()
+}
+fn default_token_budget() -> u32 {
+    4000
+}
+fn default_decay_threshold() -> f64 {
+    0.1
+}
+fn default_scratch_ttl() -> u32 {
+    7
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DailyEntry {
+    pub timestamp: DateTime<Utc>,
+    #[serde(rename = "type")]
+    pub entry_type: String,
+    pub summary: String,
+    #[serde(default)]
+    pub tags: Vec<String>,
+    #[serde(default)]
+    pub source: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Conflict {
+    pub memory_a: String,
+    pub memory_b: String,
+    pub description: String,
+    pub conflicting_terms: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ConsolidationSuggestion {
+    pub entries: Vec<DailyEntry>,
+    pub suggested_type: MemoryType,
+    pub suggested_folder: String,
+    pub summary: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateMemoryInput {
+    pub id: String,
+    pub memory_type: MemoryType,
+    pub l0: String,
+    #[serde(default = "default_importance")]
+    pub importance: f64,
+    #[serde(default)]
+    pub tags: Vec<String>,
+    #[serde(default)]
+    pub l1_content: String,
+    #[serde(default)]
+    pub l2_content: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SaveMemoryInput {
+    pub id: String,
+    pub meta: MemoryMeta,
+    pub l1_content: String,
+    pub l2_content: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MemoryFilter {
+    pub memory_type: Option<MemoryType>,
+    pub tags: Option<Vec<String>>,
+    pub min_importance: Option<f64>,
+}

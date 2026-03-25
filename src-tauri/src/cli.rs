@@ -1,0 +1,275 @@
+mod core;
+
+use std::path::PathBuf;
+
+use chrono::Utc;
+use clap::{Parser, Subcommand};
+
+use core::compat::{generate_cursorrules, generate_windsurfrules};
+use core::index::scan_memories;
+use core::memory::read_memory;
+use core::router::{generate_claude_md, generate_index_yaml};
+use core::scoring::compute_score;
+use core::types::{Config, Memory};
+
+#[derive(Parser)]
+#[command(name = "ai-context-cli")]
+#[command(about = "AI Context OS — CLI for managing AI memory workspace")]
+#[command(version)]
+struct Cli {
+    /// Workspace root directory (default: ~/AI-Context-OS)
+    #[arg(short, long)]
+    root: Option<String>,
+
+    #[command(subcommand)]
+    command: Commands,
+}
+
+#[derive(Subcommand)]
+enum Commands {
+    /// Initialize workspace directory structure
+    Init,
+    /// Search memories by query
+    Search {
+        /// Search query
+        query: String,
+        /// Maximum number of results
+        #[arg(short = 'n', long, default_value = "10")]
+        limit: usize,
+    },
+    /// Score memories for a query with token budget
+    Score {
+        /// Search query
+        query: String,
+        /// Token budget
+        #[arg(short, long, default_value = "4000")]
+        budget: u32,
+    },
+    /// Regenerate claude.md router and compatibility files
+    Regenerate,
+    /// List all memories
+    List,
+    /// Show memory details
+    Show {
+        /// Memory ID
+        id: String,
+    },
+}
+
+fn get_root(root_opt: &Option<String>) -> PathBuf {
+    if let Some(r) = root_opt {
+        if r.starts_with("~/") {
+            if let Some(home) = dirs::home_dir() {
+                return home.join(&r[2..]);
+            }
+        }
+        PathBuf::from(r)
+    } else {
+        dirs::home_dir()
+            .unwrap_or_else(|| PathBuf::from("."))
+            .join("AI-Context-OS")
+    }
+}
+
+fn load_config(root: &PathBuf) -> Config {
+    let config_path = root.join("_config.yaml");
+    if config_path.exists() {
+        let content = std::fs::read_to_string(&config_path).unwrap_or_default();
+        serde_yaml::from_str(&content).unwrap_or_else(|_| Config {
+            root_dir: root.to_string_lossy().to_string(),
+            default_token_budget: 4000,
+            decay_threshold: 0.1,
+            scratch_ttl_days: 7,
+            active_tools: vec!["claude".to_string()],
+        })
+    } else {
+        Config {
+            root_dir: root.to_string_lossy().to_string(),
+            default_token_budget: 4000,
+            decay_threshold: 0.1,
+            scratch_ttl_days: 7,
+            active_tools: vec!["claude".to_string()],
+        }
+    }
+}
+
+fn load_all_memories(root: &PathBuf) -> Vec<Memory> {
+    let scanned = scan_memories(root);
+    scanned
+        .iter()
+        .filter_map(|(_meta, path)| {
+            let full_path = root.join(path);
+            read_memory(&full_path).ok()
+        })
+        .collect()
+}
+
+fn main() {
+    let cli = Cli::parse();
+    let root = get_root(&cli.root);
+
+    match cli.command {
+        Commands::Init => {
+            if root.join("claude.md").exists() {
+                println!("Workspace already initialized at {}", root.display());
+                return;
+            }
+
+            let dirs = [
+                "01-context", "02-daily", "02-daily/sessions", "03-intelligence",
+                "04-projects", "05-resources", "06-skills", "07-tasks",
+                "08-rules", "09-scratch", ".cache",
+            ];
+
+            for dir in &dirs {
+                std::fs::create_dir_all(root.join(dir)).unwrap();
+            }
+
+            let config = Config {
+                root_dir: root.to_string_lossy().to_string(),
+                default_token_budget: 4000,
+                decay_threshold: 0.1,
+                scratch_ttl_days: 7,
+                active_tools: vec!["claude".to_string()],
+            };
+            let yaml = serde_yaml::to_string(&config).unwrap();
+            std::fs::write(root.join("_config.yaml"), yaml).unwrap();
+            std::fs::write(root.join("claude.md"), "# AI Context OS — Router\n\nInitialized.\n").unwrap();
+            std::fs::write(root.join("_index.yaml"), "memories: []\n").unwrap();
+
+            println!("Workspace initialized at {}", root.display());
+        }
+
+        Commands::Search { query, limit } => {
+            let memories = load_all_memories(&root);
+            if memories.is_empty() {
+                println!("No memories found.");
+                return;
+            }
+
+            let now = Utc::now();
+            let mut scored: Vec<(f64, &Memory)> = memories
+                .iter()
+                .map(|m| {
+                    let sb = compute_score(&query, m, &memories, &[], now);
+                    (sb.final_score, m)
+                })
+                .collect();
+
+            scored.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap());
+
+            println!("Search results for: \"{}\"", query);
+            println!("{:-<60}", "");
+            for (i, (score, m)) in scored.iter().take(limit).enumerate() {
+                println!(
+                    "  {}. [{:.2}] {} ({})",
+                    i + 1,
+                    score,
+                    m.meta.l0,
+                    m.meta.id
+                );
+            }
+        }
+
+        Commands::Score { query, budget } => {
+            let memories = load_all_memories(&root);
+            if memories.is_empty() {
+                println!("No memories found.");
+                return;
+            }
+
+            let now = Utc::now();
+            let mut scored: Vec<(f64, &Memory, u32)> = memories
+                .iter()
+                .map(|m| {
+                    let sb = compute_score(&query, m, &memories, &[], now);
+                    let tokens = core::levels::estimate_tokens(&m.l2_content);
+                    (sb.final_score, m, tokens)
+                })
+                .collect();
+
+            scored.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap());
+
+            println!("Context simulation: \"{}\" (budget: {} tokens)", query, budget);
+            println!("{:-<60}", "");
+
+            let mut used: u32 = 0;
+            for (score, m, tokens) in &scored {
+                if used + tokens > budget {
+                    break;
+                }
+                used += tokens;
+                println!(
+                    "  [{:.2}] {} — ~{} tokens (total: {}/{})",
+                    score, m.meta.l0, tokens, used, budget
+                );
+            }
+            println!("{:-<60}", "");
+            println!("Total tokens used: {}/{}", used, budget);
+        }
+
+        Commands::Regenerate => {
+            let config = load_config(&root);
+            let scanned = scan_memories(&root);
+            let metas: Vec<_> = scanned.iter().map(|(m, _)| m.clone()).collect();
+
+            let claude_md = generate_claude_md(&metas, &config);
+            std::fs::write(root.join("claude.md"), &claude_md).unwrap();
+
+            let index_yaml = generate_index_yaml(&metas);
+            std::fs::write(root.join("_index.yaml"), &index_yaml).unwrap();
+
+            let cursorrules = generate_cursorrules(&claude_md);
+            std::fs::write(root.join(".cursorrules"), &cursorrules).ok();
+            let windsurfrules = generate_windsurfrules(&claude_md);
+            std::fs::write(root.join(".windsurfrules"), &windsurfrules).ok();
+
+            println!(
+                "Regenerated: claude.md, _index.yaml, .cursorrules, .windsurfrules ({} memories)",
+                metas.len()
+            );
+        }
+
+        Commands::List => {
+            let scanned = scan_memories(&root);
+            if scanned.is_empty() {
+                println!("No memories found.");
+                return;
+            }
+
+            println!("Memories ({}):", scanned.len());
+            println!("{:-<60}", "");
+            for (meta, _path) in &scanned {
+                println!(
+                    "  [{}] {} (type: {:?}, importance: {:.1})",
+                    meta.id, meta.l0, meta.memory_type, meta.importance
+                );
+            }
+        }
+
+        Commands::Show { id } => {
+            let scanned = scan_memories(&root);
+            if let Some((_meta, path)) = scanned.iter().find(|(m, _)| m.id == id) {
+                let full_path = root.join(path);
+                match read_memory(&full_path) {
+                    Ok(memory) => {
+                        println!("ID: {}", memory.meta.id);
+                        println!("Type: {:?}", memory.meta.memory_type);
+                        println!("L0: {}", memory.meta.l0);
+                        println!("Importance: {:.2}", memory.meta.importance);
+                        println!("Tags: {}", memory.meta.tags.join(", "));
+                        println!("Version: {}", memory.meta.version);
+                        println!("{:-<60}", "");
+                        println!("--- L1 ---");
+                        println!("{}", memory.l1_content);
+                        println!("--- L2 ---");
+                        println!("{}", memory.l2_content);
+                    }
+                    Err(e) => println!("Error reading memory: {}", e),
+                }
+            } else {
+                println!("Memory '{}' not found.", id);
+            }
+        }
+    }
+}
