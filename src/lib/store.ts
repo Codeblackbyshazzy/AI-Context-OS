@@ -27,6 +27,7 @@ interface AppStore {
   loadMemories: () => Promise<void>;
   selectFile: (id: string) => Promise<void>;
   selectRawFile: (path: string) => Promise<void>;
+  saveRawFile: (path: string, content: string) => Promise<void>;
   clearSelection: () => void;
   saveActiveMemory: (l1: string, l2: string, meta: MemoryMeta) => Promise<void>;
   deleteMemory: (id: string) => Promise<void>;
@@ -106,6 +107,23 @@ export const useAppStore = create<AppStore>((set, get) => ({
         selectedPath: path,
         loading: false,
       });
+    } catch (e) {
+      set({ error: String(e), loading: false });
+    }
+  },
+
+  saveRawFile: async (path: string, content: string) => {
+    try {
+      set({ loading: true });
+      await api.writeFile(path, content);
+      set((state) => ({
+        activeRawFile:
+          state.activeRawFile?.path === path
+            ? { ...state.activeRawFile, content }
+            : state.activeRawFile,
+        loading: false,
+      }));
+      await get().loadFileTree();
     } catch (e) {
       set({ error: String(e), loading: false });
     }
