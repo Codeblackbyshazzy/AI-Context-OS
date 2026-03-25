@@ -5,6 +5,8 @@ import { ExplorerView } from "./views/ExplorerView";
 import { GraphViewPage } from "./views/GraphViewPage";
 import { SimulationView } from "./views/SimulationView";
 import { GovernanceView } from "./views/GovernanceView";
+import { JournalView } from "./views/JournalView";
+import { TaskView } from "./views/TaskView";
 import { OnboardingWizard } from "./components/onboarding/OnboardingWizard";
 import { useFileWatcher } from "./hooks/useFileWatcher";
 import { useAppStore } from "./lib/store";
@@ -51,6 +53,8 @@ function AppContent() {
           <div className="h-full overflow-hidden bg-[color:var(--bg-1)]">
             <Routes>
               <Route path="/" element={<ExplorerView />} />
+              <Route path="/journal" element={<JournalView />} />
+              <Route path="/tasks" element={<TaskView />} />
               <Route path="/graph" element={<GraphViewPage />} />
               <Route path="/simulation" element={<SimulationView />} />
               <Route path="/governance" element={<GovernanceView />} />

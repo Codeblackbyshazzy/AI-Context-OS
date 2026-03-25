@@ -12,3 +12,5 @@ pub mod jsonl;
 pub mod governance;
 pub mod watcher;
 pub mod compat;
+pub mod journal;
+pub mod tasks;

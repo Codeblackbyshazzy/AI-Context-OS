@@ -42,9 +42,21 @@ pub fn run() {
             commands::governance::get_decay_candidates,
             commands::governance::get_consolidation_suggestions,
             commands::governance::get_scratch_candidates,
-            // Daily
+            // Daily (JSONL system events)
             commands::daily::get_daily_entries,
             commands::daily::append_daily_entry,
+            // Journal (Logseq-style daily pages)
+            commands::journal::get_journal_page,
+            commands::journal::save_journal_page,
+            commands::journal::list_journal_dates,
+            commands::journal::get_today,
+            // Tasks
+            commands::tasks::list_tasks,
+            commands::tasks::create_task,
+            commands::tasks::update_task,
+            commands::tasks::delete_task,
+            commands::tasks::toggle_task_state,
+            commands::tasks::generate_task_id,
             // Onboarding
             commands::onboarding::run_onboarding,
             commands::onboarding::is_onboarded,

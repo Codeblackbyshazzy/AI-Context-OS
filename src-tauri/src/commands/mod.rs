@@ -7,3 +7,5 @@ pub mod graph;
 pub mod governance;
 pub mod daily;
 pub mod onboarding;
+pub mod journal;
+pub mod tasks;

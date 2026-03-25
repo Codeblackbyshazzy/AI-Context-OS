@@ -5,6 +5,8 @@ import type {
   DailyEntry,
   FileNode,
   GraphData,
+  JournalDateInfo,
+  JournalPage,
   Memory,
   MemoryFilter,
   MemoryMeta,
@@ -12,6 +14,8 @@ import type {
   ScoredMemory,
   Conflict,
   ConsolidationSuggestion,
+  TaskFilter,
+  TaskItem,
 } from "./types";
 
 // Config
@@ -67,6 +71,28 @@ export const getDailyEntries = (date?: string) =>
   invoke<DailyEntry[]>("get_daily_entries", { date: date ?? null });
 export const appendDailyEntry = (entry: DailyEntry) =>
   invoke<void>("append_daily_entry", { entry });
+
+// Journal (Logseq-style daily pages)
+export const getJournalPage = (date: string) =>
+  invoke<JournalPage>("get_journal_page", { date });
+export const saveJournalPage = (date: string, content: string) =>
+  invoke<string>("save_journal_page", { date, content });
+export const listJournalDates = () =>
+  invoke<JournalDateInfo[]>("list_journal_dates");
+export const getToday = () => invoke<string>("get_today");
+
+// Tasks
+export const listTasks = (filter?: TaskFilter) =>
+  invoke<TaskItem[]>("list_tasks", { filter: filter ?? null });
+export const createTask = (task: TaskItem) =>
+  invoke<TaskItem>("create_task", { task });
+export const updateTask = (task: TaskItem) =>
+  invoke<TaskItem>("update_task", { task });
+export const deleteTask = (id: string) =>
+  invoke<void>("delete_task", { id });
+export const toggleTaskState = (id: string) =>
+  invoke<TaskItem>("toggle_task_state", { id });
+export const generateTaskId = () => invoke<string>("generate_task_id");
 
 // Onboarding
 export interface OnboardingProfile {

@@ -124,6 +124,74 @@ export interface ConsolidationSuggestion {
   summary: string;
 }
 
+// ─── Journal types ───
+
+export interface JournalBlock {
+  id: string;
+  indent: number;
+  content: string;
+  children: JournalBlock[];
+  task_state: TaskState | null;
+  task_priority: TaskPriority | null;
+}
+
+export interface JournalPage {
+  date: string;
+  blocks: JournalBlock[];
+  raw_content: string;
+  file_path: string;
+}
+
+export interface JournalDateInfo {
+  date: string;
+  block_count: number;
+  has_tasks: boolean;
+}
+
+// ─── Task types ───
+
+export type TaskState = "todo" | "in_progress" | "done" | "cancelled";
+export type TaskPriority = "a" | "b" | "c";
+
+export interface TaskItem {
+  id: string;
+  title: string;
+  state: TaskState;
+  priority: TaskPriority | null;
+  tags: string[];
+  source_date: string | null;
+  source_file: string | null;
+  created: string;
+  modified: string;
+  notes: string;
+}
+
+export interface TaskFilter {
+  state?: TaskState;
+  priority?: TaskPriority;
+  tag?: string;
+}
+
+export const TASK_STATE_LABELS: Record<TaskState, string> = {
+  todo: "Por hacer",
+  in_progress: "En progreso",
+  done: "Hecho",
+  cancelled: "Cancelado",
+};
+
+export const TASK_STATE_COLORS: Record<TaskState, string> = {
+  todo: "#f59e0b",
+  in_progress: "#3b82f6",
+  done: "#10b981",
+  cancelled: "#71717a",
+};
+
+export const TASK_PRIORITY_LABELS: Record<TaskPriority, string> = {
+  a: "Alta",
+  b: "Media",
+  c: "Baja",
+};
+
 export interface CreateMemoryInput {
   id: string;
   memory_type: MemoryType;

@@ -5,11 +5,15 @@ import {
   FlaskConical,
   Shield,
   Brain,
+  BookOpen,
+  ListTodo,
 } from "lucide-react";
 import { clsx } from "clsx";
 
 const navItems = [
   { to: "/", icon: FolderTree, label: "Explorer" },
+  { to: "/journal", icon: BookOpen, label: "Journal" },
+  { to: "/tasks", icon: ListTodo, label: "Tasks" },
   { to: "/graph", icon: Network, label: "Graph" },
   { to: "/simulation", icon: FlaskConical, label: "Simulation" },
   { to: "/governance", icon: Shield, label: "Governance" },
