@@ -1,11 +1,4 @@
-import {
-  useState,
-  useEffect,
-  useCallback,
-  useMemo,
-  useRef,
-  type ReactNode,
-} from "react";
+import { useState, useEffect, useCallback, useMemo, useRef, type ReactNode } from "react";
 import { FileText, PanelRightClose, PanelRightOpen, Save, Trash2 } from "lucide-react";
 import { clsx } from "clsx";
 import { useAppStore } from "../../lib/store";
@@ -13,7 +6,6 @@ import { FrontmatterForm } from "./FrontmatterForm";
 import { TipTapEditor } from "./TipTapEditor";
 import type { MemoryMeta, MemoryType, RawFileDocument } from "../../lib/types";
 
-type EditorMode = "both" | "l1" | "l2";
 type InspectorTab = "properties" | "links" | "history";
 
 interface OutgoingLink {
@@ -44,7 +36,6 @@ export function MemoryEditor() {
   const [l1, setL1] = useState("");
   const [l2, setL2] = useState("");
   const [dirty, setDirty] = useState(false);
-  const [mode, setMode] = useState<EditorMode>("l2");
   const [showInspector, setShowInspector] = useState(false);
   const [inspectorTab, setInspectorTab] = useState<InspectorTab>("properties");
 
@@ -198,23 +189,6 @@ export function MemoryEditor() {
           <p className="truncate text-sm font-semibold text-[color:var(--text-0)]">{meta.id}</p>
           <p className="truncate text-xs text-[color:var(--text-2)]">{meta.l0 || "Sin resumen L0"}</p>
         </div>
-        <div className="hidden items-center gap-1 rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-1 py-1 md:flex">
-          <ModeButton
-            active={mode === "both"}
-            label="Ambos"
-            onClick={() => setMode("both")}
-          />
-          <ModeButton
-            active={mode === "l1"}
-            label="Solo L1"
-            onClick={() => setMode("l1")}
-          />
-          <ModeButton
-            active={mode === "l2"}
-            label="Solo L2"
-            onClick={() => setMode("l2")}
-          />
-        </div>
         <button
           type="button"
           onClick={() => setShowInspector((prev) => !prev)}
@@ -258,48 +232,16 @@ export function MemoryEditor() {
 
       <div className="flex min-h-0 flex-1 gap-2 p-2">
         <div className="min-w-0 flex-1 overflow-y-auto p-2">
-          <div className="mb-2 flex items-center justify-between rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-3 py-1.5">
-            <p className="text-xs text-[color:var(--text-2)]">
-              Version {meta.version} · Última edición {modifiedLabel}
-            </p>
-            <p className="text-xs text-[color:var(--text-2)]">Cmd/Ctrl + S para guardar</p>
-          </div>
-
-          <div className="space-y-3">
-            {mode !== "l2" && (
-              <EditorSection
-                title="L1 · Resumen enfocado"
-                hint="Escribe la versión comprimida de la idea."
-              >
-                <TipTapEditor
-                  content={l1}
-                  onChange={(val) => {
-                    setL1(val);
-                    setDirty(true);
-                  }}
-                  className={mode === "both" ? "min-h-[180px]" : "min-h-[330px]"}
-                  placeholder="Resumen principal en lenguaje claro..."
-                />
-              </EditorSection>
-            )}
-
-            {mode !== "l1" && (
-              <EditorSection
-                title="L2 · Contenido completo"
-                hint="Desarrolla detalles, decisiones y referencias."
-              >
-                <TipTapEditor
-                  content={l2}
-                  onChange={(val) => {
-                    setL2(val);
-                    setDirty(true);
-                  }}
-                  className={mode === "both" ? "min-h-[260px]" : "min-h-[460px]"}
-                  placeholder="Documento extenso en Markdown..."
-                />
-              </EditorSection>
-            )}
-          </div>
+          <TipTapEditor
+            content={l2}
+            onChange={(val) => {
+              setL2(val);
+              setDirty(true);
+            }}
+            className="min-h-[520px]"
+            placeholder="L2 · Contenido completo..."
+            toolbarLabel="L2 · Contenido completo · Cmd/Ctrl+S"
+          />
         </div>
 
         <aside
@@ -325,6 +267,8 @@ export function MemoryEditor() {
                 label="Links"
                 value={String(outgoingLinks.length + incomingLinks.length)}
               />
+              <InspectorMetric label="Version" value={`v${meta.version}`} />
+              <InspectorMetric label="Última edición" value={modifiedLabel} />
             </div>
 
             <div className="flex items-center gap-1 border-b border-[var(--border)] px-2 py-1.5">
@@ -364,52 +308,6 @@ export function MemoryEditor() {
         </aside>
       </div>
     </div>
-  );
-}
-
-function ModeButton({
-  active,
-  label,
-  onClick,
-}: {
-  active: boolean;
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={
-        active
-          ? "rounded-md bg-[color:var(--bg-3)] px-2 py-1 text-xs text-[color:var(--text-0)]"
-          : "rounded-md px-2 py-1 text-xs text-[color:var(--text-2)] transition-colors hover:text-[color:var(--text-0)]"
-      }
-    >
-      {label}
-    </button>
-  );
-}
-
-function EditorSection({
-  title,
-  hint,
-  children,
-}: {
-  title: string;
-  hint: string;
-  children: ReactNode;
-}) {
-  return (
-    <section className="space-y-2">
-      <div
-        className="flex items-center justify-between rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-3 py-1.5"
-      >
-        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[color:var(--text-1)]">{title}</p>
-        <p className="text-[11px] text-[color:var(--text-2)]">{hint}</p>
-      </div>
-      {children}
-    </section>
   );
 }
 
@@ -786,7 +684,8 @@ function RawSyntaxEditor({
       <pre
         ref={highlightRef}
         aria-hidden
-        className="pointer-events-none absolute inset-0 overflow-auto p-3 font-mono text-xs leading-5 text-[color:var(--text-1)]"
+        className="pointer-events-none absolute inset-0 overflow-auto whitespace-pre p-3 font-mono text-xs leading-5 text-[color:var(--text-1)]"
+        style={{ fontVariantLigatures: "none" }}
       >
         {highlighted}
         {value.endsWith("\n") ? " " : ""}
@@ -798,7 +697,9 @@ function RawSyntaxEditor({
         onScroll={handleScroll}
         onKeyDown={handleKeyDown}
         spellCheck={false}
-        className="absolute inset-0 min-h-[360px] w-full resize-y bg-transparent p-3 font-mono text-xs leading-5 text-transparent caret-[color:var(--text-0)] outline-none selection:bg-[color:var(--bg-3)]"
+        wrap="off"
+        className="absolute inset-0 min-h-[360px] w-full resize-none overflow-auto bg-transparent p-3 font-mono text-xs leading-5 text-transparent caret-[color:var(--text-0)] outline-none selection:bg-[color:var(--bg-3)]"
+        style={{ fontVariantLigatures: "none" }}
       />
     </div>
   );

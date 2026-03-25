@@ -23,6 +23,7 @@ interface Props {
   onChange: (value: string) => void;
   placeholder?: string;
   className?: string;
+  toolbarLabel?: string;
 }
 
 interface ToolbarButton {
@@ -37,7 +38,13 @@ interface ToolbarButton {
  * Markdown-oriented TipTap editor with a compact toolbar inspired by block editors.
  * Content is serialized back to Markdown-compatible plain text.
  */
-export function TipTapEditor({ content, onChange, placeholder, className }: Props) {
+export function TipTapEditor({
+  content,
+  onChange,
+  placeholder,
+  className,
+  toolbarLabel,
+}: Props) {
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -188,7 +195,9 @@ export function TipTapEditor({ content, onChange, placeholder, className }: Prop
             </button>
           );
         })}
-        <span className="ml-auto text-[11px] text-[color:var(--text-2)]">Toolbar</span>
+        <span className="ml-auto text-[11px] text-[color:var(--text-2)]">
+          {toolbarLabel ?? "Toolbar"}
+        </span>
       </div>
       <EditorContent editor={editor} />
     </div>
