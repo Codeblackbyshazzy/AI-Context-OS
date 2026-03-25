@@ -7,8 +7,14 @@ import { createMemory } from "../lib/tauri";
 import type { MemoryType } from "../lib/types";
 
 export function ExplorerView() {
-  const { initialized, initialize, loadFileTree, loadMemories, regenerateRouter } =
-    useAppStore();
+  const {
+    initialized,
+    initialize,
+    loadFileTree,
+    loadMemories,
+    regenerateRouter,
+    memories,
+  } = useAppStore();
   const [showCreate, setShowCreate] = useState(false);
   const [newId, setNewId] = useState("");
   const [newType, setNewType] = useState<MemoryType>("context");
@@ -64,52 +70,55 @@ export function ExplorerView() {
   };
 
   return (
-    <div className="flex h-full">
-      {/* Left panel: File Explorer */}
-      <div className="flex w-72 flex-col border-r border-zinc-800 bg-zinc-950">
-        <div className="flex items-center justify-between border-b border-zinc-800 px-3 py-2.5">
-          <span className="text-xs font-semibold text-zinc-300 uppercase tracking-wider">
-            Explorer
-          </span>
-          <div className="flex gap-1">
-            <button
-              onClick={handleRegenerate}
-              className="rounded border border-zinc-800 bg-zinc-900/50 p-1.5 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
-              title="Regenerate router"
-            >
-              <RefreshCw className="h-3.5 w-3.5" />
-            </button>
-            <button
-              onClick={() => setShowCreate(!showCreate)}
-              className="rounded border border-zinc-800 bg-zinc-900/50 p-1.5 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
-              title="New memory"
-            >
-              <Plus className="h-3.5 w-3.5" />
-            </button>
+    <div className="flex h-full gap-2 p-2">
+      <aside className="obs-panel flex w-[320px] shrink-0 flex-col overflow-hidden">
+        <div className="border-b border-[var(--border)] px-3 py-3">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--text-1)]">
+              Explorer
+            </span>
+            <div className="flex gap-1.5">
+              <button
+                onClick={() => setShowCreate((prev) => !prev)}
+                className="rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-2.5 py-1 text-xs text-[color:var(--text-1)] transition-colors hover:border-sky-500/40 hover:text-[color:var(--text-0)]"
+                title="Nueva memoria"
+              >
+                <Plus className="h-3.5 w-3.5" />
+              </button>
+              <button
+                onClick={handleRegenerate}
+                className="rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-2.5 py-1 text-xs text-[color:var(--text-1)] transition-colors hover:border-sky-500/40 hover:text-[color:var(--text-0)]"
+                title="Regenerar router"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
+          <div className="rounded-lg border border-[var(--border)] bg-[color:var(--bg-1)]/75 px-2.5 py-1.5 text-xs text-[color:var(--text-2)]">
+            {memories.length} memorias disponibles
           </div>
         </div>
 
-        {/* Create memory form */}
         {showCreate && (
-          <div className="space-y-2 border-b border-zinc-800 bg-zinc-900/50 p-3">
+          <div className="space-y-2 border-b border-[var(--border)] bg-[color:var(--bg-1)]/65 p-3">
             <input
               type="text"
               value={newId}
               onChange={(e) => setNewId(e.target.value)}
               placeholder="memory-id (ej: stack-tecnologico)"
-              className="w-full rounded bg-zinc-800 border border-zinc-700 px-2 py-1 text-xs text-zinc-300 placeholder:text-zinc-600 focus:border-violet-500 focus:outline-none"
+              className="w-full rounded-lg border border-[var(--border)] bg-[color:var(--bg-2)] px-2.5 py-1.5 text-xs text-[color:var(--text-0)] placeholder:text-[color:var(--text-2)] focus:border-sky-500/50 focus:outline-none"
             />
             <input
               type="text"
               value={newL0}
               onChange={(e) => setNewL0(e.target.value)}
               placeholder="Resumen L0..."
-              className="w-full rounded bg-zinc-800 border border-zinc-700 px-2 py-1 text-xs text-zinc-300 placeholder:text-zinc-600 focus:border-violet-500 focus:outline-none"
+              className="w-full rounded-lg border border-[var(--border)] bg-[color:var(--bg-2)] px-2.5 py-1.5 text-xs text-[color:var(--text-0)] placeholder:text-[color:var(--text-2)] focus:border-sky-500/50 focus:outline-none"
             />
             <select
               value={newType}
               onChange={(e) => setNewType(e.target.value as MemoryType)}
-              className="w-full rounded bg-zinc-800 border border-zinc-700 px-2 py-1 text-xs text-zinc-300"
+              className="w-full rounded-lg border border-[var(--border)] bg-[color:var(--bg-2)] px-2.5 py-1.5 text-xs text-[color:var(--text-1)]"
             >
               <option value="context">Context</option>
               <option value="intelligence">Intelligence</option>
@@ -121,27 +130,37 @@ export function ExplorerView() {
               <option value="rule">Rule</option>
               <option value="scratch">Scratch</option>
             </select>
-            <button
-              onClick={handleCreate}
-              disabled={!newId.trim() || !newL0.trim()}
-              className="w-full rounded bg-violet-600 px-2 py-1 text-xs font-medium text-white hover:bg-violet-500 disabled:bg-zinc-700 disabled:text-zinc-500"
-            >
-              Create Memory
-            </button>
-            <p className="text-[11px] text-zinc-500">
-              Tip: también puedes renombrar y mover memoria cambiando ID o Type desde el
-              editor y guardando.
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowCreate(false)}
+                className="flex-1 rounded-lg border border-[var(--border)] px-2 py-1.5 text-xs font-medium text-[color:var(--text-1)] transition-colors hover:bg-[color:var(--bg-2)]"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreate}
+                disabled={!newId.trim() || !newL0.trim()}
+                className="flex-1 rounded-lg bg-sky-600 px-2 py-1.5 text-xs font-medium text-white transition-colors hover:bg-sky-500 disabled:cursor-not-allowed disabled:bg-[color:var(--bg-3)] disabled:text-[color:var(--text-2)]"
+              >
+                Create
+              </button>
+            </div>
+            <p className="text-[11px] text-[color:var(--text-2)]">
+              `Cmd/Ctrl + N` abre este formulario.
             </p>
           </div>
         )}
 
-        <FileExplorer />
-      </div>
+        <div className="min-h-0 flex-1 px-2 pb-2 pt-1">
+          <div className="h-full rounded-lg border border-[var(--border)] bg-[color:var(--bg-1)]/60">
+            <FileExplorer />
+          </div>
+        </div>
+      </aside>
 
-      {/* Right panel: Editor */}
-      <div className="flex-1">
+      <section className="min-w-0 flex-1">
         <MemoryEditor />
-      </div>
+      </section>
     </div>
   );
 }

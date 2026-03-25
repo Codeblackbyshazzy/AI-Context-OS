@@ -99,13 +99,13 @@ function TreeNode({
     <>
       <div
         className={clsx(
-          "flex items-center gap-1 px-2 py-1 cursor-pointer rounded text-sm",
-          "hover:bg-zinc-800/60 transition-colors",
-          isSelected && "bg-zinc-800 text-white",
-          !isSelected && "text-zinc-400",
+          "flex cursor-pointer items-center gap-1 rounded-lg px-2 py-1.5 text-sm transition-colors",
+          "hover:bg-[color:var(--bg-3)]/40",
+          isSelected && "border border-sky-500/30 bg-sky-500/12 text-sky-100",
+          !isSelected && "text-[color:var(--text-1)]",
         )}
         style={{
-          paddingLeft: `${depth * 16 + 8}px`,
+          paddingLeft: `${depth * 14 + 8}px`,
           opacity: node.is_dir ? 1 : opacity,
         }}
         onClick={handleClick}
@@ -113,19 +113,19 @@ function TreeNode({
         {node.is_dir ? (
           <>
             {isExpanded ? (
-              <ChevronDown className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
+              <ChevronDown className="h-3.5 w-3.5 shrink-0 text-[color:var(--text-2)]" />
             ) : (
-              <ChevronRight className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
+              <ChevronRight className="h-3.5 w-3.5 shrink-0 text-[color:var(--text-2)]" />
             )}
             {isExpanded ? (
               <FolderOpen
                 className="h-4 w-4 shrink-0"
-                style={{ color: color ?? "#a1a1aa" }}
+                style={{ color: color ?? "#94a3b8" }}
               />
             ) : (
               <Folder
                 className="h-4 w-4 shrink-0"
-                style={{ color: color ?? "#a1a1aa" }}
+                style={{ color: color ?? "#94a3b8" }}
               />
             )}
           </>
@@ -134,18 +134,18 @@ function TreeNode({
             <span className="w-3.5" />
             <FileText
               className="h-4 w-4 shrink-0"
-              style={{ color: color ?? "#71717a" }}
+              style={{ color: color ?? "#64748b" }}
             />
           </>
         )}
         <span className="truncate">{node.name}</span>
         {hasConflict && (
           <span title="Conflict detected">
-            <AlertTriangle className="h-3 w-3 shrink-0 text-amber-400 ml-1" />
+            <AlertTriangle className="ml-1 h-3 w-3 shrink-0 text-amber-400" />
           </span>
         )}
         {memoryMeta && (
-          <span className="ml-auto text-xs text-zinc-600 shrink-0">
+          <span className="ml-auto shrink-0 rounded border border-[var(--border)] bg-[color:var(--bg-2)] px-1.5 py-0.5 text-[10px] text-[color:var(--text-2)]">
             {memoryMeta.importance.toFixed(1)}
           </span>
         )}
@@ -214,7 +214,7 @@ export function FileExplorer() {
   };
 
   return (
-    <div className="h-full overflow-y-auto py-2">
+    <div className="h-full overflow-y-auto p-1.5">
       {fileTree.map((node) => (
         <TreeNode
           key={node.path}
@@ -226,7 +226,7 @@ export function FileExplorer() {
         />
       ))}
       {fileTree.length === 0 && (
-        <p className="px-4 py-8 text-center text-sm text-zinc-600">
+        <p className="px-4 py-8 text-center text-sm text-[color:var(--text-2)]">
           No files yet. Initialize workspace first.
         </p>
       )}
