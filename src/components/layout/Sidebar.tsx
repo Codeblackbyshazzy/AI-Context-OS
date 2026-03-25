@@ -7,6 +7,7 @@ import {
   Brain,
   BookOpen,
   ListTodo,
+  Settings,
 } from "lucide-react";
 import { clsx } from "clsx";
 
@@ -46,6 +47,23 @@ export function Sidebar() {
           </NavLink>
         ))}
       </nav>
+
+      <div className="mt-auto mb-4 flex flex-col items-center">
+        <NavLink
+            to="/settings"
+            className={({ isActive }) =>
+              clsx(
+                "flex h-8 w-8 items-center justify-center rounded-md transition-colors",
+                isActive
+                  ? "bg-[color:var(--accent-muted)] text-[color:var(--accent)]"
+                  : "text-[color:var(--text-2)] hover:bg-[color:var(--bg-2)] hover:text-[color:var(--text-1)]",
+              )
+            }
+            title="Settings"
+        >
+          <Settings className="h-[18px] w-[18px]" />
+        </NavLink>
+      </div>
     </aside>
   );
 }

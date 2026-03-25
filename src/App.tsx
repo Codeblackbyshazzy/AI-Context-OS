@@ -11,9 +11,12 @@ import { OnboardingWizard } from "./components/onboarding/OnboardingWizard";
 import { useFileWatcher } from "./hooks/useFileWatcher";
 import { useAppStore } from "./lib/store";
 import { isOnboarded } from "./lib/tauri";
+import { SettingsView } from "./views/SettingsView";
+import { useThemeEffect } from "./lib/settingsStore";
 
 function AppContent() {
   useFileWatcher();
+  useThemeEffect();
   const error = useAppStore((s) => s.error);
   const setError = useAppStore((s) => s.setError);
   const initialize = useAppStore((s) => s.initialize);
@@ -58,6 +61,7 @@ function AppContent() {
               <Route path="/graph" element={<GraphViewPage />} />
               <Route path="/simulation" element={<SimulationView />} />
               <Route path="/governance" element={<GovernanceView />} />
+              <Route path="/settings" element={<SettingsView />} />
             </Routes>
           </div>
           {error && (
