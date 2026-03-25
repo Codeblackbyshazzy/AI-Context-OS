@@ -18,7 +18,7 @@ const navItems = [
 
 export function Sidebar() {
   return (
-    <aside className="flex w-58 flex-col border-r border-[var(--border)] bg-[color:var(--bg-0)]/70 p-3">
+    <aside className="flex w-[232px] flex-col border-r border-[var(--border)] bg-[color:var(--bg-0)]/70 p-3">
       <div className="mb-4 rounded-xl border border-[var(--border)] bg-[color:var(--bg-2)]/55 p-2.5">
         <div className="mb-1.5 flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-sky-400/40 bg-sky-500/20">
@@ -55,7 +55,7 @@ export function Sidebar() {
           }
           title={item.label}
         >
-          <item.icon className="h-4.5 w-4.5" />
+          <item.icon className="h-4 w-4" />
           <span>{item.label}</span>
         </NavLink>
       ))}
