@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, type ReactNode } from "react";
 import { FileText, PanelRightClose, PanelRightOpen, Save, Trash2 } from "lucide-react";
 import { clsx } from "clsx";
 import { useAppStore } from "../../lib/store";
@@ -260,7 +260,7 @@ function EditorSection({
   title: string;
   hint: string;
   tone: "sky" | "emerald";
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   const toneClasses =
     tone === "sky"

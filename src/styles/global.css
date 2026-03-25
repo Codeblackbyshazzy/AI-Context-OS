@@ -31,6 +31,8 @@ body {
     radial-gradient(circle at 18% 12%, rgba(124, 183, 255, 0.12), transparent 36%),
     radial-gradient(circle at 82% 78%, rgba(75, 225, 180, 0.08), transparent 38%),
     linear-gradient(180deg, #111418 0%, #131820 100%);
+  color: var(--text-0);
+  overflow: hidden;
 }
 
 * {
@@ -39,6 +41,13 @@ body {
 
 #root {
   min-height: 100vh;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: "Manrope", "Avenir Next", "Segoe UI", sans-serif;
 }
 
 .obs-app-shell {
@@ -81,6 +90,10 @@ body {
 
 .obs-inspector {
   transition: width 220ms ease, opacity 220ms ease, transform 220ms ease;
+}
+
+.obs-inspector > * {
+  height: 100%;
 }
 
 /* Scrollbar styling */
@@ -201,4 +214,26 @@ body {
 
 .tiptap em {
   font-style: italic;
+}
+
+.react-flow__controls {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(21, 27, 34, 0.9);
+}
+
+.react-flow__controls-button {
+  background: rgba(30, 35, 43, 0.95);
+  border-bottom: 1px solid var(--border);
+  color: #9fb0c8;
+}
+
+.react-flow__controls-button:hover {
+  background: rgba(45, 55, 68, 0.95);
+  color: #dbe6f5;
+}
+
+.react-flow__attribution {
+  display: none;
 }
