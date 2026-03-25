@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, type ReactNode } from "react";
 import { FileText, PanelRightClose, PanelRightOpen, Save, Trash2 } from "lucide-react";
-import { clsx } from "clsx";
 import { useAppStore } from "../../lib/store";
 import { FrontmatterForm } from "./FrontmatterForm";
 import { TipTapEditor } from "./TipTapEditor";
@@ -89,7 +88,7 @@ export function MemoryEditor() {
           <p className="truncate text-sm font-semibold text-[color:var(--text-0)]">{meta.id}</p>
           <p className="truncate text-xs text-[color:var(--text-2)]">{meta.l0 || "Sin resumen L0"}</p>
         </div>
-        <div className="hidden items-center gap-1 rounded-lg border border-[var(--border)] bg-[color:var(--bg-1)]/70 p-1 md:flex">
+        <div className="hidden items-center gap-1 rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-1 py-1 md:flex">
           <ModeButton
             active={mode === "both"}
             label="Ambos"
@@ -109,7 +108,7 @@ export function MemoryEditor() {
         <button
           type="button"
           onClick={() => setShowInspector((prev) => !prev)}
-          className="rounded-lg border border-[var(--border)] bg-[color:var(--bg-2)]/65 px-2.5 py-1.5 text-[color:var(--text-1)] transition-colors hover:text-[color:var(--text-0)]"
+          className="rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-2.5 py-1.5 text-[color:var(--text-1)] transition-colors hover:text-[color:var(--text-0)]"
           title={
             showInspector
               ? "Ocultar panel derecho (Cmd/Ctrl + \\)"
@@ -126,7 +125,7 @@ export function MemoryEditor() {
           type="button"
           onClick={handleDelete}
           disabled={loading}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-red-700/40 bg-red-950/35 px-2.5 py-1.5 text-xs font-medium text-red-200 transition-colors hover:bg-red-900/40 disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-2.5 py-1.5 text-xs font-medium text-[color:var(--text-1)] transition-colors hover:bg-[color:var(--bg-3)] hover:text-[color:var(--text-0)] disabled:opacity-50"
         >
           <Trash2 className="h-3.5 w-3.5" />
           Delete
@@ -136,9 +135,9 @@ export function MemoryEditor() {
           onClick={() => void handleSave()}
           disabled={!dirty || loading}
           className={clsx(
-            "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors",
+            "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors",
             dirty
-              ? "bg-sky-600 text-white hover:bg-sky-500"
+              ? "bg-[color:var(--accent)] text-white hover:brightness-110"
               : "cursor-not-allowed bg-[color:var(--bg-3)] text-[color:var(--text-2)]",
           )}
         >
@@ -148,8 +147,8 @@ export function MemoryEditor() {
       </div>
 
       <div className="flex min-h-0 flex-1 gap-2 p-2">
-        <div className="min-w-0 flex-1 overflow-y-auto rounded-xl border border-[var(--border)] bg-[color:var(--bg-1)]/55 p-3">
-          <div className="mb-3 flex items-center justify-between rounded-lg border border-[var(--border)] bg-[color:var(--bg-2)]/55 px-3 py-2">
+        <div className="min-w-0 flex-1 overflow-y-auto p-2">
+          <div className="mb-2 flex items-center justify-between rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-3 py-1.5">
             <p className="text-xs text-[color:var(--text-2)]">
               Version {meta.version} · Última edición {modifiedLabel}
             </p>
@@ -161,7 +160,6 @@ export function MemoryEditor() {
               <EditorSection
                 title="L1 · Resumen enfocado"
                 hint="Escribe la versión comprimida de la idea."
-                tone="sky"
               >
                 <TipTapEditor
                   content={l1}
@@ -179,7 +177,6 @@ export function MemoryEditor() {
               <EditorSection
                 title="L2 · Contenido completo"
                 hint="Desarrolla detalles, decisiones y referencias."
-                tone="emerald"
               >
                 <TipTapEditor
                   content={l2}
@@ -201,7 +198,7 @@ export function MemoryEditor() {
             showInspector ? "w-[348px] opacity-100" : "pointer-events-none w-0 opacity-0",
           )}
         >
-          <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-[var(--border)] bg-[color:var(--bg-1)]/65">
+          <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-md border border-[var(--border)] bg-[color:var(--bg-1)]">
             <div className="border-b border-[var(--border)] px-3 py-2.5">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--text-1)]">
                 Inspector
@@ -239,12 +236,11 @@ function ModeButton({
     <button
       type="button"
       onClick={onClick}
-      className={clsx(
-        "rounded-md px-2 py-1 text-xs transition-colors",
+      className={
         active
-          ? "bg-sky-500/20 text-sky-200"
-          : "text-[color:var(--text-2)] hover:text-[color:var(--text-0)]",
-      )}
+          ? "rounded-md bg-[color:var(--bg-3)] px-2 py-1 text-xs text-[color:var(--text-0)]"
+          : "rounded-md px-2 py-1 text-xs text-[color:var(--text-2)] transition-colors hover:text-[color:var(--text-0)]"
+      }
     >
       {label}
     </button>
@@ -254,28 +250,19 @@ function ModeButton({
 function EditorSection({
   title,
   hint,
-  tone,
   children,
 }: {
   title: string;
   hint: string;
-  tone: "sky" | "emerald";
   children: ReactNode;
 }) {
-  const toneClasses =
-    tone === "sky"
-      ? "border-sky-500/25 bg-sky-500/8 text-sky-200"
-      : "border-emerald-500/25 bg-emerald-500/8 text-emerald-200";
   return (
     <section className="space-y-2">
       <div
-        className={clsx(
-          "flex items-center justify-between rounded-lg border px-3 py-2",
-          toneClasses,
-        )}
+        className="flex items-center justify-between rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-3 py-1.5"
       >
-        <p className="text-xs font-semibold uppercase tracking-[0.12em]">{title}</p>
-        <p className="text-[11px] opacity-80">{hint}</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[color:var(--text-1)]">{title}</p>
+        <p className="text-[11px] text-[color:var(--text-2)]">{hint}</p>
       </div>
       {children}
     </section>
