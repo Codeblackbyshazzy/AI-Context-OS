@@ -21,6 +21,7 @@ interface AppStore {
   loading: boolean;
   error: string | null;
   explorerOpen: boolean;
+  isCreateMemoryOpen: boolean;
 
   // Actions
   initialize: () => Promise<void>;
@@ -36,6 +37,8 @@ interface AppStore {
   regenerateRouter: () => Promise<void>;
   setError: (error: string | null) => void;
   toggleExplorer: () => void;
+  toggleCreateMemory: () => void;
+  setCreateMemoryOpen: (v: boolean) => void;
 }
 
 export const useAppStore = create<AppStore>((set, get) => ({
@@ -49,6 +52,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   loading: false,
   error: null,
   explorerOpen: true,
+  isCreateMemoryOpen: false,
 
   initialize: async () => {
     try {
@@ -199,6 +203,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
   setError: (error) => set({ error }),
   toggleExplorer: () => set((s) => ({ explorerOpen: !s.explorerOpen })),
+  toggleCreateMemory: () => set((s) => ({ isCreateMemoryOpen: !s.isCreateMemoryOpen })),
+  setCreateMemoryOpen: (v) => set({ isCreateMemoryOpen: v }),
 }));
 
 function inferRawFileKind(path: string): RawFileKind {

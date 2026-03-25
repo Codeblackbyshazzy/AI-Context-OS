@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Plus, RefreshCw } from "lucide-react";
 import { clsx } from "clsx";
 import { FileExplorer } from "../components/explorer/FileExplorer";
 import { MemoryEditor } from "../components/editor/MemoryEditor";
@@ -16,8 +15,9 @@ export function ExplorerView() {
     regenerateRouter,
     memories,
     explorerOpen,
+    isCreateMemoryOpen,
+    setCreateMemoryOpen,
   } = useAppStore();
-  const [showCreate, setShowCreate] = useState(false);
   const [newId, setNewId] = useState("");
   const [newType, setNewType] = useState<MemoryType>("context");
   const [newL0, setNewL0] = useState("");
@@ -32,7 +32,7 @@ export function ExplorerView() {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "n") {
         e.preventDefault();
-        setShowCreate(true);
+        setCreateMemoryOpen(true);
       }
     };
     window.addEventListener("keydown", handler);
@@ -52,7 +52,7 @@ export function ExplorerView() {
         l2_content: "",
       });
       await regenerateRouter();
-      setShowCreate(false);
+      setCreateMemoryOpen(false);
       setNewId("");
       setNewL0("");
     } catch (e) {
@@ -60,45 +60,19 @@ export function ExplorerView() {
     }
   };
 
-  const handleRegenerate = async () => {
-    try {
-      await regenerateRouter();
-      await loadFileTree();
-      await loadMemories();
-    } catch (e) {
-      console.error("Failed to regenerate:", e);
-    }
-  };
-
   return (
     <div className="flex h-full">
       {explorerOpen && (
         <aside className="flex w-[260px] shrink-0 flex-col border-r border-[var(--border)] bg-[color:var(--bg-0)] transition-all duration-300">
-        <div className="flex items-center justify-between px-3 py-2.5">
+        <div className="flex items-center justify-between px-3 py-3 border-b border-[var(--border)]">
           <span className="text-[11px] font-medium uppercase tracking-wider text-[color:var(--text-2)]">
             Memories
             <span className="ml-1.5 font-normal tabular-nums">{memories.length}</span>
           </span>
-          <div className="flex gap-0.5">
-            <button
-              onClick={() => setShowCreate((prev) => !prev)}
-              className="rounded p-1 text-[color:var(--text-2)] transition-colors hover:bg-[color:var(--bg-2)] hover:text-[color:var(--text-1)]"
-              title="New memory (Cmd+N)"
-            >
-              <Plus className="h-3.5 w-3.5" />
-            </button>
-            <button
-              onClick={handleRegenerate}
-              className="rounded p-1 text-[color:var(--text-2)] transition-colors hover:bg-[color:var(--bg-2)] hover:text-[color:var(--text-1)]"
-              title="Regenerate router"
-            >
-              <RefreshCw className="h-3.5 w-3.5" />
-            </button>
-          </div>
         </div>
 
-        {showCreate && (
-          <div className="space-y-2 border-t border-[var(--border)] px-3 py-2.5">
+        {isCreateMemoryOpen && (
+          <div className="space-y-2 border-b border-[var(--border)] px-3 py-2.5 bg-[color:var(--bg-1)]">
             <input
               type="text"
               value={newId}
@@ -130,8 +104,8 @@ export function ExplorerView() {
             </select>
             <div className="flex gap-2">
               <button
-                onClick={() => setShowCreate(false)}
-                className="flex-1 rounded-md border border-[var(--border)] py-1.5 text-xs text-[color:var(--text-2)] transition-colors hover:text-[color:var(--text-1)]"
+                onClick={() => setCreateMemoryOpen(false)}
+                className="flex-1 rounded-md border border-[var(--border)] py-1.5 text-xs text-[color:var(--text-2)] transition-colors hover:bg-[color:var(--bg-2)] hover:text-[color:var(--text-1)]"
               >
                 Cancel
               </button>
