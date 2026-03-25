@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Plus, RefreshCw } from "lucide-react";
 import { clsx } from "clsx";
 import { FileExplorer } from "../components/explorer/FileExplorer";
 import { MemoryEditor } from "../components/editor/MemoryEditor";
@@ -10,6 +11,8 @@ export function ExplorerView() {
   const {
     initialized,
     initialize,
+    loadFileTree,
+    loadMemories,
     regenerateRouter,
     memories,
     explorerOpen,
@@ -58,15 +61,41 @@ export function ExplorerView() {
     }
   };
 
+  const handleRegenerate = async () => {
+    try {
+      await regenerateRouter();
+      await loadFileTree();
+      await loadMemories();
+    } catch (e) {
+      console.error("Failed to regenerate:", e);
+    }
+  };
+
   return (
     <div className="flex h-full">
       {explorerOpen && (
         <aside className="flex w-[260px] shrink-0 flex-col border-r border-[var(--border)] bg-[color:var(--bg-0)] transition-all duration-300">
-        <div className="flex items-center justify-between px-3 py-3 border-b border-[var(--border)]">
+        <div className="flex shrink-0 h-[38px] items-center justify-between px-3 border-b border-[var(--border)]">
           <span className="text-[11px] font-medium uppercase tracking-wider text-[color:var(--text-2)]">
             Memories
             <span className="ml-1.5 font-normal tabular-nums">{memories.length}</span>
           </span>
+          <div className="flex gap-0.5">
+            <button
+              onClick={() => setCreateMemoryOpen(!isCreateMemoryOpen)}
+              className="rounded p-1 text-[color:var(--text-2)] transition-colors hover:bg-[color:var(--bg-2)] hover:text-[color:var(--text-1)]"
+              title="New memory (Cmd+N)"
+            >
+              <Plus className="h-3.5 w-3.5" />
+            </button>
+            <button
+              onClick={handleRegenerate}
+              className="rounded p-1 text-[color:var(--text-2)] transition-colors hover:bg-[color:var(--bg-2)] hover:text-[color:var(--text-1)]"
+              title="Regenerate router"
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+            </button>
+          </div>
         </div>
 
         {isCreateMemoryOpen && (

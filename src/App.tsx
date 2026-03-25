@@ -13,7 +13,7 @@ import { useAppStore } from "./lib/store";
 import { isOnboarded } from "./lib/tauri";
 import { SettingsView } from "./views/SettingsView";
 import { useThemeEffect } from "./lib/settingsStore";
-import { PanelLeft, Plus, RefreshCw } from "lucide-react";
+import { PanelLeft } from "lucide-react";
 
 function AppContent() {
   useFileWatcher();
@@ -22,22 +22,9 @@ function AppContent() {
   const setError = useAppStore((s) => s.setError);
   const initialize = useAppStore((s) => s.initialize);
   const toggleExplorer = useAppStore((s) => s.toggleExplorer);
-  const toggleCreateMemory = useAppStore((s) => s.toggleCreateMemory);
-  const regenerateRouter = useAppStore((s) => s.regenerateRouter);
-  const loadFileTree = useAppStore((s) => s.loadFileTree);
-  const loadMemories = useAppStore((s) => s.loadMemories);
+  const explorerOpen = useAppStore((s) => s.explorerOpen);
 
   const [onboarded, setOnboarded] = useState<boolean | null>(null);
-
-  const handleRegenerate = async () => {
-    try {
-      await regenerateRouter();
-      await loadFileTree();
-      await loadMemories();
-    } catch (e) {
-      console.error("Failed to regenerate:", e);
-    }
-  };
 
   useEffect(() => {
     isOnboarded()
@@ -67,11 +54,19 @@ function AppContent() {
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-[color:var(--bg-0)]">
       <div 
-        data-tauri-drag-region 
         className="flex h-[38px] w-full shrink-0 flex-row items-center border-b border-[color:var(--border)] relative z-50 bg-[color:var(--bg-0)]"
       >
-        <div data-tauri-drag-region className="w-[72px] shrink-0" /> {/* Spacer for macOS traffic lights */}
-        <div className="flex items-center gap-1">
+        <div data-tauri-drag-region className="w-[72px] h-full shrink-0" /> {/* Spacer for macOS traffic lights */}
+
+        {/* Animated spacer linking Toggle Button to the right edge of Explorer */}
+        <div 
+          className="flex h-full items-center justify-start overflow-hidden transition-[width] duration-300 ease-in-out"
+          style={{ width: explorerOpen ? "196px" : "0px" }}
+          data-tauri-drag-region
+        />
+
+        {/* Sliding Toggle Button: Pushed left/right by the animated spacer */}
+        <div className="flex w-[40px] items-center justify-center shrink-0">
           <button
             onClick={toggleExplorer}
             className="flex h-6 w-6 items-center justify-center rounded-md text-[color:var(--text-2)] transition-colors hover:bg-[color:var(--bg-2)] hover:text-[color:var(--text-1)]"
@@ -79,24 +74,9 @@ function AppContent() {
           >
             <PanelLeft className="h-[15px] w-[15px]" pointerEvents="none" />
           </button>
-
-          <div className="mx-1 h-3.5 w-px bg-[color:var(--border)]" />
-
-          <button
-            onClick={toggleCreateMemory}
-            className="flex h-6 w-6 items-center justify-center rounded-md text-[color:var(--text-2)] transition-colors hover:bg-[color:var(--bg-2)] hover:text-[color:var(--text-1)]"
-            title="New Memory (Cmd+N)"
-          >
-            <Plus className="h-[15px] w-[15px]" pointerEvents="none" />
-          </button>
-          <button
-            onClick={handleRegenerate}
-            className="flex h-6 w-6 items-center justify-center rounded-md text-[color:var(--text-2)] transition-colors hover:bg-[color:var(--bg-2)] hover:text-[color:var(--text-1)]"
-            title="Regenerate Router"
-          >
-            <RefreshCw className="h-[14px] w-[14px]" pointerEvents="none" />
-          </button>
         </div>
+
+        {/* Remaining top window drag region */}
         <div data-tauri-drag-region className="flex-1 h-full" />
       </div>
 
