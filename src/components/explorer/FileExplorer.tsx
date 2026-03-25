@@ -99,9 +99,9 @@ function TreeNode({
     <>
       <div
         className={clsx(
-          "flex cursor-pointer items-center gap-1 rounded-lg px-2 py-1.5 text-sm transition-colors",
-          "hover:bg-[color:var(--bg-3)]/40",
-          isSelected && "border border-sky-500/30 bg-sky-500/12 text-sky-100",
+          "flex cursor-pointer items-center gap-1 rounded-md px-2 py-1.5 text-sm transition-colors",
+          "hover:bg-[color:var(--bg-2)]",
+          isSelected && "bg-[color:var(--bg-3)] text-[color:var(--text-0)]",
           !isSelected && "text-[color:var(--text-1)]",
         )}
         style={{
@@ -145,7 +145,7 @@ function TreeNode({
           </span>
         )}
         {memoryMeta && (
-          <span className="ml-auto shrink-0 rounded border border-[var(--border)] bg-[color:var(--bg-2)] px-1.5 py-0.5 text-[10px] text-[color:var(--text-2)]">
+          <span className="ml-auto shrink-0 rounded bg-[color:var(--bg-2)] px-1.5 py-0.5 text-[10px] text-[color:var(--text-2)]">
             {memoryMeta.importance.toFixed(1)}
           </span>
         )}
@@ -214,7 +214,7 @@ export function FileExplorer() {
   };
 
   return (
-    <div className="h-full overflow-y-auto p-1.5">
+    <div className="h-full overflow-y-auto px-2 py-1.5">
       {fileTree.map((node) => (
         <TreeNode
           key={node.path}

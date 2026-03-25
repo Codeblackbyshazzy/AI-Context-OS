@@ -165,7 +165,7 @@ export function TipTapEditor({ content, onChange, placeholder, className }: Prop
 
   return (
     <div className="obs-editor-shell overflow-hidden">
-      <div className="flex flex-wrap items-center gap-1 border-b border-[var(--border)] bg-[color:var(--bg-1)]/80 px-3 py-2">
+      <div className="flex flex-wrap items-center gap-1 border-b border-[var(--border)] bg-[color:var(--bg-1)] px-2.5 py-1.5">
         {toolbarButtons.map((button) => {
           const active = button.isActive?.(editor) ?? false;
           const disabled = button.isDisabled?.(editor) ?? false;
@@ -176,10 +176,10 @@ export function TipTapEditor({ content, onChange, placeholder, className }: Prop
               onClick={() => button.action(editor)}
               disabled={disabled}
               className={clsx(
-                "inline-flex h-8 w-8 items-center justify-center rounded-md border transition-colors",
+                "inline-flex h-7 w-7 items-center justify-center rounded-md transition-colors",
                 active
-                  ? "border-sky-400/40 bg-sky-500/20 text-sky-200"
-                  : "border-transparent bg-[color:var(--bg-2)]/55 text-[color:var(--text-1)] hover:border-[var(--border)] hover:text-[color:var(--text-0)]",
+                  ? "bg-[color:var(--bg-3)] text-[color:var(--text-0)]"
+                  : "text-[color:var(--text-2)] hover:bg-[color:var(--bg-2)] hover:text-[color:var(--text-0)]",
                 disabled && "cursor-not-allowed opacity-45",
               )}
               title={button.label}
@@ -188,7 +188,7 @@ export function TipTapEditor({ content, onChange, placeholder, className }: Prop
             </button>
           );
         })}
-        <span className="ml-auto text-xs text-[color:var(--text-2)]">/ para comandos</span>
+        <span className="ml-auto text-[11px] text-[color:var(--text-2)]">Toolbar</span>
       </div>
       <EditorContent editor={editor} />
     </div>
