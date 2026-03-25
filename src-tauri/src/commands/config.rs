@@ -1,10 +1,11 @@
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
-use tauri::State;
+use tauri::{AppHandle, State};
 
 use crate::core::jsonl::create_jsonl_with_schema;
 use crate::core::types::Config;
+use crate::core::watcher::start_watcher;
 use crate::state::AppState;
 
 /// Create the workspace directory structure and starter files.
@@ -121,9 +122,33 @@ Cada skill sabe qué memorias necesita (campo requires/optional).
     Ok(config)
 }
 
+pub fn read_config_from_root(root: &Path) -> Result<Option<Config>, String> {
+    let config_path = root.join("_config.yaml");
+    if !config_path.exists() {
+        return Ok(None);
+    }
+    let content = fs::read_to_string(&config_path)
+        .map_err(|e| format!("Failed to read config {}: {}", config_path.display(), e))?;
+    let config: Config = serde_yaml::from_str(&content)
+        .map_err(|e| format!("Failed to parse config {}: {}", config_path.display(), e))?;
+    Ok(Some(config))
+}
+
+fn expand_home(path: &str) -> PathBuf {
+    if path == "~" {
+        return dirs::home_dir().unwrap_or_else(|| PathBuf::from("."));
+    }
+    if let Some(rest) = path.strip_prefix("~/") {
+        if let Some(home) = dirs::home_dir() {
+            return home.join(rest);
+        }
+    }
+    PathBuf::from(path)
+}
+
 /// Initialize the workspace directory structure.
 #[tauri::command]
-pub fn init_workspace(state: State<AppState>) -> Result<bool, String> {
+pub fn init_workspace(app: AppHandle, state: State<AppState>) -> Result<bool, String> {
     let root = state.get_root();
 
     if root.join("claude.md").exists() {
@@ -131,7 +156,9 @@ pub fn init_workspace(state: State<AppState>) -> Result<bool, String> {
     }
 
     let config = create_workspace_structure(&root, &[])?;
+    state.set_root(root.clone())?;
     *state.config.write().unwrap() = config;
+    start_watcher(root, app).ok();
 
     Ok(true)
 }
@@ -140,13 +167,8 @@ pub fn init_workspace(state: State<AppState>) -> Result<bool, String> {
 #[tauri::command]
 pub fn get_config(state: State<AppState>) -> Result<Config, String> {
     let root = state.get_root();
-    let config_path = root.join("_config.yaml");
-
-    if config_path.exists() {
-        let content = fs::read_to_string(&config_path)
-            .map_err(|e| format!("Failed to read config: {}", e))?;
-        let config: Config = serde_yaml::from_str(&content)
-            .map_err(|e| format!("Failed to parse config: {}", e))?;
+    if let Some(config) = read_config_from_root(&root)? {
+        *state.config.write().unwrap() = config.clone();
         Ok(config)
     } else {
         Ok(state.config.read().unwrap().clone())
@@ -156,11 +178,19 @@ pub fn get_config(state: State<AppState>) -> Result<Config, String> {
 /// Save configuration.
 #[tauri::command]
 pub fn save_config(config: Config, state: State<AppState>) -> Result<(), String> {
-    let root = state.get_root();
+    let root = if config.root_dir.trim().is_empty() {
+        state.get_root()
+    } else {
+        expand_home(&config.root_dir)
+    };
+    fs::create_dir_all(&root)
+        .map_err(|e| format!("Failed to create workspace root {}: {}", root.display(), e))?;
+
     let config_yaml = serde_yaml::to_string(&config)
         .map_err(|e| format!("Failed to serialize config: {}", e))?;
     fs::write(root.join("_config.yaml"), config_yaml)
         .map_err(|e| format!("Failed to write config: {}", e))?;
+    state.set_root(root)?;
     *state.config.write().unwrap() = config;
     Ok(())
 }

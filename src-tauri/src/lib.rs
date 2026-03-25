@@ -2,6 +2,8 @@ mod commands;
 mod core;
 mod state;
 
+use std::path::PathBuf;
+
 use tauri::Manager;
 
 use state::AppState;
@@ -48,9 +50,19 @@ pub fn run() {
             commands::onboarding::is_onboarded,
         ])
         .setup(|app| {
-            // Initialize workspace on first launch
             let state = app.state::<AppState>();
-            let root = state.get_root();
+            let mut root = state.get_root();
+
+            // Hydrate runtime config/root from _config.yaml when available.
+            if let Ok(Some(config)) = crate::commands::config::read_config_from_root(&root) {
+                *state.config.write().unwrap() = config.clone();
+                let configured_root = PathBuf::from(&config.root_dir);
+                if configured_root != root {
+                    if state.set_root(configured_root.clone()).is_ok() {
+                        root = configured_root;
+                    }
+                }
+            }
 
             if !root.join("claude.md").exists() {
                 log::info!("Workspace not found, will initialize on first use");
@@ -62,6 +74,13 @@ pub fn run() {
                     index.insert(meta.id.clone(), (meta, path));
                 }
                 log::info!("Loaded {} memories from workspace", index.len());
+            }
+
+            // Start filesystem watcher for live sync.
+            if root.exists() {
+                if let Err(e) = crate::core::watcher::start_watcher(root.clone(), app.handle().clone()) {
+                    log::warn!("Failed to start watcher on {}: {}", root.display(), e);
+                }
             }
 
             Ok(())
