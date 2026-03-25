@@ -44,11 +44,11 @@ function AppContent() {
   }
 
   return (
-    <div className="h-screen overflow-hidden p-3 text-zinc-100">
+    <div className="h-screen overflow-hidden bg-[color:var(--bg-0)] text-[color:var(--text-0)]">
       <div className="obs-app-shell flex h-full overflow-hidden">
         <Sidebar />
-        <main className="relative flex-1 overflow-hidden p-2">
-          <div className="h-full overflow-hidden rounded-xl border border-[var(--border)] bg-[color:var(--bg-1)]/70">
+        <main className="relative flex-1 overflow-hidden">
+          <div className="h-full overflow-hidden bg-[color:var(--bg-1)]">
             <Routes>
               <Route path="/" element={<ExplorerView />} />
               <Route path="/graph" element={<GraphViewPage />} />
@@ -57,12 +57,12 @@ function AppContent() {
             </Routes>
           </div>
           {error && (
-            <div className="absolute bottom-5 right-5 max-w-md rounded-xl border border-red-500/30 bg-red-950/90 px-4 py-3 shadow-xl backdrop-blur">
+            <div className="absolute bottom-4 right-4 max-w-md rounded-lg border border-red-600/40 bg-[#381f24] px-3 py-2.5">
               <div className="flex items-start gap-3">
-                <p className="flex-1 text-sm text-red-100">{error}</p>
+                <p className="flex-1 text-sm text-red-100/95">{error}</p>
                 <button
                   onClick={() => setError(null)}
-                  className="text-red-300 transition-colors hover:text-white"
+                  className="text-red-300 transition-colors hover:text-red-100"
                 >
                   ×
                 </button>
