@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
-import { Save } from "lucide-react";
+import { Save, Trash2 } from "lucide-react";
 import { useAppStore } from "../../lib/store";
 import { FrontmatterForm } from "./FrontmatterForm";
 import { TipTapEditor } from "./TipTapEditor";
 import type { MemoryMeta } from "../../lib/types";
 
 export function MemoryEditor() {
-  const { activeMemory, saveActiveMemory, loading } = useAppStore();
+  const { activeMemory, saveActiveMemory, deleteMemory, loading } = useAppStore();
   const [meta, setMeta] = useState<MemoryMeta | null>(null);
   const [l1, setL1] = useState("");
   const [l2, setL2] = useState("");
@@ -45,6 +45,15 @@ export function MemoryEditor() {
     return () => window.removeEventListener("keydown", handler);
   }, [handleSave]);
 
+  const handleDelete = useCallback(async () => {
+    if (!meta) return;
+    const ok = window.confirm(
+      `Delete memory "${meta.id}"?\n\nThis will permanently remove the file.`,
+    );
+    if (!ok) return;
+    await deleteMemory(meta.id);
+  }, [deleteMemory, meta]);
+
   if (!activeMemory || !meta) {
     return (
       <div className="flex h-full items-center justify-center text-zinc-600">
@@ -63,18 +72,28 @@ export function MemoryEditor() {
         <span className="text-xs text-zinc-500">
           v{meta.version} · {new Date(meta.modified).toLocaleDateString()}
         </span>
-        <button
-          onClick={handleSave}
-          disabled={!dirty || loading}
-          className={`flex items-center gap-1.5 rounded px-3 py-1 text-xs font-medium transition-colors ${
-            dirty
-              ? "bg-violet-600 text-white hover:bg-violet-500"
-              : "bg-zinc-800 text-zinc-500 cursor-not-allowed"
-          }`}
-        >
-          <Save className="h-3 w-3" />
-          {dirty ? "Save" : "Saved"}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleDelete}
+            disabled={loading}
+            className="flex items-center gap-1.5 rounded border border-red-900/60 bg-red-950/40 px-2.5 py-1 text-xs font-medium text-red-300 hover:bg-red-900/40 disabled:opacity-50"
+          >
+            <Trash2 className="h-3 w-3" />
+            Delete
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={!dirty || loading}
+            className={`flex items-center gap-1.5 rounded px-3 py-1 text-xs font-medium transition-colors ${
+              dirty
+                ? "bg-violet-600 text-white hover:bg-violet-500"
+                : "bg-zinc-800 text-zinc-500 cursor-not-allowed"
+            }`}
+          >
+            <Save className="h-3 w-3" />
+            {dirty ? "Save" : "Saved"}
+          </button>
+        </div>
       </div>
 
       {/* Content areas with TipTap */}
