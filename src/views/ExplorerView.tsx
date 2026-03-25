@@ -10,8 +10,6 @@ export function ExplorerView() {
   const {
     initialized,
     initialize,
-    loadFileTree,
-    loadMemories,
     regenerateRouter,
     memories,
     explorerOpen,
