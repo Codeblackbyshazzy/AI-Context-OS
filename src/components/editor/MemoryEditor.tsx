@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, type ReactNode } from "react";
 import { FileText, PanelRightClose, PanelRightOpen, Save, Trash2 } from "lucide-react";
+import { clsx } from "clsx";
 import { useAppStore } from "../../lib/store";
 import { FrontmatterForm } from "./FrontmatterForm";
 import { TipTapEditor } from "./TipTapEditor";
@@ -70,7 +71,7 @@ export function MemoryEditor() {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3 text-center text-[color:var(--text-2)]">
         <div className="rounded-xl border border-[var(--border)] bg-[color:var(--bg-2)]/45 p-4">
-          <FileText className="h-10 w-10 text-sky-300/80" />
+          <FileText className="h-10 w-10 text-[color:var(--text-1)]" />
         </div>
         <p className="text-base text-[color:var(--text-1)]">Selecciona una memoria para editar</p>
         <p className="max-w-md text-sm">

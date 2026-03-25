@@ -55,10 +55,9 @@ function MemoryNodeComponent({ data }: { data: { node: GNode } }) {
   const color = MEMORY_TYPE_COLORS[gn.memory_type] ?? "#64748b";
   return (
     <div
-      className="min-w-[190px] rounded-xl border bg-[color:var(--bg-1)]/95 px-3 py-2.5 shadow-lg"
+      className="min-w-[190px] rounded-md border bg-[color:var(--bg-2)] px-3 py-2"
       style={{
-        borderColor: `${color}60`,
-        boxShadow: `0 6px 20px ${color}18`,
+        borderColor: "var(--border)",
         opacity: Math.max(0.42, gn.decay_score),
       }}
     >
@@ -67,9 +66,10 @@ function MemoryNodeComponent({ data }: { data: { node: GNode } }) {
         {gn.label}
       </div>
       <div className="mt-2 flex items-center gap-1.5">
+        <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: color }} />
         <span
-          className="rounded-md px-1.5 py-0.5 text-[10px] font-medium"
-          style={{ backgroundColor: `${color}2a`, color }}
+          className="rounded px-1.5 py-0.5 text-[10px] text-[color:var(--text-1)]"
+          style={{ backgroundColor: "var(--bg-3)" }}
         >
           {MEMORY_TYPE_LABELS[gn.memory_type]}
         </span>
@@ -118,9 +118,9 @@ async function layoutWithElk(
 
 function edgeColor(type: string): string {
   const colors: Record<string, string> = {
-    related: "#5da8ff",
-    requires: "#2dd4bf",
-    optional: "#f59e0b",
+    related: "#8a95a6",
+    requires: "#9aa8c0",
+    optional: "#9c9382",
   };
   return colors[type] ?? "#6b7280";
 }
@@ -287,8 +287,8 @@ export function GraphViewPage() {
 
   return (
     <div className="relative flex h-full min-h-0 flex-col">
-      <div className="flex flex-wrap items-center gap-2 border-b border-[var(--border)] px-4 py-3">
-        <Network className="h-5 w-5 text-sky-300" />
+      <div className="flex flex-wrap items-center gap-2 border-b border-[var(--border)] px-4 py-2.5">
+        <Network className="h-5 w-5 text-[color:var(--text-1)]" />
         <h1 className="text-lg font-semibold text-[color:var(--text-0)]">Memory Graph</h1>
         <span className="text-xs text-[color:var(--text-2)]">
           {filteredData.nodes.length} nodos · {filteredData.edges.length} aristas
@@ -300,7 +300,7 @@ export function GraphViewPage() {
             <select
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value as MemoryType | "all")}
-              className="rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-2 py-1 text-xs text-[color:var(--text-1)]"
+              className="rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-2 py-1 text-xs text-[color:var(--text-1)] focus:border-[color:var(--accent)] focus:outline-none"
             >
               <option value="all">todos</option>
               {(Object.keys(MEMORY_TYPE_LABELS) as MemoryType[]).map((type) => (
@@ -318,7 +318,7 @@ export function GraphViewPage() {
               onChange={(e) =>
                 setEdgeMode(e.target.value as "related" | "requires" | "optional")
               }
-              className="rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-2 py-1 text-xs text-[color:var(--text-1)]"
+              className="rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-2 py-1 text-xs text-[color:var(--text-1)] focus:border-[color:var(--accent)] focus:outline-none"
             >
               <option value="related">related</option>
               <option value="requires">requires</option>
@@ -329,7 +329,7 @@ export function GraphViewPage() {
           <button
             type="button"
             onClick={() => setLayoutSeed((prev) => prev + 1)}
-            className="inline-flex items-center gap-1 rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-2 py-1 text-xs text-[color:var(--text-1)] transition-colors hover:text-[color:var(--text-0)]"
+            className="inline-flex items-center gap-1 rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-2 py-1 text-xs text-[color:var(--text-1)] transition-colors hover:bg-[color:var(--bg-3)] hover:text-[color:var(--text-0)]"
           >
             <RefreshCw className="h-3.5 w-3.5" />
             Relayout
@@ -337,14 +337,14 @@ export function GraphViewPage() {
           <button
             type="button"
             onClick={() => flowInstance?.fitView({ padding: 0.2, duration: 320 })}
-            className="rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-2 py-1 text-xs text-[color:var(--text-1)] transition-colors hover:text-[color:var(--text-0)]"
+            className="rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-2 py-1 text-xs text-[color:var(--text-1)] transition-colors hover:bg-[color:var(--bg-3)] hover:text-[color:var(--text-0)]"
           >
             Ajustar vista
           </button>
           <button
             type="button"
             onClick={() => setShowInspector((prev) => !prev)}
-            className="rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-2 py-1 text-[color:var(--text-1)] transition-colors hover:text-[color:var(--text-0)]"
+            className="rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-2 py-1 text-[color:var(--text-1)] transition-colors hover:bg-[color:var(--bg-3)] hover:text-[color:var(--text-0)]"
             title="Mostrar u ocultar panel derecho"
           >
             {showInspector ? (
@@ -357,7 +357,7 @@ export function GraphViewPage() {
       </div>
 
       <div className="flex min-h-0 flex-1 gap-2 p-2">
-        <div className="min-h-0 min-w-0 flex-1 overflow-hidden rounded-xl border border-[var(--border)] bg-[color:var(--bg-1)]/65">
+        <div className="min-h-0 min-w-0 flex-1 overflow-hidden rounded-md border border-[var(--border)] bg-[color:var(--bg-1)]">
           {nodes.length > 0 ? (
             <ReactFlow
               nodes={nodes}
@@ -372,12 +372,12 @@ export function GraphViewPage() {
               fitView
               proOptions={{ hideAttribution: true }}
             >
-              <Background color="#2b3647" gap={26} />
+              <Background color="#313640" gap={26} />
               <Controls />
               <MiniMap
-                nodeColor="#5da8ff"
+                nodeColor="#8a95a6"
                 style={{
-                  backgroundColor: "rgba(16, 20, 26, 0.95)",
+                  backgroundColor: "var(--bg-1)",
                   border: "1px solid var(--border)",
                 }}
               />
@@ -398,10 +398,10 @@ export function GraphViewPage() {
         <aside
           className={clsx(
             "obs-inspector min-h-0",
-            showInspector ? "w-[320px] opacity-100" : "pointer-events-none w-0 opacity-0",
+            showInspector ? "w-[304px] opacity-100" : "pointer-events-none w-0 opacity-0",
           )}
         >
-          <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-[var(--border)] bg-[color:var(--bg-1)]/70">
+          <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-md border border-[var(--border)] bg-[color:var(--bg-1)]">
             <div className="border-b border-[var(--border)] px-3 py-2.5">
               <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[color:var(--text-1)]">
                 Node Details
@@ -430,7 +430,7 @@ export function GraphViewPage() {
                   <button
                     type="button"
                     onClick={() => void onNodeDoubleClick(null, { id: selectedNode.id, data: { node: selectedNode } })}
-                    className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-sky-600 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-sky-500"
+                    className="inline-flex w-full items-center justify-center gap-1.5 rounded-md bg-[color:var(--accent)] px-3 py-2 text-xs font-semibold text-white transition-colors hover:brightness-110"
                   >
                     <ExternalLink className="h-3.5 w-3.5" />
                     Abrir en Explorer
@@ -447,7 +447,7 @@ export function GraphViewPage() {
       </div>
 
       {layouting && (
-        <div className="pointer-events-none absolute right-8 top-20 rounded-md border border-sky-500/25 bg-sky-500/15 px-2.5 py-1 text-xs text-sky-100">
+        <div className="pointer-events-none absolute right-8 top-20 rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-2.5 py-1 text-xs text-[color:var(--text-1)]">
           Calculando layout...
         </div>
       )}
