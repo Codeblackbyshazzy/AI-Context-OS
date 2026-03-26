@@ -21,6 +21,7 @@ export function TipTapEditor({
   placeholder,
   className,
 }: Props) {
+  const initialContent = normalizeMarkdown(content);
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -39,7 +40,7 @@ export function TipTapEditor({
         ),
       },
     },
-    content: markdownToHtml(content),
+    content: markdownToHtml(initialContent),
     onUpdate: ({ editor: nextEditor }) => {
       const text = editorToMarkdown(nextEditor);
       onChange(text);
@@ -49,8 +50,9 @@ export function TipTapEditor({
   useEffect(() => {
     if (editor && !editor.isFocused) {
       const currentText = editorToMarkdown(editor);
-      if (currentText !== content) {
-        editor.commands.setContent(markdownToHtml(content));
+      const normalizedIncoming = normalizeMarkdown(content);
+      if (currentText !== normalizedIncoming) {
+        editor.commands.setContent(markdownToHtml(normalizedIncoming), false);
       }
     }
   }, [content, editor]);
@@ -69,7 +71,7 @@ export function TipTapEditor({
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function editorToMarkdown(editor: any): string {
   const json = editor.getJSON();
-  return jsonToMarkdown(json).trim();
+  return normalizeMarkdown(jsonToMarkdown(json));
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -98,37 +100,37 @@ function jsonToMarkdown(node: any): string {
     case "doc":
       return children;
     case "paragraph":
-      return `${children}\n\n`;
+      return `${children}\n`;
     case "heading": {
       const level = node.attrs?.level ?? 1;
       const prefix = "#".repeat(level);
-      return `${prefix} ${children}\n\n`;
+      return `${prefix} ${children}\n`;
     }
     case "bulletList":
       return (
         (node.content ?? [])
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           .map((li: any) => `- ${jsonToMarkdown(li).trim()}`)
-          .join("\n") + "\n\n"
+          .join("\n") + "\n"
       );
     case "orderedList":
       return (
         (node.content ?? [])
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           .map((li: any, i: number) => `${i + 1}. ${jsonToMarkdown(li).trim()}`)
-          .join("\n") + "\n\n"
+          .join("\n") + "\n"
       );
     case "listItem":
       return children;
     case "codeBlock":
-      return `\`\`\`\n${children}\n\`\`\`\n\n`;
+      return `\`\`\`\n${children}\n\`\`\`\n`;
     case "blockquote":
       return (
         children
           .split("\n")
           .filter(Boolean)
           .map((line: string) => `> ${line}`)
-          .join("\n") + "\n\n"
+          .join("\n") + "\n"
       );
     case "hardBreak":
       return "\n";
@@ -267,4 +269,13 @@ function inlineFormat(text: string): string {
 
 function escapeHtml(text: string): string {
   return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function normalizeMarkdown(value: string): string {
+  return value
+    .replace(/\r\n/g, "\n")
+    .replace(/\u00a0/g, " ")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trimEnd();
 }
