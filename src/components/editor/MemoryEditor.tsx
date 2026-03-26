@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, useRef, type ReactNode } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { FileText, PanelRightClose, PanelRightOpen, Save, Trash2, ChevronRight } from "lucide-react";
 import { clsx } from "clsx";
 import { useAppStore } from "../../lib/store";
@@ -567,7 +567,6 @@ function RawFileEditor({
 
         <RawSyntaxEditor
           value={content}
-          kind={file.kind}
           onChange={setContent}
         />
 
@@ -649,27 +648,12 @@ function getFileName(path: string): string {
 
 function RawSyntaxEditor({
   value,
-  kind,
   onChange,
 }: {
   value: string;
-  kind: RawFileDocument["kind"];
   onChange: (value: string) => void;
 }) {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-  const highlightRef = useRef<HTMLPreElement | null>(null);
-
-  const highlighted = useMemo(() => {
-    if (kind === "yaml") return highlightYamlContent(value);
-    if (kind === "jsonl") return highlightJsonlContent(value);
-    return value;
-  }, [value, kind]);
-
-  const handleScroll = () => {
-    if (!textareaRef.current || !highlightRef.current) return;
-    highlightRef.current.scrollTop = textareaRef.current.scrollTop;
-    highlightRef.current.scrollLeft = textareaRef.current.scrollLeft;
-  };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key !== "Tab") return;
@@ -688,251 +672,16 @@ function RawSyntaxEditor({
 
   return (
     <div className="relative mb-3 min-h-[360px] w-full overflow-hidden rounded-md border border-[var(--border)] bg-[color:var(--bg-2)]">
-      <pre
-        ref={highlightRef}
-        aria-hidden
-        className="pointer-events-none absolute inset-0 overflow-auto whitespace-pre p-3 font-mono text-xs leading-5 text-[color:var(--text-1)]"
-        style={{ fontVariantLigatures: "none" }}
-      >
-        {highlighted}
-        {value.endsWith("\n") ? " " : ""}
-      </pre>
       <textarea
         ref={textareaRef}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        onScroll={handleScroll}
         onKeyDown={handleKeyDown}
         spellCheck={false}
         wrap="off"
-        className="absolute inset-0 min-h-[360px] w-full resize-none overflow-auto bg-transparent p-3 font-mono text-xs leading-5 text-transparent caret-[color:var(--text-0)] outline-none selection:bg-[color:var(--bg-3)]"
-        style={{ fontVariantLigatures: "none" }}
+        className="absolute inset-0 min-h-[360px] w-full resize-none overflow-auto bg-transparent p-3 font-mono text-xs leading-5 text-[color:var(--text-1)] caret-[color:var(--text-0)] outline-none selection:bg-[color:var(--bg-3)]"
+        style={{ fontVariantLigatures: "none", tabSize: 2 }}
       />
     </div>
   );
-}
-
-function highlightJsonlContent(content: string): ReactNode[] {
-  const lines = content.split(/\r?\n/);
-  return joinHighlightedLines(lines, highlightJsonLine);
-}
-
-function highlightYamlContent(content: string): ReactNode[] {
-  const lines = content.split(/\r?\n/);
-  return joinHighlightedLines(lines, highlightYamlLine);
-}
-
-function joinHighlightedLines(
-  lines: string[],
-  highlightLine: (line: string, lineIndex: number) => ReactNode[],
-): ReactNode[] {
-  const output: ReactNode[] = [];
-  lines.forEach((line, index) => {
-    output.push(...highlightLine(line, index));
-    if (index < lines.length - 1) output.push("\n");
-  });
-  return output;
-}
-
-function highlightJsonLine(line: string, lineIndex: number): ReactNode[] {
-  const tokenRegex =
-    /("(?:\\.|[^"\\])*")(\s*:)?|(-?\d+(?:\.\d+)?(?:[eE][+\-]?\d+)?)|\b(true|false|null)\b|([{}\[\],:])/g;
-
-  return tokenizeLine(line, tokenRegex, lineIndex, (match, tokenIndex) => {
-    const stringToken = match[1];
-    const keyColon = match[2];
-    const numberToken = match[3];
-    const literalToken = match[4];
-    const punctToken = match[5];
-
-    if (stringToken) {
-      if (keyColon) {
-        return (
-          <span key={`j-key-${lineIndex}-${tokenIndex}`}>
-            <span className="text-sky-300">{stringToken}</span>
-            <span className="text-slate-400">{keyColon}</span>
-          </span>
-        );
-      }
-      return (
-        <span key={`j-str-${lineIndex}-${tokenIndex}`} className="text-emerald-300">
-          {stringToken}
-        </span>
-      );
-    }
-
-    if (numberToken) {
-      return (
-        <span key={`j-num-${lineIndex}-${tokenIndex}`} className="text-amber-300">
-          {numberToken}
-        </span>
-      );
-    }
-
-    if (literalToken) {
-      return (
-        <span key={`j-lit-${lineIndex}-${tokenIndex}`} className="text-violet-300">
-          {literalToken}
-        </span>
-      );
-    }
-
-    if (punctToken) {
-      return (
-        <span key={`j-punc-${lineIndex}-${tokenIndex}`} className="text-slate-400">
-          {punctToken}
-        </span>
-      );
-    }
-
-    return "";
-  });
-}
-
-function highlightYamlLine(line: string, lineIndex: number): ReactNode[] {
-  const commentIndex = findYamlCommentIndex(line);
-  const body = commentIndex >= 0 ? line.slice(0, commentIndex) : line;
-  const comment = commentIndex >= 0 ? line.slice(commentIndex) : "";
-
-  const output: ReactNode[] = [];
-  let bodyHandled = false;
-
-  const keyMatch = body.match(/^(\s*(?:-\s+)?)?([A-Za-z0-9_.-]+)(\s*:\s*)(.*)$/);
-  if (keyMatch) {
-    const [, prefix = "", key = "", colonSpace = "", value = ""] = keyMatch;
-    if (prefix) output.push(prefix);
-    output.push(
-      <span key={`y-key-${lineIndex}`} className="text-sky-300">
-        {key}
-      </span>,
-    );
-    output.push(
-      <span key={`y-colon-${lineIndex}`} className="text-slate-400">
-        {colonSpace}
-      </span>,
-    );
-    output.push(...highlightScalarYaml(value, lineIndex));
-    bodyHandled = true;
-  }
-
-  if (!bodyHandled) {
-    output.push(...highlightScalarYaml(body, lineIndex));
-  }
-
-  if (comment) {
-    output.push(
-      <span key={`y-comment-${lineIndex}`} className="text-slate-500">
-        {comment}
-      </span>,
-    );
-  }
-
-  return output;
-}
-
-function highlightScalarYaml(value: string, lineIndex: number): ReactNode[] {
-  const tokenRegex =
-    /("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|(-?\d+(?:\.\d+)?(?:[eE][+\-]?\d+)?)|\b(true|false|null|~)\b/gi;
-
-  return tokenizeLine(value, tokenRegex, lineIndex, (match, tokenIndex) => {
-    if (match[1]) {
-      return (
-        <span key={`y-str-${lineIndex}-${tokenIndex}`} className="text-emerald-300">
-          {match[1]}
-        </span>
-      );
-    }
-    if (match[2]) {
-      return (
-        <span key={`y-num-${lineIndex}-${tokenIndex}`} className="text-amber-300">
-          {match[2]}
-        </span>
-      );
-    }
-    if (match[3]) {
-      return (
-        <span key={`y-lit-${lineIndex}-${tokenIndex}`} className="text-violet-300">
-          {match[3]}
-        </span>
-      );
-    }
-    return "";
-  });
-}
-
-function tokenizeLine(
-  line: string,
-  regex: RegExp,
-  lineIndex: number,
-  renderMatch: (match: RegExpExecArray, tokenIndex: number) => ReactNode,
-): ReactNode[] {
-  const output: ReactNode[] = [];
-  let cursor = 0;
-  let tokenIndex = 0;
-
-  regex.lastIndex = 0;
-  while (true) {
-    const match = regex.exec(line);
-    if (!match) break;
-
-    const start = match.index;
-    const end = regex.lastIndex;
-    if (start > cursor) {
-      output.push(line.slice(cursor, start));
-    }
-    output.push(renderMatch(match, tokenIndex));
-    cursor = end;
-    tokenIndex += 1;
-  }
-
-  if (cursor < line.length) {
-    output.push(line.slice(cursor));
-  }
-  if (output.length === 0) {
-    output.push("");
-  }
-
-  return output.map((item, idx) =>
-    typeof item === "string" ? (
-      <span key={`plain-${lineIndex}-${idx}`}>{item}</span>
-    ) : (
-      item
-    ),
-  );
-}
-
-function findYamlCommentIndex(line: string): number {
-  let inSingle = false;
-  let inDouble = false;
-  let escaped = false;
-
-  for (let i = 0; i < line.length; i += 1) {
-    const char = line[i];
-    if (inDouble) {
-      if (escaped) {
-        escaped = false;
-      } else if (char === "\\") {
-        escaped = true;
-      } else if (char === "\"") {
-        inDouble = false;
-      }
-      continue;
-    }
-    if (inSingle) {
-      if (char === "'") inSingle = false;
-      continue;
-    }
-    if (char === "\"") {
-      inDouble = true;
-      continue;
-    }
-    if (char === "'") {
-      inSingle = true;
-      continue;
-    }
-    if (char === "#") {
-      return i;
-    }
-  }
-  return -1;
 }
