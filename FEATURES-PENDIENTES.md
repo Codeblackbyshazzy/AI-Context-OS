@@ -7,11 +7,6 @@
 
 ## Scoring & Contexto Inteligente
 
-- ✅ **Auto-update access_count/last_access** — `get_memory` incrementa contador y timestamp en cada lectura, persiste a disco
-- ✅ **Skills `requires` force-loaded** — Dependencias de skills se elevan a L1 mínimo en simulate_context
-- ✅ **Skills `optional` como boost** — +0.1 bonus en final_score para memorias en `optional` de skills seleccionados
-- ✅ **Persistir access_count a disco** — Flush automático al cerrar la app (on_window_event Destroyed)
-- ✅ **Watcher trackea accesos externos** — Cambios externos en .md incrementan access_count en el index
 - ⬚ **Semantic scoring real** — Actualmente `semantic_free` usa heurística por keywords. Implementar embeddings locales (ej. `rust-bert` o llamada a API) para similitud semántica real
 - ⬚ **Compat files diferenciados** — `.cursorrules` y `.windsurfrules` son copias idénticas de `claude.md`. Adaptar formato según convenciones de cada herramienta
 
@@ -22,7 +17,6 @@
 
 ## Journal
 
-- ✅ **Journal → daily-log.jsonl** — Bullets con #decision, #idea, #meeting, etc. se extraen automáticamente al JSONL al guardar
 - ⬚ **Scroll infinito de días** — Vista tipo Logseq con scroll vertical que carga días anteriores dinámicamente
 - ⬚ **Linked references** — Mostrar qué memorias referencian la fecha actual (backlinks)
 - ⬚ **Templates de día** — Bloques pre-configurados según el día (ej. lunes = standup, viernes = retrospectiva)
@@ -30,7 +24,6 @@
 
 ## Tasks
 
-- ✅ **Edición inline de tasks** — Priority, state y notes editables en cards expandibles
 - ⬚ **Drag & drop para reordenar** — Priorización visual arrastrando cards
 - ⬚ **Vista Kanban** — Columnas por estado (todo/in_progress/done)
 - ⬚ **Tasks desde journal** — Checkbox en journal que crea/sincroniza task en 07-tasks/
@@ -39,9 +32,6 @@
 
 ## Graph
 
-- ✅ **Decay visual** — Opacidad de nodos según decay_score (ya implementado en MemoryNodeComponent)
-- ✅ **Click para editar** — Doble click en nodo navega al editor (onNodeDoubleClick)
-- ✅ **Filtros por tipo** — Dropdown de tipo de memoria en la toolbar del graph
 - ⬚ **Filtros por importancia/tags** — Sliders y chips para filtrar nodos interactivamente
 - ⬚ **Clusters automáticos** — Agrupar memorias por comunidades detectadas en el grafo
 
