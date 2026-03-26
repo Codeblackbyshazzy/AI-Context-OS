@@ -164,6 +164,7 @@ export interface TaskItem {
   created: string;
   modified: string;
   notes: string;
+  due: string | null;
 }
 
 export interface TaskFilter {

@@ -90,6 +90,7 @@ function NewTaskForm({ onCreated }: { onCreated: () => void }) {
       created: now,
       modified: now,
       notes: "",
+      due: null,
     });
     setTitle("");
     setPriority("");
@@ -150,6 +151,7 @@ function TaskCard({
   const [editPriority, setEditPriority] = useState<TaskPriority | "">(task.priority ?? "");
   const [editState, setEditState] = useState<TaskState>(task.state);
   const [editNotes, setEditNotes] = useState(task.notes);
+  const [editDue, setEditDue] = useState(task.due ?? "");
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const notesRef = useRef<HTMLTextAreaElement>(null);
@@ -160,6 +162,7 @@ function TaskCard({
     setEditPriority(task.priority ?? "");
     setEditState(task.state);
     setEditNotes(task.notes);
+    setEditDue(task.due ?? "");
     setDirty(false);
   }, [task]);
 
@@ -173,6 +176,7 @@ function TaskCard({
       priority: editPriority || null,
       state: editState,
       notes: editNotes,
+      due: editDue || null,
       modified: new Date().toISOString(),
     };
     await api.updateTask(updated);
@@ -270,6 +274,20 @@ function TaskCard({
                 </span>
               )}
 
+              {task.due && task.state !== "done" && task.state !== "cancelled" && (() => {
+                const dueDate = new Date(task.due + "T23:59:59");
+                const now = new Date();
+                const diffDays = Math.ceil((dueDate.getTime() - now.getTime()) / 86400000);
+                const color = diffDays < 0 ? "var(--danger)" : diffDays <= 1 ? "var(--warning)" : "var(--text-2)";
+                const label = diffDays < 0 ? `Vencida ${-diffDays}d` : diffDays === 0 ? "Hoy" : diffDays === 1 ? "Mañana" : task.due;
+                return (
+                  <span className="flex items-center gap-0.5 text-[10px] font-medium" style={{ color }}>
+                    <Calendar className="h-2.5 w-2.5" />
+                    {label}
+                  </span>
+                );
+              })()}
+
               {task.source_date && (
                 <span className="flex items-center gap-0.5 text-[10px] text-[color:var(--text-2)]">
                   <Calendar className="h-2.5 w-2.5" />
@@ -346,6 +364,19 @@ function TaskCard({
                 <option value="b">B · Media</option>
                 <option value="c">C · Baja</option>
               </select>
+            </label>
+
+            <label className="flex items-center gap-1.5">
+              <span className="text-[10px] text-[color:var(--text-2)]">Vence</span>
+              <input
+                type="date"
+                value={editDue}
+                onChange={(e) => {
+                  setEditDue(e.target.value);
+                  markDirty();
+                }}
+                className="rounded border border-[var(--border)] bg-[color:var(--bg-2)] px-1.5 py-0.5 text-[11px] text-[color:var(--text-1)]"
+              />
             </label>
 
             {task.source_date && (

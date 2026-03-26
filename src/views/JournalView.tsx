@@ -11,12 +11,15 @@ import {
 } from "lucide-react";
 import { clsx } from "clsx";
 import * as api from "../lib/tauri";
+import { useAppStore } from "../lib/store";
 import type {
   JournalBlock,
   JournalDateInfo,
+  MemoryMeta,
   TaskState,
   TaskPriority,
 } from "../lib/types";
+import { MEMORY_TYPE_COLORS, MEMORY_TYPE_LABELS } from "../lib/types";
 
 // ─── Helpers ───
 
@@ -175,6 +178,7 @@ interface DayPageProps {
 }
 
 function DayPage({ date, isToday }: DayPageProps) {
+  const memories = useAppStore((s) => s.memories);
   const [loaded, setLoaded] = useState(false);
   const [blocks, setBlocks] = useState<JournalBlock[]>([]);
   const [dirty, setDirty] = useState(false);
@@ -366,6 +370,48 @@ function DayPage({ date, isToday }: DayPageProps) {
             onTaskToggle={toggleTask}
             inputRefs={inputRefs}
           />
+        ))}
+      </div>
+
+      {/* Linked references */}
+      <LinkedReferences date={date} memories={memories} />
+    </div>
+  );
+}
+
+// ─── Linked references ───
+
+function LinkedReferences({ date, memories }: { date: string; memories: MemoryMeta[] }) {
+  const refs = memories.filter(
+    (m) =>
+      m.related.some((r) => r.includes(date)) ||
+      m.tags.some((t) => t === date) ||
+      m.l0.includes(date),
+  );
+
+  if (refs.length === 0) return null;
+
+  return (
+    <div className="mt-3">
+      <p className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-[color:var(--text-2)]">
+        Referencias vinculadas ({refs.length})
+      </p>
+      <div className="space-y-1">
+        {refs.map((m) => (
+          <div
+            key={m.id}
+            className="flex items-center gap-2 rounded border border-[var(--border)] bg-[color:var(--bg-0)] px-2.5 py-1.5"
+          >
+            <span
+              className="h-1.5 w-1.5 shrink-0 rounded-full"
+              style={{ backgroundColor: MEMORY_TYPE_COLORS[m.memory_type] }}
+            />
+            <span className="text-[11px] font-medium text-[color:var(--text-1)]">{m.id}</span>
+            <span className="flex-1 truncate text-[10px] text-[color:var(--text-2)]">{m.l0}</span>
+            <span className="shrink-0 text-[10px] text-[color:var(--text-2)]">
+              {MEMORY_TYPE_LABELS[m.memory_type]}
+            </span>
+          </div>
         ))}
       </div>
     </div>

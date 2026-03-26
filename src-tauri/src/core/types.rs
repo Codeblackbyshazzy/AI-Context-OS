@@ -297,6 +297,8 @@ pub struct TaskItem {
     pub modified: DateTime<Utc>,
     #[serde(default)]
     pub notes: String,
+    #[serde(default)]
+    pub due: Option<String>,           // YYYY-MM-DD due date
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
