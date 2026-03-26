@@ -18,7 +18,6 @@
 ## Journal
 
 - ⬚ **Scroll infinito de días** — Vista tipo Logseq con scroll vertical que carga días anteriores dinámicamente
-- ✅ **Linked references** — Mostrar qué memorias referencian la fecha actual (backlinks)
 - ⬚ **Templates de día** — Bloques pre-configurados según el día (ej. lunes = standup, viernes = retrospectiva)
 - ⬚ **Extracción automática de tags** — Detectar #tags en bullets y añadirlos al frontmatter de memorias relacionadas
 
@@ -27,25 +26,21 @@
 - ⬚ **Drag & drop para reordenar** — Priorización visual arrastrando cards
 - ⬚ **Vista Kanban** — Columnas por estado (todo/in_progress/done)
 - ✅ **Tasks desde journal** — `- [ ] texto` en journal crea task automáticamente al guardar (sin duplicados)
-- ✅ **Due dates** — Campo de fecha límite con indicador visual de urgencia
 - ⬚ **Subtasks** — Jerarquía de tareas con progreso porcentual
 
 ## Graph
 
-- ✅ **Filtros por importancia/tags** — Sliders y chips para filtrar nodos interactivamente
+
 - ⬚ **Clusters automáticos** — Agrupar memorias por comunidades detectadas en el grafo
 
 ## Governance
 
-- ✅ **Acciones para decay candidates** — Botones "Archivar" individual y "Archivar todos" en la tab Decay
 - ⬚ **Consolidación ejecutable** — Aplicar sugerencias de consolidación con un click (merge entries → nueva memoria)
 - ⬚ **Historial de governance** — Log de acciones tomadas (archivados, promovidos, etc.)
 
 ## Explorer & Editor
 
-- ✅ **Context menu** — Click derecho en el tree: renombrar, duplicar, eliminar
 - ⬚ **Drag & drop entre carpetas** — Mover memorias entre tipos arrastrando en el tree
-- ✅ **Búsqueda global** — Cmd+K abre modal de búsqueda por id/descripción/tags con navegación por teclado
 - ⬚ **Preview de markdown** — Toggle entre editor y preview renderizado
 - ⬚ **TipTap: toolbar opcional** — Opción de mostrar toolbar para usuarios nuevos
 
