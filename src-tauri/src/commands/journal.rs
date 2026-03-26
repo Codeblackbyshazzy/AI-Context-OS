@@ -61,6 +61,7 @@ pub fn save_journal_page(
                         created: now,
                         modified: now,
                         notes: String::new(),
+                        due: None,
                     };
                     let _ = tasks::create_task(&root, &task);
                 }

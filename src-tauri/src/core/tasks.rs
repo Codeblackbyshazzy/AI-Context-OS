@@ -112,6 +112,7 @@ fn parse_task_md(raw: &str, path: &Path) -> Result<TaskItem, String> {
         created: meta.created,
         modified: meta.modified,
         notes: body,
+        due: meta.due,
     })
 }
 
@@ -133,6 +134,8 @@ struct TaskMeta {
     created: chrono::DateTime<chrono::Utc>,
     #[serde(default = "chrono::Utc::now")]
     modified: chrono::DateTime<chrono::Utc>,
+    #[serde(default)]
+    due: Option<String>,
 }
 
 /// Create a new task and write it to 07-tasks/.
@@ -216,6 +219,10 @@ fn serialize_task(task: &TaskItem) -> String {
     }
     if let Some(ref sf) = task.source_file {
         yaml.push_str(&format!("source_file: \"{}\"\n", sf));
+    }
+
+    if let Some(ref due) = task.due {
+        yaml.push_str(&format!("due: \"{}\"\n", due));
     }
 
     yaml.push_str(&format!(
