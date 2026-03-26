@@ -193,6 +193,7 @@ function TreeNode({
           opacity: node.is_dir ? 1 : opacity,
         }}
         onClick={handleClick}
+        onContextMenu={(e) => onContextMenu(e, node)}
       >
         {node.is_dir ? (
           <>
@@ -215,7 +216,22 @@ function TreeNode({
             />
           </>
         )}
-        <span className="truncate">{node.name}</span>
+        {renamingPath === node.path ? (
+          <input
+            autoFocus
+            className="flex-1 rounded border border-[color:var(--accent)] bg-[color:var(--bg-0)] px-1 text-[13px] text-[color:var(--text-0)] outline-none"
+            value={renameValue}
+            onChange={(e) => onRenameChange(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") onRenameCommit();
+              if (e.key === "Escape") onRenameCancel();
+            }}
+            onBlur={onRenameCancel}
+            onClick={(e) => e.stopPropagation()}
+          />
+        ) : (
+          <span className="truncate">{node.name}</span>
+        )}
         {hasConflict && (
           <span title="Conflict detected">
             <AlertTriangle className="ml-auto h-3 w-3 shrink-0 text-[color:var(--warning)]" />
@@ -237,6 +253,12 @@ function TreeNode({
               expanded={expanded}
               toggleExpand={toggleExpand}
               conflictIds={conflictIds}
+              onContextMenu={onContextMenu}
+              renamingPath={renamingPath}
+              renameValue={renameValue}
+              onRenameChange={onRenameChange}
+              onRenameCommit={onRenameCommit}
+              onRenameCancel={onRenameCancel}
             />
           ))}
         </div>
@@ -255,9 +277,12 @@ function isRawViewerSupported(name: string): boolean {
 }
 
 export function FileExplorer() {
-  const { fileTree, loadFileTree } = useAppStore();
+  const { fileTree, loadFileTree, loadMemories } = useAppStore();
   const [expanded, setExpanded] = React.useState<Set<string>>(new Set());
   const [conflictIds, setConflictIds] = useState<Set<string>>(new Set());
+  const [ctxMenu, setCtxMenu] = useState<ContextMenuState | null>(null);
+  const [renamingPath, setRenamingPath] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
 
   useEffect(() => {
     loadFileTree();
@@ -297,6 +322,80 @@ export function FileExplorer() {
     });
   };
 
+  const handleContextMenu = useCallback((e: React.MouseEvent, node: FileNode) => {
+    e.preventDefault();
+    setCtxMenu({ x: e.clientX, y: e.clientY, node });
+  }, []);
+
+  const handleDelete = useCallback(async () => {
+    if (!ctxMenu) return;
+    const memId = ctxMenu.node.name.replace(".md", "");
+    if (!confirm(`¿Eliminar "${memId}"?`)) return;
+    try {
+      await deleteMemory(memId);
+      await loadFileTree();
+      await loadMemories();
+    } catch (e) {
+      console.error("Delete failed:", e);
+    }
+  }, [ctxMenu, loadFileTree, loadMemories]);
+
+  const handleRenameStart = useCallback(() => {
+    if (!ctxMenu) return;
+    setRenamingPath(ctxMenu.node.path);
+    setRenameValue(ctxMenu.node.name.replace(".md", ""));
+  }, [ctxMenu]);
+
+  const handleRenameCommit = useCallback(async () => {
+    if (!renamingPath) return;
+    const oldName = renamingPath.split("/").pop()?.replace(".md", "") ?? "";
+    const newId = renameValue.trim();
+    if (!newId || newId === oldName) {
+      setRenamingPath(null);
+      return;
+    }
+    try {
+      // Read old memory, create new with new ID, delete old
+      const oldMem = await getMemory(oldName);
+      await createMemory({
+        id: newId,
+        memory_type: oldMem.meta.memory_type,
+        l0: oldMem.meta.l0,
+        importance: oldMem.meta.importance,
+        tags: oldMem.meta.tags,
+        l1_content: oldMem.l1_content,
+        l2_content: oldMem.l2_content,
+      });
+      await deleteMemory(oldName);
+      await loadFileTree();
+      await loadMemories();
+    } catch (e) {
+      console.error("Rename failed:", e);
+    }
+    setRenamingPath(null);
+  }, [renamingPath, renameValue, loadFileTree, loadMemories]);
+
+  const handleDuplicate = useCallback(async () => {
+    if (!ctxMenu) return;
+    const memId = ctxMenu.node.name.replace(".md", "");
+    try {
+      const mem = await getMemory(memId);
+      await createMemory({
+        id: `${memId}-copy`,
+        memory_type: mem.meta.memory_type,
+        l0: mem.meta.l0,
+        importance: mem.meta.importance,
+        tags: mem.meta.tags,
+        l1_content: mem.l1_content,
+        l2_content: mem.l2_content,
+      });
+      await loadFileTree();
+      await loadMemories();
+    } catch (e) {
+      console.error("Duplicate failed:", e);
+    }
+  }, [ctxMenu, loadFileTree, loadMemories]);
+
   return (
     <div className="px-1 py-1">
       {fileTree.map((node) => (
@@ -307,12 +406,27 @@ export function FileExplorer() {
           expanded={expanded}
           toggleExpand={toggleExpand}
           conflictIds={conflictIds}
+          onContextMenu={handleContextMenu}
+          renamingPath={renamingPath}
+          renameValue={renameValue}
+          onRenameChange={setRenameValue}
+          onRenameCommit={handleRenameCommit}
+          onRenameCancel={() => setRenamingPath(null)}
         />
       ))}
       {fileTree.length === 0 && (
         <p className="px-3 py-8 text-center text-xs text-[color:var(--text-2)]">
           No files yet.
         </p>
+      )}
+      {ctxMenu && (
+        <ContextMenu
+          menu={ctxMenu}
+          onClose={() => setCtxMenu(null)}
+          onDelete={handleDelete}
+          onRename={handleRenameStart}
+          onDuplicate={handleDuplicate}
+        />
       )}
     </div>
   );
