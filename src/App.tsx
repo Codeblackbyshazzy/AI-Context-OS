@@ -27,12 +27,17 @@ function AppContent() {
 
   const navigate = useNavigate();
   const [onboarded, setOnboarded] = useState<boolean | null>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   // Global keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (!(e.metaKey || e.ctrlKey)) return;
       switch (e.key) {
+        case "k":
+          e.preventDefault();
+          setSearchOpen((v) => !v);
+          break;
         case "g":
           e.preventDefault();
           navigate("/graph");
@@ -124,6 +129,7 @@ function AppContent() {
           <Toast message={error} onDismiss={() => setError(null)} />
         </main>
       </div>
+      <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />
     </div>
   );
 }

@@ -141,6 +141,19 @@ export function GovernanceView() {
 
         {activeTab === "decay" && (
           <div className="space-y-1.5">
+            {decayCandidates.length > 1 && (
+              <button
+                onClick={async () => {
+                  for (const m of decayCandidates) {
+                    try { await deleteMemory(m.id); } catch { /* skip */ }
+                  }
+                  setDecayCandidates([]);
+                }}
+                className="mb-2 rounded-md bg-[color:var(--danger)]/10 px-3 py-1.5 text-xs font-medium text-[color:var(--danger)] hover:bg-[color:var(--danger)]/20"
+              >
+                Archivar todos ({decayCandidates.length})
+              </button>
+            )}
             {decayCandidates.map((m) => (
               <div key={m.id} className="flex items-center gap-2 rounded-md border border-[var(--border)] bg-[color:var(--bg-0)] px-3 py-2">
                 <Clock className="h-3.5 w-3.5 shrink-0 text-[color:var(--text-2)]" />
@@ -149,6 +162,17 @@ export function GovernanceView() {
                 <span className="shrink-0 font-mono text-[10px] text-[color:var(--text-2)]">
                   {new Date(m.last_access).toLocaleDateString()}
                 </span>
+                <button
+                  onClick={async () => {
+                    try {
+                      await deleteMemory(m.id);
+                      setDecayCandidates((prev) => prev.filter((c) => c.id !== m.id));
+                    } catch (e) { console.error(e); }
+                  }}
+                  className="shrink-0 rounded px-1.5 py-0.5 text-[10px] text-[color:var(--danger)] hover:bg-[color:var(--danger)]/20"
+                >
+                  Archivar
+                </button>
               </div>
             ))}
             {decayCandidates.length === 0 && (

@@ -26,7 +26,7 @@
 
 - ⬚ **Drag & drop para reordenar** — Priorización visual arrastrando cards
 - ⬚ **Vista Kanban** — Columnas por estado (todo/in_progress/done)
-- ⬚ **Tasks desde journal** — Checkbox en journal que crea/sincroniza task en 07-tasks/
+- ✅ **Tasks desde journal** — `- [ ] texto` en journal crea task automáticamente al guardar (sin duplicados)
 - ⬚ **Due dates** — Campo de fecha límite con indicador visual de urgencia
 - ⬚ **Subtasks** — Jerarquía de tareas con progreso porcentual
 
@@ -37,7 +37,7 @@
 
 ## Governance
 
-- ⬚ **Acciones para decay candidates** — Botones para archivar memorias con decay alto
+- ✅ **Acciones para decay candidates** — Botones "Archivar" individual y "Archivar todos" en la tab Decay
 - ⬚ **Consolidación ejecutable** — Aplicar sugerencias de consolidación con un click (merge entries → nueva memoria)
 - ⬚ **Historial de governance** — Log de acciones tomadas (archivados, promovidos, etc.)
 
@@ -45,7 +45,7 @@
 
 - ⬚ **Context menu** — Click derecho en el tree: renombrar, mover, duplicar, eliminar
 - ⬚ **Drag & drop entre carpetas** — Mover memorias entre tipos arrastrando en el tree
-- ⬚ **Búsqueda global** — Cmd+K para buscar por contenido/tags/id en todas las memorias
+- ✅ **Búsqueda global** — Cmd+K abre modal de búsqueda por id/descripción/tags con navegación por teclado
 - ⬚ **Preview de markdown** — Toggle entre editor y preview renderizado
 - ⬚ **TipTap: toolbar opcional** — Opción de mostrar toolbar para usuarios nuevos
 
