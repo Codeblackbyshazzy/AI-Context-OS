@@ -1,4 +1,10 @@
-import React, { useState, useRef, useEffect, useCallback, useMemo, type KeyboardEvent } from "react";
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  useMemo,
+} from "react";
 import { clsx } from "clsx";
 
 interface Props {
@@ -9,28 +15,38 @@ interface Props {
 }
 
 /**
- * Hybrid Markdown editor — Logseq/Obsidian style.
- * Each block renders as formatted markdown by default.
- * Clicking a block reveals raw markdown for editing.
+ * Hybrid Markdown editor — Logseq-style seamless block editing.
+ * Blocks render as formatted markdown. Click to edit in-place (no borders).
+ * Raw markdown syntax appears in a contentEditable div styled identically.
  */
-export function HybridMarkdownEditor({ content, onChange, placeholder, className }: Props) {
+export function HybridMarkdownEditor({
+  content,
+  onChange,
+  placeholder,
+  className,
+}: Props) {
   const blocks = useMemo(() => splitIntoBlocks(content), [content]);
   const [focusedIdx, setFocusedIdx] = useState<number | null>(null);
   const [editValue, setEditValue] = useState("");
-  const containerRef = useRef<HTMLDivElement>(null);
+
+  const commitAndUpdate = useCallback(
+    (newBlocks: string[]) => {
+      onChange(newBlocks.join("\n"));
+    },
+    [onChange],
+  );
 
   const commitEdit = useCallback(
     (idx: number, newText: string) => {
       const updated = blocks.map((b, i) => (i === idx ? newText : b));
-      onChange(updated.join("\n"));
+      commitAndUpdate(updated);
     },
-    [blocks, onChange],
+    [blocks, commitAndUpdate],
   );
 
-  const handleBlockClick = useCallback(
+  const handleBlockFocus = useCallback(
     (idx: number) => {
       if (focusedIdx === idx) return;
-      // Commit previous
       if (focusedIdx !== null) {
         commitEdit(focusedIdx, editValue);
       }
@@ -40,38 +56,65 @@ export function HybridMarkdownEditor({ content, onChange, placeholder, className
     [focusedIdx, editValue, blocks, commitEdit],
   );
 
-  const handleBlur = useCallback(() => {
-    if (focusedIdx !== null) {
-      commitEdit(focusedIdx, editValue);
-      setFocusedIdx(null);
-    }
-  }, [focusedIdx, editValue, commitEdit]);
+  const handleBlur = useCallback(
+    (e: React.FocusEvent) => {
+      // Don't blur if focus is moving to another block in this editor
+      const related = e.relatedTarget as HTMLElement | null;
+      if (related?.closest("[data-hybrid-editor]")) return;
+
+      if (focusedIdx !== null) {
+        commitEdit(focusedIdx, editValue);
+        setFocusedIdx(null);
+      }
+    },
+    [focusedIdx, editValue, commitEdit],
+  );
 
   const handleKeyDown = useCallback(
-    (e: KeyboardEvent<HTMLTextAreaElement>, idx: number) => {
+    (e: React.KeyboardEvent<HTMLDivElement>, idx: number) => {
+      const el = e.currentTarget;
+
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
-        // Commit current block, insert new block after, focus it
-        const updatedBlocks = [...blocks];
-        updatedBlocks[idx] = editValue;
-        updatedBlocks.splice(idx + 1, 0, "");
-        onChange(updatedBlocks.join("\n"));
+        // Split block at cursor position
+        const sel = window.getSelection();
+        const cursorPos = sel ? getCaretOffset(el) : editValue.length;
+        const before = editValue.slice(0, cursorPos);
+        const after = editValue.slice(cursorPos);
+
+        const newBlocks = [...blocks];
+        newBlocks[idx] = before;
+        newBlocks.splice(idx + 1, 0, after);
+        commitAndUpdate(newBlocks);
         setFocusedIdx(idx + 1);
-        setEditValue("");
+        setEditValue(after);
       }
 
-      if (e.key === "Backspace" && editValue === "" && blocks.length > 1) {
-        e.preventDefault();
-        const updatedBlocks = blocks.filter((_, i) => i !== idx);
-        onChange(updatedBlocks.join("\n"));
-        const prevIdx = Math.max(0, idx - 1);
-        setFocusedIdx(prevIdx);
-        setEditValue(updatedBlocks[prevIdx] ?? "");
+      if (e.key === "Backspace") {
+        const cursorPos = getCaretOffset(el);
+        if (cursorPos === 0 && idx > 0) {
+          e.preventDefault();
+          // Merge with previous block
+          const prevText = blocks[idx - 1] ?? "";
+          const merged = prevText + editValue;
+          const newBlocks = blocks.filter((_, i) => i !== idx);
+          newBlocks[idx - 1] = merged;
+          commitAndUpdate(newBlocks);
+          setFocusedIdx(idx - 1);
+          setEditValue(merged);
+          // We'll set cursor to prevText.length after render
+          requestAnimationFrame(() => {
+            const activeEl = document.querySelector(
+              "[data-hybrid-editor] [data-block-active]",
+            ) as HTMLElement | null;
+            if (activeEl) setCaretOffset(activeEl, prevText.length);
+          });
+        }
       }
 
       if (e.key === "ArrowUp" && idx > 0) {
-        const textarea = e.currentTarget;
-        if (textarea.selectionStart === 0) {
+        const cursorPos = getCaretOffset(el);
+        if (cursorPos === 0) {
           e.preventDefault();
           commitEdit(idx, editValue);
           const prevIdx = idx - 1;
@@ -81,8 +124,8 @@ export function HybridMarkdownEditor({ content, onChange, placeholder, className
       }
 
       if (e.key === "ArrowDown" && idx < blocks.length - 1) {
-        const textarea = e.currentTarget;
-        if (textarea.selectionStart === textarea.value.length) {
+        const cursorPos = getCaretOffset(el);
+        if (cursorPos >= editValue.length) {
           e.preventDefault();
           commitEdit(idx, editValue);
           const nextIdx = idx + 1;
@@ -93,33 +136,44 @@ export function HybridMarkdownEditor({ content, onChange, placeholder, className
 
       if (e.key === "Escape") {
         e.preventDefault();
-        handleBlur();
+        if (focusedIdx !== null) {
+          commitEdit(focusedIdx, editValue);
+          setFocusedIdx(null);
+        }
       }
     },
-    [editValue, blocks, onChange, commitEdit, handleBlur],
+    [editValue, blocks, commitAndUpdate, commitEdit, focusedIdx],
   );
 
+  // Empty state
   if (blocks.length === 0 || (blocks.length === 1 && blocks[0] === "")) {
     return (
       <div
+        data-hybrid-editor
         className={clsx("min-h-[170px] cursor-text", className)}
         onClick={() => {
-          if (blocks.length === 0) {
-            onChange("");
-          }
           setFocusedIdx(0);
-          setEditValue(blocks[0] ?? "");
+          setEditValue("");
         }}
       >
-        <p className="py-1 text-sm text-[color:var(--text-2)]/50">
-          {placeholder ?? "Escribe aquí..."}
-        </p>
+        {focusedIdx === 0 ? (
+          <EditableBlock
+            value={editValue}
+            onChange={setEditValue}
+            onBlur={handleBlur}
+            onKeyDown={(e) => handleKeyDown(e, 0)}
+          />
+        ) : (
+          <p className="px-1 py-0.5 text-sm text-[color:var(--text-2)]/40">
+            {placeholder ?? "Escribe aquí..."}
+          </p>
+        )}
       </div>
     );
   }
 
   return (
-    <div ref={containerRef} className={clsx("min-h-[170px]", className)}>
+    <div data-hybrid-editor className={clsx("min-h-[170px]", className)}>
       {blocks.map((block, idx) => (
         <div key={`block-${idx}`}>
           {focusedIdx === idx ? (
@@ -132,7 +186,11 @@ export function HybridMarkdownEditor({ content, onChange, placeholder, className
           ) : (
             <RenderedBlock
               markdown={block}
-              onClick={() => handleBlockClick(idx)}
+              onClick={() => handleBlockFocus(idx)}
+              isFocusedNeighbor={
+                focusedIdx !== null &&
+                Math.abs(focusedIdx - idx) === 1
+              }
             />
           )}
         </div>
@@ -141,7 +199,7 @@ export function HybridMarkdownEditor({ content, onChange, placeholder, className
   );
 }
 
-/* ─── Sub-components ─── */
+/* ─── Editable block (contentEditable, no borders) ─── */
 
 function EditableBlock({
   value,
@@ -151,55 +209,85 @@ function EditableBlock({
 }: {
   value: string;
   onChange: (v: string) => void;
-  onBlur: () => void;
-  onKeyDown: (e: KeyboardEvent<HTMLTextAreaElement>) => void;
+  onBlur: (e: React.FocusEvent) => void;
+  onKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => void;
 }) {
-  const ref = useRef<HTMLTextAreaElement>(null);
+  const ref = useRef<HTMLDivElement>(null);
+  const isInitialMount = useRef(true);
 
+  // Set initial content and focus
   useEffect(() => {
-    if (ref.current) {
+    if (ref.current && isInitialMount.current) {
+      isInitialMount.current = false;
+      ref.current.textContent = value;
       ref.current.focus();
       // Place cursor at end
-      const len = ref.current.value.length;
-      ref.current.setSelectionRange(len, len);
-    }
-  }, []);
-
-  // Auto-resize
-  useEffect(() => {
-    if (ref.current) {
-      ref.current.style.height = "auto";
-      ref.current.style.height = `${ref.current.scrollHeight}px`;
+      const range = document.createRange();
+      const sel = window.getSelection();
+      if (ref.current.childNodes.length > 0) {
+        const lastNode = ref.current.childNodes[ref.current.childNodes.length - 1];
+        range.setStartAfter(lastNode);
+      } else {
+        range.setStart(ref.current, 0);
+      }
+      range.collapse(true);
+      sel?.removeAllRanges();
+      sel?.addRange(range);
     }
   }, [value]);
 
+  const handleInput = useCallback(() => {
+    if (ref.current) {
+      onChange(ref.current.textContent ?? "");
+    }
+  }, [onChange]);
+
+  // Prevent default paste — insert plain text only
+  const handlePaste = useCallback(
+    (e: React.ClipboardEvent) => {
+      e.preventDefault();
+      const text = e.clipboardData.getData("text/plain");
+      document.execCommand("insertText", false, text);
+      if (ref.current) {
+        onChange(ref.current.textContent ?? "");
+      }
+    },
+    [onChange],
+  );
+
   return (
-    <textarea
+    <div
       ref={ref}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
+      data-block-active
+      contentEditable
+      suppressContentEditableWarning
+      onInput={handleInput}
       onBlur={onBlur}
       onKeyDown={onKeyDown}
+      onPaste={handlePaste}
       spellCheck={false}
-      rows={1}
-      className="w-full resize-none rounded border border-[color:var(--accent)]/30 bg-[color:var(--bg-2)] px-2 py-1 font-mono text-sm leading-relaxed text-[color:var(--text-2)] outline-none focus:border-[color:var(--accent)]/60"
+      className="rounded-sm bg-[color:var(--bg-1)]/60 px-1 py-0.5 font-mono text-sm leading-relaxed text-[color:var(--text-2)] outline-none"
     />
   );
 }
 
+/* ─── Rendered block (click to edit) ─── */
+
 function RenderedBlock({
   markdown,
   onClick,
+  isFocusedNeighbor: _isFocusedNeighbor,
 }: {
   markdown: string;
   onClick: () => void;
+  isFocusedNeighbor: boolean;
 }) {
   const trimmed = markdown.trim();
 
   if (!trimmed) {
     return (
       <div
-        className="min-h-[1.5em] cursor-text rounded px-2 py-1 transition-colors hover:bg-[color:var(--bg-2)]/50"
+        className="min-h-[1.4em] cursor-text px-1 py-0.5"
         onClick={onClick}
       />
     );
@@ -207,7 +295,7 @@ function RenderedBlock({
 
   return (
     <div
-      className="cursor-text rounded px-2 py-1 transition-colors hover:bg-[color:var(--bg-2)]/50"
+      className="cursor-text rounded-sm px-1 py-0.5 transition-colors hover:bg-[color:var(--bg-1)]/40"
       onClick={onClick}
     >
       <BlockContent markdown={trimmed} />
@@ -215,18 +303,33 @@ function RenderedBlock({
   );
 }
 
+/* ─── Markdown block rendering ─── */
+
 function BlockContent({ markdown }: { markdown: string }) {
-  // Heading
   const h3 = markdown.match(/^###\s+(.*)/);
-  if (h3) return <h3 className="text-base font-semibold text-[color:var(--text-0)]">{renderInline(h3[1])}</h3>;
+  if (h3)
+    return (
+      <h3 className="text-base font-semibold text-[color:var(--text-0)]">
+        {renderInline(h3[1])}
+      </h3>
+    );
 
   const h2 = markdown.match(/^##\s+(.*)/);
-  if (h2) return <h2 className="text-lg font-semibold text-[color:var(--text-0)]">{renderInline(h2[1])}</h2>;
+  if (h2)
+    return (
+      <h2 className="text-lg font-semibold text-[color:var(--text-0)]">
+        {renderInline(h2[1])}
+      </h2>
+    );
 
   const h1 = markdown.match(/^#\s+(.*)/);
-  if (h1) return <h1 className="text-xl font-bold text-[color:var(--text-0)]">{renderInline(h1[1])}</h1>;
+  if (h1)
+    return (
+      <h1 className="text-xl font-bold text-[color:var(--text-0)]">
+        {renderInline(h1[1])}
+      </h1>
+    );
 
-  // Blockquote
   const bq = markdown.match(/^>\s?(.*)/);
   if (bq) {
     return (
@@ -236,7 +339,34 @@ function BlockContent({ markdown }: { markdown: string }) {
     );
   }
 
-  // Unordered list item
+  // Task checkbox
+  const task = markdown.match(/^-\s*\[([ xX])\]\s+(.*)/);
+  if (task) {
+    const checked = task[1] !== " ";
+    return (
+      <div className="flex items-start gap-2 text-sm text-[color:var(--text-1)]">
+        <span
+          className={clsx(
+            "mt-0.5",
+            checked
+              ? "text-[color:var(--success)]"
+              : "text-[color:var(--text-2)]",
+          )}
+        >
+          {checked ? "☑" : "☐"}
+        </span>
+        <span
+          className={clsx(
+            checked && "line-through text-[color:var(--text-2)]",
+          )}
+        >
+          {renderInline(task[2])}
+        </span>
+      </div>
+    );
+  }
+
+  // Unordered list
   const ul = markdown.match(/^[-*]\s+(.*)/);
   if (ul) {
     return (
@@ -247,7 +377,7 @@ function BlockContent({ markdown }: { markdown: string }) {
     );
   }
 
-  // Ordered list item
+  // Ordered list
   const ol = markdown.match(/^(\d+)\.\s+(.*)/);
   if (ol) {
     return (
@@ -258,27 +388,14 @@ function BlockContent({ markdown }: { markdown: string }) {
     );
   }
 
-  // Checkbox task
-  const task = markdown.match(/^-\s*\[([ xX])\]\s+(.*)/);
-  if (task) {
-    const checked = task[1] !== " ";
-    return (
-      <div className="flex items-start gap-2 text-sm text-[color:var(--text-1)]">
-        <span className={clsx("mt-0.5", checked ? "text-[color:var(--success)]" : "text-[color:var(--text-2)]")}>
-          {checked ? "☑" : "☐"}
-        </span>
-        <span className={clsx(checked && "line-through text-[color:var(--text-2)]")}>
-          {renderInline(task[2])}
-        </span>
-      </div>
-    );
-  }
-
-  // Code block (single-line fenced)
+  // Code block
   if (markdown.startsWith("```")) {
+    const code = markdown
+      .replace(/^```\w*\n?/, "")
+      .replace(/\n?```$/, "");
     return (
       <pre className="rounded bg-[color:var(--bg-2)] px-3 py-2 font-mono text-xs text-[color:var(--text-1)]">
-        <code>{markdown.replace(/^```\w*\n?/, "").replace(/\n?```$/, "")}</code>
+        <code>{code}</code>
       </pre>
     );
   }
@@ -288,49 +405,53 @@ function BlockContent({ markdown }: { markdown: string }) {
     return <hr className="my-1 border-[color:var(--border)]" />;
   }
 
-  // Regular paragraph
-  return <p className="text-sm leading-relaxed text-[color:var(--text-1)]">{renderInline(markdown)}</p>;
+  // Paragraph
+  return (
+    <p className="text-sm leading-relaxed text-[color:var(--text-1)]">
+      {renderInline(markdown)}
+    </p>
+  );
 }
 
 /* ─── Inline markdown rendering ─── */
 
-function renderInline(text: string): (string | React.ReactElement)[] {
+function renderInline(
+  text: string,
+): (string | React.ReactElement)[] {
   const parts: (string | React.ReactElement)[] = [];
-  // Combined regex for inline formatting
-  const regex = /(\*\*(.+?)\*\*|__(.+?)__|\*(.+?)\*|_(.+?)_|~~(.+?)~~|`(.+?)`)/g;
+  const regex =
+    /(\*\*(.+?)\*\*|__(.+?)__|\*(.+?)\*|_(.+?)_|~~(.+?)~~|`(.+?)`)/g;
   let cursor = 0;
   let key = 0;
   let match: RegExpExecArray | null;
 
   while ((match = regex.exec(text)) !== null) {
-    // Text before match
     if (match.index > cursor) {
       parts.push(text.slice(cursor, match.index));
     }
 
     if (match[2] || match[3]) {
-      // Bold
       parts.push(
-        <strong key={key++} className="font-semibold text-[color:var(--text-0)]">
+        <strong
+          key={key++}
+          className="font-semibold text-[color:var(--text-0)]"
+        >
           {match[2] || match[3]}
         </strong>,
       );
     } else if (match[4] || match[5]) {
-      // Italic
       parts.push(
         <em key={key++} className="italic">
           {match[4] || match[5]}
         </em>,
       );
     } else if (match[6]) {
-      // Strikethrough
       parts.push(
         <s key={key++} className="text-[color:var(--text-2)]">
           {match[6]}
         </s>,
       );
     } else if (match[7]) {
-      // Inline code
       parts.push(
         <code
           key={key++}
@@ -344,7 +465,6 @@ function renderInline(text: string): (string | React.ReactElement)[] {
     cursor = regex.lastIndex;
   }
 
-  // Remaining text
   if (cursor < text.length) {
     parts.push(text.slice(cursor));
   }
@@ -357,7 +477,6 @@ function renderInline(text: string): (string | React.ReactElement)[] {
 
 function splitIntoBlocks(content: string): string[] {
   if (!content) return [""];
-  // Split by double newline (paragraph) or single newline for list items/headings
   const lines = content.split("\n");
   const blocks: string[] = [];
   let buffer = "";
@@ -365,7 +484,6 @@ function splitIntoBlocks(content: string): string[] {
   for (const line of lines) {
     const trimmed = line.trim();
 
-    // These always start a new block
     const isBlockStart =
       trimmed.startsWith("#") ||
       trimmed.startsWith("-") ||
@@ -377,26 +495,41 @@ function splitIntoBlocks(content: string): string[] {
       trimmed === "***";
 
     if (isBlockStart) {
-      if (buffer.trim()) {
-        blocks.push(buffer.trim());
-      }
+      if (buffer.trim()) blocks.push(buffer.trim());
       blocks.push(line);
       buffer = "";
     } else if (trimmed === "") {
-      if (buffer.trim()) {
-        blocks.push(buffer.trim());
-      }
+      if (buffer.trim()) blocks.push(buffer.trim());
       buffer = "";
     } else {
-      // Continuation of paragraph
       buffer += (buffer ? "\n" : "") + line;
     }
   }
 
-  if (buffer.trim()) {
-    blocks.push(buffer.trim());
-  }
-
+  if (buffer.trim()) blocks.push(buffer.trim());
   if (blocks.length === 0) return [""];
   return blocks;
+}
+
+/* ─── Cursor helpers for contentEditable ─── */
+
+function getCaretOffset(el: HTMLElement): number {
+  const sel = window.getSelection();
+  if (!sel || sel.rangeCount === 0) return 0;
+  const range = sel.getRangeAt(0).cloneRange();
+  range.selectNodeContents(el);
+  range.setEnd(sel.getRangeAt(0).startContainer, sel.getRangeAt(0).startOffset);
+  return range.toString().length;
+}
+
+function setCaretOffset(el: HTMLElement, offset: number) {
+  const textNode = el.firstChild;
+  if (!textNode) return;
+  const range = document.createRange();
+  const sel = window.getSelection();
+  const pos = Math.min(offset, (textNode.textContent ?? "").length);
+  range.setStart(textNode, pos);
+  range.collapse(true);
+  sel?.removeAllRanges();
+  sel?.addRange(range);
 }
