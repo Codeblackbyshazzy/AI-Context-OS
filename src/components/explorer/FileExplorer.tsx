@@ -1,16 +1,87 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import {
   ChevronRight,
   ChevronDown,
   FileText,
   Folder,
   AlertTriangle,
+  Trash2,
+  Pencil,
+  Copy,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { useAppStore } from "../../lib/store";
-import { getConflicts } from "../../lib/tauri";
+import { getConflicts, deleteMemory, getMemory, createMemory } from "../../lib/tauri";
 import type { FileNode, MemoryType, Conflict } from "../../lib/types";
 import { MEMORY_TYPE_COLORS } from "../../lib/types";
+
+/* ─── Context Menu ─── */
+interface ContextMenuState {
+  x: number;
+  y: number;
+  node: FileNode;
+}
+
+function ContextMenu({
+  menu,
+  onClose,
+  onDelete,
+  onRename,
+  onDuplicate,
+}: {
+  menu: ContextMenuState;
+  onClose: () => void;
+  onDelete: () => void;
+  onRename: () => void;
+  onDuplicate: () => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [onClose]);
+
+  const isMemory = menu.node.name.endsWith(".md") && !menu.node.is_dir;
+
+  if (!isMemory) return null;
+
+  const items = [
+    { label: "Renombrar", icon: Pencil, action: onRename },
+    { label: "Duplicar", icon: Copy, action: onDuplicate },
+    { label: "Eliminar", icon: Trash2, action: onDelete, danger: true },
+  ];
+
+  return (
+    <div
+      ref={ref}
+      className="fixed z-50 min-w-[140px] rounded-md border border-[color:var(--border)] bg-[color:var(--bg-1)] py-1 shadow-lg"
+      style={{ top: menu.y, left: menu.x }}
+    >
+      {items.map((item) => (
+        <button
+          key={item.label}
+          className={clsx(
+            "flex w-full items-center gap-2 px-3 py-1.5 text-left text-[13px] transition-colors hover:bg-[color:var(--bg-2)]",
+            (item as { danger?: boolean }).danger
+              ? "text-[color:var(--danger)]"
+              : "text-[color:var(--text-1)]",
+          )}
+          onClick={() => {
+            item.action();
+            onClose();
+          }}
+        >
+          <item.icon className="h-3.5 w-3.5" />
+          {item.label}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 function getTypeColor(node: FileNode): string | undefined {
   if (node.memory_type) {
@@ -61,6 +132,12 @@ interface TreeNodeProps {
   expanded: Set<string>;
   toggleExpand: (path: string) => void;
   conflictIds: Set<string>;
+  onContextMenu: (e: React.MouseEvent, node: FileNode) => void;
+  renamingPath: string | null;
+  renameValue: string;
+  onRenameChange: (v: string) => void;
+  onRenameCommit: () => void;
+  onRenameCancel: () => void;
 }
 
 function TreeNode({
@@ -69,6 +146,12 @@ function TreeNode({
   expanded,
   toggleExpand,
   conflictIds,
+  onContextMenu,
+  renamingPath,
+  renameValue,
+  onRenameChange,
+  onRenameCommit,
+  onRenameCancel,
 }: TreeNodeProps) {
   const { selectedPath, selectFile, selectRawFile, memories } = useAppStore();
   const isExpanded = expanded.has(node.path);
