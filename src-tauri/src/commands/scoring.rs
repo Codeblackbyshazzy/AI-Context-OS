@@ -63,16 +63,31 @@ pub fn simulate_context(
     // Sort by final_score descending
     scored.sort_by(|a, b| b.1.final_score.partial_cmp(&a.1.final_score).unwrap_or(std::cmp::Ordering::Equal));
 
-    // Collect skill dependency IDs (requires) from top-scored memories
+    // Collect skill dependency IDs from top-scored memories
     let mut force_load_ids: std::collections::HashSet<String> = std::collections::HashSet::new();
+    let mut boost_ids: std::collections::HashSet<String> = std::collections::HashSet::new();
     for (idx, _score) in &scored {
         let mem = &memories[*idx];
         if mem.meta.memory_type == crate::core::types::MemoryType::Skill {
             for req_id in &mem.meta.requires {
                 force_load_ids.insert(req_id.clone());
             }
+            for opt_id in &mem.meta.optional {
+                boost_ids.insert(opt_id.clone());
+            }
         }
     }
+
+    // Apply optional boost: re-score with +0.1 bonus for optional dependencies
+    let scored: Vec<(usize, crate::core::types::ScoreBreakdown)> = scored
+        .into_iter()
+        .map(|(idx, mut s)| {
+            if boost_ids.contains(&memories[idx].meta.id) {
+                s.final_score = (s.final_score + 0.1).min(1.0);
+            }
+            (idx, s)
+        })
+        .collect();
 
     // Assign load levels greedily within token budget
     let mut remaining_budget = token_budget;

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
 import { Sidebar } from "./components/layout/Sidebar";
 import { ExplorerView } from "./views/ExplorerView";
 import { GraphViewPage } from "./views/GraphViewPage";
@@ -24,7 +24,31 @@ function AppContent() {
   const toggleExplorer = useAppStore((s) => s.toggleExplorer);
   const explorerOpen = useAppStore((s) => s.explorerOpen);
 
+  const navigate = useNavigate();
   const [onboarded, setOnboarded] = useState<boolean | null>(null);
+
+  // Global keyboard shortcuts
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey)) return;
+      switch (e.key) {
+        case "g":
+          e.preventDefault();
+          navigate("/graph");
+          break;
+        case "j":
+          e.preventDefault();
+          navigate("/journal");
+          break;
+        case "b":
+          e.preventDefault();
+          toggleExplorer();
+          break;
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [navigate, toggleExplorer]);
 
   useEffect(() => {
     isOnboarded()
@@ -96,19 +120,7 @@ function AppContent() {
               <Route path="/settings" element={<SettingsView />} />
             </Routes>
           </div>
-          {error && (
-            <div className="absolute bottom-4 right-4 max-w-sm rounded-md border border-[color:var(--danger)]/30 bg-[color:var(--bg-2)] px-3 py-2.5 shadow-lg">
-              <div className="flex items-start gap-2">
-                <p className="flex-1 text-xs text-[color:var(--text-1)]">{error}</p>
-                <button
-                  onClick={() => setError(null)}
-                  className="text-[color:var(--text-2)] hover:text-[color:var(--text-0)]"
-                >
-                  ×
-                </button>
-              </div>
-            </div>
-          )}
+          <Toast message={error} onDismiss={() => setError(null)} />
         </main>
       </div>
     </div>
@@ -120,6 +132,41 @@ function App() {
     <BrowserRouter>
       <AppContent />
     </BrowserRouter>
+  );
+}
+
+function Toast({ message, onDismiss }: { message: string | null; onDismiss: () => void }) {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    if (message) {
+      setVisible(true);
+      const timer = setTimeout(() => {
+        setVisible(false);
+        setTimeout(onDismiss, 300);
+      }, 4000);
+      return () => clearTimeout(timer);
+    } else {
+      setVisible(false);
+    }
+  }, [message, onDismiss]);
+
+  if (!message) return null;
+
+  return (
+    <div
+      className={`absolute bottom-4 right-4 max-w-sm rounded-md border border-[color:var(--danger)]/30 bg-[color:var(--bg-2)] px-3 py-2.5 shadow-lg transition-all duration-300 ${visible ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"}`}
+    >
+      <div className="flex items-start gap-2">
+        <p className="flex-1 text-xs text-[color:var(--text-1)]">{message}</p>
+        <button
+          onClick={() => { setVisible(false); setTimeout(onDismiss, 300); }}
+          className="text-[color:var(--text-2)] hover:text-[color:var(--text-0)]"
+        >
+          ×
+        </button>
+      </div>
+    </div>
   );
 }
 

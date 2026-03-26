@@ -12,6 +12,7 @@ import {
   getDecayCandidates,
   getConsolidationSuggestions,
   getScratchCandidates,
+  deleteMemory,
 } from "../lib/tauri";
 import { useAppStore } from "../lib/store";
 import type { Conflict, ConsolidationSuggestion, MemoryMeta } from "../lib/types";
@@ -174,13 +175,41 @@ export function GovernanceView() {
 
         {activeTab === "scratch" && (
           <div className="space-y-1.5">
+            {scratchFiles.length > 1 && (
+              <button
+                onClick={async () => {
+                  for (const file of scratchFiles) {
+                    const id = file.split("/").pop()?.replace(".md", "");
+                    if (id) {
+                      try { await deleteMemory(id); } catch { /* skip */ }
+                    }
+                  }
+                  setScratchFiles([]);
+                }}
+                className="mb-2 rounded-md bg-[color:var(--warning)]/10 px-3 py-1.5 text-xs font-medium text-[color:var(--warning)] hover:bg-[color:var(--warning)]/20"
+              >
+                Limpiar todos ({scratchFiles.length})
+              </button>
+            )}
             {scratchFiles.map((file) => {
               const name = file.split("/").pop() || file;
+              const id = name.replace(".md", "");
               return (
                 <div key={file} className="flex items-center gap-2 rounded-md border border-[color:var(--warning)]/20 bg-[color:var(--warning)]/5 px-3 py-2">
                   <Trash2 className="h-3.5 w-3.5 shrink-0 text-[color:var(--warning)]" />
                   <span className="text-xs font-medium text-[color:var(--text-1)]">{name}</span>
                   <span className="flex-1 truncate font-mono text-[10px] text-[color:var(--text-2)]">{file}</span>
+                  <button
+                    onClick={async () => {
+                      try {
+                        await deleteMemory(id);
+                        setScratchFiles((prev) => prev.filter((f) => f !== file));
+                      } catch (e) { console.error(e); }
+                    }}
+                    className="shrink-0 rounded px-1.5 py-0.5 text-[10px] text-[color:var(--warning)] hover:bg-[color:var(--warning)]/20"
+                  >
+                    Eliminar
+                  </button>
                 </div>
               );
             })}

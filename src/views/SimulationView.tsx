@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, Zap } from "lucide-react";
+import { Search, Zap, Copy, Check } from "lucide-react";
 import { simulateContext } from "../lib/tauri";
 import type { ScoredMemory } from "../lib/types";
 import { MEMORY_TYPE_COLORS, MEMORY_TYPE_LABELS } from "../lib/types";
@@ -9,6 +9,7 @@ export function SimulationView() {
   const [budget, setBudget] = useState(4000);
   const [results, setResults] = useState<ScoredMemory[]>([]);
   const [loading, setLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const handleSimulate = async () => {
     if (!query.trim()) return;
@@ -77,6 +78,22 @@ export function SimulationView() {
           <span className="shrink-0 font-mono text-[11px] text-[color:var(--text-2)]">
             {totalTokens}/{budget} tokens · {results.length} loaded
           </span>
+          <button
+            onClick={() => {
+              const text = results
+                .map((r) => `[${r.load_level.toUpperCase()}] ${r.memory_id}: ${r.l0} (score: ${r.score.final_score.toFixed(3)}, ${r.token_estimate}t)`)
+                .join("\n");
+              navigator.clipboard.writeText(text).then(() => {
+                setCopied(true);
+                setTimeout(() => setCopied(false), 1500);
+              });
+            }}
+            className="flex items-center gap-1 rounded-md border border-[var(--border)] px-2 py-0.5 text-[10px] text-[color:var(--text-2)] hover:text-[color:var(--text-1)]"
+            title="Copiar contexto al clipboard"
+          >
+            {copied ? <Check className="h-3 w-3 text-[color:var(--success)]" /> : <Copy className="h-3 w-3" />}
+            {copied ? "Copiado" : "Copiar"}
+          </button>
         </div>
       )}
 
