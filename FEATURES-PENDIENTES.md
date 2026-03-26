@@ -25,7 +25,6 @@
 
 - ⬚ **Drag & drop para reordenar** — Priorización visual arrastrando cards
 - ⬚ **Vista Kanban** — Columnas por estado (todo/in_progress/done)
-- ✅ **Tasks desde journal** — `- [ ] texto` en journal crea task automáticamente al guardar (sin duplicados)
 - ⬚ **Subtasks** — Jerarquía de tareas con progreso porcentual
 
 ## Graph
