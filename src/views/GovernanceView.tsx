@@ -4,30 +4,34 @@ import {
   Clock,
   ArrowUpFromLine,
   BarChart3,
+  Trash2,
 } from "lucide-react";
 import { clsx } from "clsx";
 import {
   getConflicts,
   getDecayCandidates,
   getConsolidationSuggestions,
+  getScratchCandidates,
 } from "../lib/tauri";
 import { useAppStore } from "../lib/store";
 import type { Conflict, ConsolidationSuggestion, MemoryMeta } from "../lib/types";
 import { MEMORY_TYPE_COLORS, MEMORY_TYPE_LABELS } from "../lib/types";
 
-type Tab = "stats" | "conflicts" | "decay" | "consolidation";
+type Tab = "stats" | "conflicts" | "decay" | "consolidation" | "scratch";
 
 export function GovernanceView() {
   const [activeTab, setActiveTab] = useState<Tab>("stats");
   const [conflicts, setConflicts] = useState<Conflict[]>([]);
   const [decayCandidates, setDecayCandidates] = useState<MemoryMeta[]>([]);
   const [consolidation, setConsolidation] = useState<ConsolidationSuggestion[]>([]);
+  const [scratchFiles, setScratchFiles] = useState<string[]>([]);
   const { memories } = useAppStore();
 
   useEffect(() => {
     getConflicts().then(setConflicts).catch(console.error);
     getDecayCandidates().then(setDecayCandidates).catch(console.error);
     getConsolidationSuggestions().then(setConsolidation).catch(console.error);
+    getScratchCandidates().then(setScratchFiles).catch(console.error);
   }, []);
 
   const tabs: { id: Tab; icon: typeof BarChart3; label: string }[] = [
@@ -35,6 +39,7 @@ export function GovernanceView() {
     { id: "conflicts", icon: AlertTriangle, label: `Conflicts ${conflicts.length}` },
     { id: "decay", icon: Clock, label: `Decay ${decayCandidates.length}` },
     { id: "consolidation", icon: ArrowUpFromLine, label: `Consolidation ${consolidation.length}` },
+    { id: "scratch", icon: Trash2, label: `Scratch TTL ${scratchFiles.length}` },
   ];
 
   const typeGroups = memories.reduce(
@@ -163,6 +168,24 @@ export function GovernanceView() {
             ))}
             {consolidation.length === 0 && (
               <Empty text="No consolidation suggestions" />
+            )}
+          </div>
+        )}
+
+        {activeTab === "scratch" && (
+          <div className="space-y-1.5">
+            {scratchFiles.map((file) => {
+              const name = file.split("/").pop() || file;
+              return (
+                <div key={file} className="flex items-center gap-2 rounded-md border border-[color:var(--warning)]/20 bg-[color:var(--warning)]/5 px-3 py-2">
+                  <Trash2 className="h-3.5 w-3.5 shrink-0 text-[color:var(--warning)]" />
+                  <span className="text-xs font-medium text-[color:var(--text-1)]">{name}</span>
+                  <span className="flex-1 truncate font-mono text-[10px] text-[color:var(--text-2)]">{file}</span>
+                </div>
+              );
+            })}
+            {scratchFiles.length === 0 && (
+              <Empty text="No hay archivos scratch expirados" />
             )}
           </div>
         )}

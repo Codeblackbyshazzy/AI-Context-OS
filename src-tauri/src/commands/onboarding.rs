@@ -75,7 +75,7 @@ pub fn run_onboarding(
 
     // Persist selected root and ensure watcher points at this workspace.
     state.set_root(root.clone())?;
-    start_watcher(root, app).ok();
+    start_watcher(root, app, Some(state.memory_index.clone())).ok();
 
     Ok(true)
 }

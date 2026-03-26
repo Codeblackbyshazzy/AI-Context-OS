@@ -158,7 +158,7 @@ pub fn init_workspace(app: AppHandle, state: State<AppState>) -> Result<bool, St
     let config = create_workspace_structure(&root, &[])?;
     state.set_root(root.clone())?;
     *state.config.write().unwrap() = config;
-    start_watcher(root, app).ok();
+    start_watcher(root, app, Some(state.memory_index.clone())).ok();
 
     Ok(true)
 }

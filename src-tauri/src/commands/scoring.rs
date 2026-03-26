@@ -63,12 +63,24 @@ pub fn simulate_context(
     // Sort by final_score descending
     scored.sort_by(|a, b| b.1.final_score.partial_cmp(&a.1.final_score).unwrap_or(std::cmp::Ordering::Equal));
 
+    // Collect skill dependency IDs (requires) from top-scored memories
+    let mut force_load_ids: std::collections::HashSet<String> = std::collections::HashSet::new();
+    for (idx, _score) in &scored {
+        let mem = &memories[*idx];
+        if mem.meta.memory_type == crate::core::types::MemoryType::Skill {
+            for req_id in &mem.meta.requires {
+                force_load_ids.insert(req_id.clone());
+            }
+        }
+    }
+
     // Assign load levels greedily within token budget
     let mut remaining_budget = token_budget;
     let mut results = Vec::new();
 
     for (idx, score) in scored {
         let mem = &memories[idx];
+        let is_force_loaded = force_load_ids.contains(&mem.meta.id);
 
         // L0 tokens (always counted — it's in the router)
         let l0_tokens = estimate_tokens(&mem.meta.l0);
@@ -79,7 +91,8 @@ pub fn simulate_context(
 
         let (level, tokens) = if remaining_budget >= l0_tokens + l1_tokens + l2_tokens && score.final_score > 0.3 {
             (LoadLevel::L2, l0_tokens + l1_tokens + l2_tokens)
-        } else if remaining_budget >= l0_tokens + l1_tokens && score.final_score > 0.15 {
+        } else if remaining_budget >= l0_tokens + l1_tokens && (score.final_score > 0.15 || is_force_loaded) {
+            // Force-loaded skill dependencies get at least L1
             (LoadLevel::L1, l0_tokens + l1_tokens)
         } else if remaining_budget >= l0_tokens {
             (LoadLevel::L0, l0_tokens)

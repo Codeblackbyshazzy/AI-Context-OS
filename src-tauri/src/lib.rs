@@ -90,7 +90,7 @@ pub fn run() {
 
             // Start filesystem watcher for live sync.
             if root.exists() {
-                if let Err(e) = crate::core::watcher::start_watcher(root.clone(), app.handle().clone()) {
+                if let Err(e) = crate::core::watcher::start_watcher(root.clone(), app.handle().clone(), Some(state.memory_index.clone())) {
                     log::warn!("Failed to start watcher on {}: {}", root.display(), e);
                 }
             }

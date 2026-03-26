@@ -55,6 +55,7 @@ pub fn list_memories(
 }
 
 /// Get a full memory with L1+L2 content.
+/// Auto-increments access_count and updates last_access on every read.
 #[tauri::command]
 pub fn get_memory(id: String, state: State<AppState>) -> Result<Memory, String> {
     let index = state.memory_index.read().unwrap();
@@ -63,7 +64,24 @@ pub fn get_memory(id: String, state: State<AppState>) -> Result<Memory, String> 
         .get(&id)
         .ok_or_else(|| format!("Memory not found: {}", id))?;
 
-    read_memory(std::path::Path::new(path))
+    let mut memory = read_memory(std::path::Path::new(path))?;
+
+    // Update access tracking
+    memory.meta.access_count += 1;
+    memory.meta.last_access = Utc::now();
+
+    // Persist updated counters to disk
+    write_memory(std::path::Path::new(path), &memory)?;
+
+    // Update in-memory index
+    drop(index);
+    let mut index = state.memory_index.write().unwrap();
+    if let Some(entry) = index.get_mut(&id) {
+        entry.0.access_count = memory.meta.access_count;
+        entry.0.last_access = memory.meta.last_access;
+    }
+
+    Ok(memory)
 }
 
 /// Create a new memory file.

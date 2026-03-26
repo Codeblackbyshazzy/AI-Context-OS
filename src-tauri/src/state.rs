@@ -2,15 +2,16 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
-use std::sync::RwLock;
+use std::sync::{Arc, RwLock};
 
 use crate::core::types::{Config, MemoryMeta};
+use crate::core::watcher::MemoryIndex;
 
 const ROOT_HINT_FILE: &str = ".ai-context-os-root";
 
 pub struct AppState {
     pub root_dir: RwLock<PathBuf>,
-    pub memory_index: RwLock<HashMap<String, (MemoryMeta, String)>>, // id -> (meta, file_path)
+    pub memory_index: MemoryIndex, // Arc<RwLock<HashMap<id, (meta, file_path)>>>
     pub config: RwLock<Config>,
 }
 
@@ -22,7 +23,7 @@ impl AppState {
 
         Self {
             root_dir: RwLock::new(root.clone()),
-            memory_index: RwLock::new(HashMap::new()),
+            memory_index: Arc::new(RwLock::new(HashMap::new())),
             config: RwLock::new(Config {
                 root_dir: root.to_string_lossy().to_string(),
                 default_token_budget: 4000,
