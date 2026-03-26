@@ -194,10 +194,11 @@ interface TreeNodeProps {
   onContextMenu: (event: React.MouseEvent, node: FileNode) => void;
   draggedItem: DraggedItem | null;
   dropTargetPath: string | null;
+  suppressClick: boolean;
   onDragStart: (node: FileNode) => void;
   onDragEnd: () => void;
   onDragHoverDirectory: (targetPath: string | null) => void;
-  onDropOnDirectory: (target: FileNode) => void;
+  onDropOnDirectory: (target: FileNode, sourcePath: string | null) => void;
   renamingPath: string | null;
   renameValue: string;
   onRenameChange: (value: string) => void;
@@ -214,6 +215,7 @@ function TreeNode({
   onContextMenu,
   draggedItem,
   dropTargetPath,
+  suppressClick,
   onDragStart,
   onDragEnd,
   onDragHoverDirectory,
@@ -241,6 +243,8 @@ function TreeNode({
   const isDropTarget = dropTargetPath === node.path && canAcceptDrop;
 
   const handleClick = () => {
+    if (draggedItem || suppressClick) return;
+
     if (node.is_dir) {
       toggleExpand(node.path);
       return;
@@ -277,6 +281,7 @@ function TreeNode({
           if (!canDrag) return;
           event.stopPropagation();
           event.dataTransfer.effectAllowed = "move";
+          event.dataTransfer.setData("application/x-ai-context-path", node.path);
           event.dataTransfer.setData("text/plain", node.path);
           onDragStart(node);
         }}
@@ -296,7 +301,11 @@ function TreeNode({
           if (!canAcceptDrop) return;
           event.preventDefault();
           event.stopPropagation();
-          onDropOnDirectory(node);
+          const sourcePath =
+            event.dataTransfer.getData("application/x-ai-context-path") ||
+            event.dataTransfer.getData("text/plain") ||
+            null;
+          onDropOnDirectory(node, sourcePath);
         }}
       >
         {node.is_dir ? (
@@ -358,6 +367,7 @@ function TreeNode({
               onContextMenu={onContextMenu}
               draggedItem={draggedItem}
               dropTargetPath={dropTargetPath}
+              suppressClick={suppressClick}
               onDragStart={onDragStart}
               onDragEnd={onDragEnd}
               onDragHoverDirectory={onDragHoverDirectory}
@@ -452,6 +462,7 @@ export function FileExplorer() {
   const [renameValue, setRenameValue] = useState("");
   const [draggedItem, setDraggedItem] = useState<DraggedItem | null>(null);
   const [dropTargetPath, setDropTargetPath] = useState<string | null>(null);
+  const suppressClickRef = useRef(false);
 
   useEffect(() => {
     void loadFileTree();
@@ -719,19 +730,29 @@ export function FileExplorer() {
     }
   };
 
-  const handleDropOnDirectory = async (target: FileNode) => {
-    if (!draggedItem) return;
+  const handleDropOnDirectory = async (target: FileNode, sourcePath: string | null) => {
+    const effectiveSourcePath = sourcePath ?? draggedItem?.path ?? null;
+    if (!effectiveSourcePath) return;
+    const sourceNode = findNodeByPath(fileTree, effectiveSourcePath);
+    if (!sourceNode || !canDropOnDirectory(toDraggedItem(sourceNode), target)) {
+      clearDragState();
+      return;
+    }
 
+    suppressClickRef.current = true;
+    window.setTimeout(() => {
+      suppressClickRef.current = false;
+    }, 0);
     clearDragState();
 
     try {
-      if (draggedItem.isMarkdown) {
-        const moved = await moveMemoryFile(draggedItem.path, target.path);
+      if (isMarkdownFile(sourceNode.name)) {
+        const moved = await moveMemoryFile(sourceNode.path, target.path);
         await refreshWorkspace();
         await selectFile(moved.meta.id);
       } else {
-        const nextPath = `${target.path}/${draggedItem.name}`;
-        const movedPath = await renamePath(draggedItem.path, nextPath);
+        const nextPath = `${target.path}/${sourceNode.name}`;
+        const movedPath = await renamePath(sourceNode.path, nextPath);
         await refreshWorkspace();
         if (isRawViewerSupported(movedPath)) {
           await selectRawFile(movedPath);
@@ -844,7 +865,9 @@ export function FileExplorer() {
           onContextMenu={handleContextMenu}
           draggedItem={draggedItem}
           dropTargetPath={dropTargetPath}
+          suppressClick={suppressClickRef.current}
           onDragStart={(node) => {
+            suppressClickRef.current = true;
             setDraggedItem({
               path: node.path,
               name: node.name,
@@ -852,10 +875,15 @@ export function FileExplorer() {
               isProtected: isProtectedNode(node),
             });
           }}
-          onDragEnd={clearDragState}
+          onDragEnd={() => {
+            clearDragState();
+            window.setTimeout(() => {
+              suppressClickRef.current = false;
+            }, 0);
+          }}
           onDragHoverDirectory={setDropTargetPath}
-          onDropOnDirectory={(target) => {
-            void handleDropOnDirectory(target);
+          onDropOnDirectory={(target, sourcePath) => {
+            void handleDropOnDirectory(target, sourcePath);
           }}
           renamingPath={renamingTarget?.path ?? null}
           renameValue={renameValue}
@@ -896,4 +924,24 @@ function canDropOnDirectory(draggedItem: DraggedItem | null, target: FileNode): 
   }
 
   return true;
+}
+
+function findNodeByPath(nodes: FileNode[], path: string): FileNode | null {
+  for (const node of nodes) {
+    if (node.path === path) return node;
+    if (node.children.length > 0) {
+      const found = findNodeByPath(node.children, path);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+function toDraggedItem(node: FileNode): DraggedItem {
+  return {
+    path: node.path,
+    name: node.name,
+    isMarkdown: isMarkdownFile(node.name),
+    isProtected: isProtectedNode(node),
+  };
 }
