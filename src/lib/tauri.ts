@@ -41,6 +41,8 @@ export const renameMemoryFile = (path: string, newId: string) =>
   invoke<Memory>("rename_memory_file", { path, newId });
 export const duplicateMemoryFile = (path: string, newId: string) =>
   invoke<Memory>("duplicate_memory_file", { path, newId });
+export const moveMemoryFile = (path: string, destinationDir: string) =>
+  invoke<Memory>("move_memory_file", { path, destinationDir });
 
 // Filesystem
 export const getFileTree = () => invoke<FileNode[]>("get_file_tree");
@@ -56,6 +58,8 @@ export const deletePath = (path: string) =>
   invoke<void>("delete_path", { path });
 export const duplicateFile = (path: string) =>
   invoke<string>("duplicate_file", { path });
+export const showInFileManager = (path: string) =>
+  invoke<void>("show_in_file_manager", { path });
 
 // Router
 export const regenerateRouter = () => invoke<string>("regenerate_router");

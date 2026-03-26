@@ -1,5 +1,6 @@
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 
 use tauri::State;
 
@@ -165,6 +166,55 @@ pub fn duplicate_file(path: String) -> Result<String, String> {
     })?;
 
     Ok(duplicate.to_string_lossy().to_string())
+}
+
+/// Reveal a path in the system file manager.
+#[tauri::command]
+pub fn show_in_file_manager(path: String) -> Result<(), String> {
+    let target = PathBuf::from(&path);
+    if !target.exists() {
+        return Err(format!("Path does not exist: {}", path));
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        Command::new("open")
+            .arg("-R")
+            .arg(&target)
+            .status()
+            .map_err(|e| format!("Failed to reveal {} in Finder: {}", path, e))?;
+        return Ok(());
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        let arg = format!("/select,{}", target.to_string_lossy());
+        Command::new("explorer")
+            .arg(arg)
+            .status()
+            .map_err(|e| format!("Failed to reveal {} in Explorer: {}", path, e))?;
+        return Ok(());
+    }
+
+    #[cfg(all(unix, not(target_os = "macos")))]
+    {
+        let directory = if target.is_dir() {
+            target
+        } else {
+            target
+                .parent()
+                .map(PathBuf::from)
+                .ok_or_else(|| format!("Failed to resolve parent directory for {}", path))?
+        };
+        Command::new("xdg-open")
+            .arg(directory)
+            .status()
+            .map_err(|e| format!("Failed to reveal {} in file manager: {}", path, e))?;
+        return Ok(());
+    }
+
+    #[allow(unreachable_code)]
+    Err("Show in file manager is not supported on this platform".to_string())
 }
 
 fn unique_duplicate_path(parent: &Path, file_name: &str) -> PathBuf {

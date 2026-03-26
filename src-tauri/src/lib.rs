@@ -29,6 +29,7 @@ pub fn run() {
             commands::memory::delete_memory,
             commands::memory::rename_memory_file,
             commands::memory::duplicate_memory_file,
+            commands::memory::move_memory_file,
             // Filesystem
             commands::filesystem::get_file_tree,
             commands::filesystem::read_file,
@@ -37,6 +38,7 @@ pub fn run() {
             commands::filesystem::rename_path,
             commands::filesystem::delete_path,
             commands::filesystem::duplicate_file,
+            commands::filesystem::show_in_file_manager,
             // Router
             commands::router::regenerate_router,
             commands::router::get_router_content,

@@ -9,11 +9,14 @@ import {
   FileText,
   Folder,
   FolderPlus,
+  FolderSearch,
+  MoveRight,
   Pencil,
   Trash2,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { useAppStore } from "../../lib/store";
+import { open } from "@tauri-apps/plugin-dialog";
 import {
   createDirectory,
   createMemoryAtPath,
@@ -21,8 +24,10 @@ import {
   duplicateFile,
   duplicateMemoryFile,
   getConflicts,
+  moveMemoryFile,
   renameMemoryFile,
   renamePath,
+  showInFileManager,
 } from "../../lib/tauri";
 import type { Conflict, FileNode, MemoryType } from "../../lib/types";
 import { MEMORY_TYPE_COLORS } from "../../lib/types";
@@ -561,6 +566,14 @@ export function FileExplorer() {
     }
   };
 
+  const handleShowInFinder = async (node: FileNode) => {
+    try {
+      await showInFileManager(node.path);
+    } catch (error) {
+      setError(String(error));
+    }
+  };
+
   const handleCreateFolder = async (node: FileNode) => {
     if (!node.is_dir) return;
 
@@ -618,9 +631,30 @@ export function FileExplorer() {
 
   const currentNode = ctxMenu?.node ?? null;
   const currentNodeIsProtected = currentNode ? isProtectedNode(currentNode) : false;
+  const currentNodeIsMarkdown = currentNode ? !currentNode.is_dir && isMarkdownFile(currentNode.name) : false;
   const currentFolderSupportsNotes = currentNode?.is_dir
     ? inferFolderTypeFromPath(currentNode.path) !== null
     : false;
+
+  const handleMoveMemory = async (node: FileNode) => {
+    if (!currentNodeIsMarkdown) return;
+
+    const destination = await open({
+      directory: true,
+      multiple: false,
+      defaultPath: getParentPath(node.path),
+      title: "Mover archivo a...",
+    });
+    if (!destination || Array.isArray(destination)) return;
+
+    try {
+      const moved = await moveMemoryFile(node.path, destination);
+      await refreshWorkspace();
+      await selectFile(moved.meta.id);
+    } catch (error) {
+      setError(String(error));
+    }
+  };
 
   const menuGroups: MenuAction[][] = currentNode
     ? currentNode.is_dir
@@ -645,6 +679,11 @@ export function FileExplorer() {
               onSelect: () => handleCopyPath(currentNode),
             },
             {
+              label: "Mostrar en Finder",
+              icon: FolderSearch,
+              onSelect: () => handleShowInFinder(currentNode),
+            },
+            {
               label: "Renombrar",
               icon: Pencil,
               onSelect: () => startRename(currentNode),
@@ -667,12 +706,27 @@ export function FileExplorer() {
               onSelect: () => handleDuplicate(currentNode),
               disabled: currentNodeIsProtected,
             },
+            ...(currentNodeIsMarkdown
+              ? [
+                  {
+                    label: "Mover archivo a...",
+                    icon: MoveRight,
+                    onSelect: () => handleMoveMemory(currentNode),
+                    disabled: currentNodeIsProtected,
+                  } satisfies MenuAction,
+                ]
+              : []),
           ],
           [
             {
               label: "Copiar ruta",
               icon: Clipboard,
               onSelect: () => handleCopyPath(currentNode),
+            },
+            {
+              label: "Mostrar en Finder",
+              icon: FolderSearch,
+              onSelect: () => handleShowInFinder(currentNode),
             },
             {
               label: "Renombrar",
