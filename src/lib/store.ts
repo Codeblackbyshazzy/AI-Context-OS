@@ -143,14 +143,25 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
   saveActiveMemory: async (l1, l2, meta) => {
     try {
+      const activeMemory = get().activeMemory;
+      if (!activeMemory) {
+        set({ error: "No active memory to save", loading: false });
+        return;
+      }
+
       set({ loading: true });
       const saved = await api.saveMemory({
-        id: meta.id,
+        id: activeMemory.meta.id,
         meta,
         l1_content: l1,
         l2_content: l2,
       });
-      set({ activeMemory: saved, activeRawFile: null, loading: false });
+      set({
+        activeMemory: saved,
+        activeRawFile: null,
+        selectedPath: saved.file_path,
+        loading: false,
+      });
       await get().loadMemories();
       await get().loadFileTree();
       await get().loadGraph();

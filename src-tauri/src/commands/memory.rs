@@ -116,7 +116,7 @@ pub fn save_memory(
 ) -> Result<Memory, String> {
     let root = state.get_root();
     let index = state.memory_index.read().unwrap();
-    let (_old_meta, path) = index
+    let (old_meta, path) = index
         .get(&input.id)
         .ok_or_else(|| format!("Memory not found: {}", input.id))?;
     let old_file_path = PathBuf::from(path.clone());
@@ -134,7 +134,15 @@ pub fn save_memory(
     meta.version += 1;
     meta.id = meta.id.trim().to_string();
 
-    let target_file_path = memory_folder(&root, &meta.memory_type).join(format!("{}.md", meta.id));
+    let target_parent = if meta.memory_type == old_meta.memory_type {
+        old_file_path
+            .parent()
+            .map(PathBuf::from)
+            .unwrap_or_else(|| memory_folder(&root, &meta.memory_type))
+    } else {
+        memory_folder(&root, &meta.memory_type)
+    };
+    let target_file_path = target_parent.join(format!("{}.md", meta.id));
     if target_file_path.exists() && target_file_path != old_file_path {
         return Err(format!(
             "A memory file already exists at {}",

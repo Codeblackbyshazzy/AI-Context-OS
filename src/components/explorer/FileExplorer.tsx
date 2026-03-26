@@ -44,6 +44,13 @@ interface RenameTarget {
   isDir: boolean;
 }
 
+interface DraggedItem {
+  path: string;
+  name: string;
+  isMarkdown: boolean;
+  isProtected: boolean;
+}
+
 interface MenuAction {
   label: string;
   icon: React.ComponentType<{ className?: string }>;
@@ -185,6 +192,12 @@ interface TreeNodeProps {
   toggleExpand: (path: string) => void;
   conflictIds: Set<string>;
   onContextMenu: (event: React.MouseEvent, node: FileNode) => void;
+  draggedItem: DraggedItem | null;
+  dropTargetPath: string | null;
+  onDragStart: (node: FileNode) => void;
+  onDragEnd: () => void;
+  onDragHoverDirectory: (targetPath: string | null) => void;
+  onDropOnDirectory: (target: FileNode) => void;
   renamingPath: string | null;
   renameValue: string;
   onRenameChange: (value: string) => void;
@@ -199,6 +212,12 @@ function TreeNode({
   toggleExpand,
   conflictIds,
   onContextMenu,
+  draggedItem,
+  dropTargetPath,
+  onDragStart,
+  onDragEnd,
+  onDragHoverDirectory,
+  onDropOnDirectory,
   renamingPath,
   renameValue,
   onRenameChange,
@@ -216,6 +235,10 @@ function TreeNode({
   const hasConflict = conflictIds.has(memoryId);
   const isRawSupported = isRawViewerSupported(node.name);
   const opacity = memoryMeta ? computeDecayOpacity(memoryMeta) : 1;
+  const isProtected = isProtectedNode(node);
+  const canDrag = !node.is_dir && !isProtected;
+  const canAcceptDrop = node.is_dir && canDropOnDirectory(draggedItem, node);
+  const isDropTarget = dropTargetPath === node.path && canAcceptDrop;
 
   const handleClick = () => {
     if (node.is_dir) {
@@ -241,13 +264,40 @@ function TreeNode({
           isSelected
             ? "bg-[color:var(--accent-muted)] text-[color:var(--text-0)]"
             : "text-[color:var(--text-1)] hover:bg-[color:var(--bg-2)]",
+          isDropTarget && "bg-[color:var(--accent-muted)] ring-1 ring-[color:var(--accent)]",
         )}
         style={{
           paddingLeft: `${depth * 12 + 8}px`,
           opacity: node.is_dir ? 1 : opacity,
         }}
+        draggable={canDrag}
         onClick={handleClick}
         onContextMenu={(event) => onContextMenu(event, node)}
+        onDragStart={(event) => {
+          if (!canDrag) return;
+          event.stopPropagation();
+          event.dataTransfer.effectAllowed = "move";
+          event.dataTransfer.setData("text/plain", node.path);
+          onDragStart(node);
+        }}
+        onDragEnd={() => onDragEnd()}
+        onDragOver={(event) => {
+          if (!canAcceptDrop) return;
+          event.preventDefault();
+          event.dataTransfer.dropEffect = "move";
+          onDragHoverDirectory(node.path);
+        }}
+        onDragLeave={() => {
+          if (dropTargetPath === node.path) {
+            onDragHoverDirectory(null);
+          }
+        }}
+        onDrop={(event) => {
+          if (!canAcceptDrop) return;
+          event.preventDefault();
+          event.stopPropagation();
+          onDropOnDirectory(node);
+        }}
       >
         {node.is_dir ? (
           <>
@@ -306,6 +356,12 @@ function TreeNode({
               toggleExpand={toggleExpand}
               conflictIds={conflictIds}
               onContextMenu={onContextMenu}
+              draggedItem={draggedItem}
+              dropTargetPath={dropTargetPath}
+              onDragStart={onDragStart}
+              onDragEnd={onDragEnd}
+              onDragHoverDirectory={onDragHoverDirectory}
+              onDropOnDirectory={onDropOnDirectory}
               renamingPath={renamingPath}
               renameValue={renameValue}
               onRenameChange={onRenameChange}
@@ -394,6 +450,8 @@ export function FileExplorer() {
   const [ctxMenu, setCtxMenu] = useState<ContextMenuState | null>(null);
   const [renamingTarget, setRenamingTarget] = useState<RenameTarget | null>(null);
   const [renameValue, setRenameValue] = useState("");
+  const [draggedItem, setDraggedItem] = useState<DraggedItem | null>(null);
+  const [dropTargetPath, setDropTargetPath] = useState<string | null>(null);
 
   useEffect(() => {
     void loadFileTree();
@@ -455,6 +513,11 @@ export function FileExplorer() {
   };
 
   const closeContextMenu = () => setCtxMenu(null);
+
+  const clearDragState = () => {
+    setDraggedItem(null);
+    setDropTargetPath(null);
+  };
 
   const startRename = (node: FileNode) => {
     setRenamingTarget({
@@ -656,6 +719,29 @@ export function FileExplorer() {
     }
   };
 
+  const handleDropOnDirectory = async (target: FileNode) => {
+    if (!draggedItem) return;
+
+    clearDragState();
+
+    try {
+      if (draggedItem.isMarkdown) {
+        const moved = await moveMemoryFile(draggedItem.path, target.path);
+        await refreshWorkspace();
+        await selectFile(moved.meta.id);
+      } else {
+        const nextPath = `${target.path}/${draggedItem.name}`;
+        const movedPath = await renamePath(draggedItem.path, nextPath);
+        await refreshWorkspace();
+        if (isRawViewerSupported(movedPath)) {
+          await selectRawFile(movedPath);
+        }
+      }
+    } catch (error) {
+      setError(String(error));
+    }
+  };
+
   const menuGroups: MenuAction[][] = currentNode
     ? currentNode.is_dir
       ? [
@@ -756,6 +842,21 @@ export function FileExplorer() {
           toggleExpand={toggleExpand}
           conflictIds={conflictIds}
           onContextMenu={handleContextMenu}
+          draggedItem={draggedItem}
+          dropTargetPath={dropTargetPath}
+          onDragStart={(node) => {
+            setDraggedItem({
+              path: node.path,
+              name: node.name,
+              isMarkdown: isMarkdownFile(node.name),
+              isProtected: isProtectedNode(node),
+            });
+          }}
+          onDragEnd={clearDragState}
+          onDragHoverDirectory={setDropTargetPath}
+          onDropOnDirectory={(target) => {
+            void handleDropOnDirectory(target);
+          }}
           renamingPath={renamingTarget?.path ?? null}
           renameValue={renameValue}
           onRenameChange={setRenameValue}
@@ -781,4 +882,18 @@ export function FileExplorer() {
       )}
     </div>
   );
+}
+
+function canDropOnDirectory(draggedItem: DraggedItem | null, target: FileNode): boolean {
+  if (!draggedItem || !target.is_dir) return false;
+  if (draggedItem.isProtected) return false;
+
+  const currentParent = getParentPath(draggedItem.path);
+  if (currentParent === target.path) return false;
+
+  if (draggedItem.isMarkdown) {
+    return inferFolderTypeFromPath(target.path) !== null;
+  }
+
+  return true;
 }
