@@ -52,7 +52,7 @@
 
 - ⬚ **Tests** — Unit tests para scoring, decay, frontmatter parsing, router generation
 - ⬚ **Auto-update** — Integrar tauri-plugin-updater para actualizaciones automáticas
-- ⬚ **Backup/restore** — Exportar/importar todo el workspace como .zip
+- ✅ **Backup/restore** — Exportar/importar todo el workspace como .zip
 - ⬚ **Métricas de uso** — Dashboard con estadísticas: memorias más accedidas, evolución de tokens, efectividad del contexto
 - ⬚ **Multi-workspace** — Soporte para múltiples workspaces (ej. uno personal, otro por proyecto)
 - ⬚ **Import desde Obsidian/Logseq** — Migrador que convierte vaults existentes al formato AI Context OS
@@ -60,5 +60,5 @@
 ## UX
 
 - ⬚ **Onboarding mejorado** — Tutorial interactivo post-setup que explique el flujo completo
-- ⬚ **Responsive sidebar** — Colapsar sidebar icon-only en pantallas pequeñas (ya parcial)
+- ✅ **Responsive sidebar** — Colapsar sidebar icon-only en pantallas pequeñas
 - ⬚ **Temas adicionales** — Más allá de dark/light: variantes de color accent
