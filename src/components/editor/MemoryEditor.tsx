@@ -50,10 +50,23 @@ export function MemoryEditor() {
     }
   }, [activeMemory]);
 
-  const handleMetaChange = (updated: MemoryMeta) => {
+  const handleMetaChange = useCallback((updated: MemoryMeta) => {
+    const previousType = meta?.memory_type;
+
     setMeta(updated);
     setDirty(true);
-  };
+
+    if (previousType && previousType !== updated.memory_type) {
+      void (async () => {
+        try {
+          await saveActiveMemory(l1, l2, updated);
+          setDirty(false);
+        } catch {
+          setDirty(true);
+        }
+      })();
+    }
+  }, [l1, l2, meta, saveActiveMemory]);
 
   const handleSave = useCallback(async () => {
     if (meta && dirty) {

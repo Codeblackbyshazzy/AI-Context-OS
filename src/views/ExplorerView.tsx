@@ -22,6 +22,7 @@ export function ExplorerView() {
   const [newId, setNewId] = useState("");
   const [newType, setNewType] = useState<MemoryType>("context");
   const [newL0, setNewL0] = useState("");
+  const [newIdTouched, setNewIdTouched] = useState(false);
 
   useEffect(() => {
     if (!initialized) {
@@ -40,13 +41,25 @@ export function ExplorerView() {
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
+  useEffect(() => {
+    if (!isCreateMemoryOpen) {
+      setNewIdTouched(false);
+      return;
+    }
+    if (!newIdTouched) {
+      setNewId(normalizeMemoryId(newL0));
+    }
+  }, [isCreateMemoryOpen, newIdTouched, newL0]);
+
   const handleCreate = async () => {
-    if (!newId.trim() || !newL0.trim()) return;
+    const l0 = newL0.trim();
+    const nextId = normalizeMemoryId(newId || l0);
+    if (!nextId || !l0) return;
     try {
       await createMemory({
-        id: newId.trim().toLowerCase().replace(/\s+/g, "-"),
+        id: nextId,
         memory_type: newType,
-        l0: newL0.trim(),
+        l0,
         importance: 0.5,
         tags: [],
         l1_content: "",
@@ -56,6 +69,7 @@ export function ExplorerView() {
       setCreateMemoryOpen(false);
       setNewId("");
       setNewL0("");
+      setNewIdTouched(false);
     } catch (e) {
       console.error("Failed to create memory:", e);
     }
@@ -103,7 +117,10 @@ export function ExplorerView() {
             <input
               type="text"
               value={newId}
-              onChange={(e) => setNewId(e.target.value)}
+              onChange={(e) => {
+                setNewIdTouched(true);
+                setNewId(normalizeMemoryId(e.target.value));
+              }}
               placeholder="memory-id"
               className="w-full rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-2.5 py-1.5 text-xs text-[color:var(--text-0)] placeholder:text-[color:var(--text-2)]"
             />
@@ -141,7 +158,7 @@ export function ExplorerView() {
                 disabled={!newId.trim() || !newL0.trim()}
                 className={clsx(
                   "flex-1 rounded-md py-1.5 text-xs font-medium transition-opacity",
-                  newId.trim() && newL0.trim()
+                  normalizeMemoryId(newId || newL0) && newL0.trim()
                     ? "bg-[color:var(--accent)] text-white hover:opacity-90"
                     : "bg-[color:var(--bg-3)] text-[color:var(--text-2)] opacity-50",
                 )}
@@ -163,4 +180,14 @@ export function ExplorerView() {
       </section>
     </div>
   );
+}
+
+function normalizeMemoryId(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-_ ]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
 }
