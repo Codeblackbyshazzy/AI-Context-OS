@@ -232,6 +232,7 @@ interface TreeNodeProps {
   onContextMenu: (event: React.MouseEvent, node: FileNode) => void;
   dropTargetPath: string | null;
   dragSourcePath: string | null;
+  isDragging: boolean;
   getDraggedItem: () => DraggedItem | null;
   canDropPathOnDirectory: (target: FileNode, sourcePath: string | null) => boolean;
   onPointerDragStart: (event: React.PointerEvent<HTMLDivElement>, node: FileNode) => void;
@@ -254,6 +255,7 @@ function TreeNode({
   onContextMenu,
   dropTargetPath,
   dragSourcePath,
+  isDragging,
   getDraggedItem,
   canDropPathOnDirectory,
   onPointerDragStart,
@@ -335,10 +337,12 @@ function TreeNode({
       <div
         className={clsx(
           "group flex items-center gap-1.5 rounded px-2 py-[5px] text-[13px] transition-colors",
-          canDrag ? "cursor-grab active:cursor-grabbing" : "cursor-pointer",
+          "cursor-default",
           isSelected
             ? "bg-[color:var(--accent-muted)] text-[color:var(--text-0)]"
-            : "text-[color:var(--text-1)] hover:bg-[color:var(--bg-2)]",
+            : isDragging
+              ? "text-[color:var(--text-1)]"
+              : "text-[color:var(--text-1)] hover:bg-[color:var(--bg-2)]",
           isDropTarget && "bg-[color:var(--accent-muted)] ring-1 ring-[color:var(--accent)]",
           isDragSource && "bg-[color:var(--bg-2)] ring-1 ring-[color:var(--accent)]/60",
         )}
@@ -423,6 +427,7 @@ function TreeNode({
               onContextMenu={onContextMenu}
               dropTargetPath={dropTargetPath}
               dragSourcePath={dragSourcePath}
+              isDragging={isDragging}
               getDraggedItem={getDraggedItem}
               canDropPathOnDirectory={canDropPathOnDirectory}
               onPointerDragStart={onPointerDragStart}
@@ -526,6 +531,7 @@ export function FileExplorer() {
   const undoMoveStackRef = useRef<UndoMoveAction[]>([]);
   const suppressClickRef = useRef(false);
   const suppressClickTimeoutRef = useRef<number | null>(null);
+  const isDragging = dragSourcePath !== null;
 
   useEffect(() => {
     void loadFileTree();
@@ -1154,6 +1160,7 @@ export function FileExplorer() {
           onContextMenu={handleContextMenu}
           dropTargetPath={dropTargetPath}
           dragSourcePath={dragSourcePath}
+          isDragging={isDragging}
           getDraggedItem={getDraggedItem}
           canDropPathOnDirectory={canDropPathOnDirectory}
           onPointerDragStart={handlePointerDragStart}
