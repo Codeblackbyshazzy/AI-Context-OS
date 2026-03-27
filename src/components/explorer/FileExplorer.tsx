@@ -70,6 +70,13 @@ interface DragPreviewState {
   y: number;
 }
 
+interface UndoMoveAction {
+  kind: "memory" | "raw";
+  currentPath: string;
+  previousPath: string;
+  memoryId?: string;
+}
+
 interface MenuAction {
   label: string;
   icon: React.ComponentType<{ className?: string }>;
@@ -189,6 +196,18 @@ function inferFolderTypeFromPath(path: string): MemoryType | null {
 
 function isMarkdownFile(name: string): boolean {
   return name.toLowerCase().endsWith(".md");
+}
+
+function isEditableTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  if (target.isContentEditable) return true;
+
+  const tagName = target.tagName.toLowerCase();
+  if (tagName === "input" || tagName === "textarea" || tagName === "select") {
+    return true;
+  }
+
+  return Boolean(target.closest("[contenteditable='true']"));
 }
 
 function computeDecayOpacity(meta: {
@@ -504,6 +523,7 @@ export function FileExplorer() {
   const [dragPreview, setDragPreview] = useState<DragPreviewState | null>(null);
   const draggedItemRef = useRef<DraggedItem | null>(null);
   const pointerDragRef = useRef<PointerDragSession | null>(null);
+  const undoMoveStackRef = useRef<UndoMoveAction[]>([]);
   const suppressClickRef = useRef(false);
   const suppressClickTimeoutRef = useRef<number | null>(null);
 
@@ -538,6 +558,49 @@ export function FileExplorer() {
       }
     };
   }, []);
+
+  const pushUndoMove = (action: UndoMoveAction) => {
+    undoMoveStackRef.current = [...undoMoveStackRef.current.slice(-19), action];
+  };
+
+  const undoLastMove = async () => {
+    const action = undoMoveStackRef.current[undoMoveStackRef.current.length - 1];
+    if (!action) return;
+
+    undoMoveStackRef.current = undoMoveStackRef.current.slice(0, -1);
+
+    try {
+      if (action.kind === "memory") {
+        const restored = await moveMemoryFile(action.currentPath, getParentPath(action.previousPath));
+        await refreshTreeAndMemories();
+        await selectFile(action.memoryId ?? restored.meta.id);
+      } else {
+        const restoredPath = await renamePath(action.currentPath, action.previousPath);
+        await refreshTreeAndMemories();
+        if (isRawViewerSupported(restoredPath)) {
+          await selectRawFile(restoredPath);
+        }
+      }
+    } catch (error) {
+      undoMoveStackRef.current = [...undoMoveStackRef.current, action];
+      setError(String(error));
+    }
+  };
+
+  useEffect(() => {
+    const handler = (event: KeyboardEvent) => {
+      if (!(event.metaKey || event.ctrlKey) || event.shiftKey || event.altKey) return;
+      if (event.key.toLowerCase() !== "z") return;
+      if (isEditableTarget(event.target)) return;
+      if (undoMoveStackRef.current.length === 0) return;
+
+      event.preventDefault();
+      void undoLastMove();
+    };
+
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [selectFile, selectRawFile, setError]);
 
   const toggleExpand = (path: string) => {
     setExpanded((current) => {
@@ -805,6 +868,12 @@ export function FileExplorer() {
 
     try {
       const moved = await moveMemoryFile(node.path, destination);
+      pushUndoMove({
+        kind: "memory",
+        currentPath: moved.file_path,
+        previousPath: node.path,
+        memoryId: moved.meta.id,
+      });
       await refreshTreeAndMemories();
       await selectFile(moved.meta.id);
     } catch (error) {
@@ -852,11 +921,22 @@ export function FileExplorer() {
         // moveMemoryFile already regenerates the router internally,
         // so only refresh tree + memories to avoid double work.
         const moved = await moveMemoryFile(sourceNode.path, target.path);
+        pushUndoMove({
+          kind: "memory",
+          currentPath: moved.file_path,
+          previousPath: sourceNode.path,
+          memoryId: moved.meta.id,
+        });
         await refreshTreeAndMemories();
         await selectFile(moved.meta.id);
       } else {
         const nextPath = `${target.path}/${sourceNode.name}`;
         const movedPath = await renamePath(sourceNode.path, nextPath);
+        pushUndoMove({
+          kind: "raw",
+          currentPath: movedPath,
+          previousPath: sourceNode.path,
+        });
         await refreshTreeAndMemories();
         if (isRawViewerSupported(movedPath)) {
           await selectRawFile(movedPath);
@@ -1059,7 +1139,7 @@ export function FileExplorer() {
     <div className="px-1 py-1">
       {fileTree.length > 0 && !dragPreview && (
         <p className="px-3 pb-2 pt-1 text-[10px] uppercase tracking-wide text-[color:var(--text-2)]">
-          Arrastra archivos a carpetas para moverlos
+          Arrastra archivos a carpetas para moverlos. Cmd+Z deshace el ultimo movimiento
         </p>
       )}
 
