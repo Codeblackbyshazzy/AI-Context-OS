@@ -268,7 +268,6 @@ function TreeNode({
   };
 
   const handleDirectoryDrop = (event: React.DragEvent<HTMLDivElement>) => {
-    if (!canDropOnDirectory(getDraggedItem(), node)) return;
     event.preventDefault();
     event.stopPropagation();
     const sourcePath =
@@ -397,18 +396,19 @@ function isRawViewerSupported(name: string): boolean {
   return lowerName.endsWith(".jsonl") || lowerName.endsWith(".yaml") || lowerName.endsWith(".yml");
 }
 
+const PROTECTED_FILE_NAMES = new Set([
+  "_config.yaml",
+  "_index.yaml",
+  "claude.md",
+  ".cursorrules",
+  ".windsurfrules",
+]);
+
 function isProtectedNode(node: FileNode): boolean {
   if (node.is_dir && node.memory_type !== null) {
     return true;
   }
-
-  return new Set([
-    "_config.yaml",
-    "_index.yaml",
-    "claude.md",
-    ".cursorrules",
-    ".windsurfrules",
-  ]).has(node.name);
+  return PROTECTED_FILE_NAMES.has(node.name);
 }
 
 function stripMdExtension(name: string): string {
@@ -752,7 +752,7 @@ export function FileExplorer() {
 
     try {
       const moved = await moveMemoryFile(node.path, destination);
-      await refreshWorkspace();
+      await refreshTreeAndMemories();
       await selectFile(moved.meta.id);
     } catch (error) {
       setError(String(error));
@@ -761,29 +761,31 @@ export function FileExplorer() {
 
   const handleDropOnDirectory = async (target: FileNode, sourcePath: string | null) => {
     const effectiveSourcePath = sourcePath ?? draggedItemRef.current?.path ?? null;
-    if (!effectiveSourcePath) return;
+    suppressClickRef.current = true;
+    clearDragState();
+
+    if (!effectiveSourcePath) {
+      releaseSuppressedClick();
+      return;
+    }
     const sourceNode = findNodeByPath(fileTree, effectiveSourcePath);
     if (!sourceNode || !canDropOnDirectory(toDraggedItem(sourceNode), target)) {
-      clearDragState();
       releaseSuppressedClick();
       return;
     }
 
-    suppressClickRef.current = true;
-    clearDragState();
-
     try {
+      openDirectory(target.path);
       if (isMarkdownFile(sourceNode.name)) {
+        // moveMemoryFile already regenerates the router internally,
+        // so only refresh tree + memories to avoid double work.
         const moved = await moveMemoryFile(sourceNode.path, target.path);
-        await refreshWorkspace();
+        await refreshTreeAndMemories();
         await selectFile(moved.meta.id);
       } else {
         const nextPath = `${target.path}/${sourceNode.name}`;
-        const movedPath = await renamePath(sourceNode.path, nextPath);
-        await refreshWorkspace();
-        if (isRawViewerSupported(movedPath)) {
-          await selectRawFile(movedPath);
-        }
+        await renamePath(sourceNode.path, nextPath);
+        await refreshTreeAndMemories();
       }
     } catch (error) {
       setError(String(error));
