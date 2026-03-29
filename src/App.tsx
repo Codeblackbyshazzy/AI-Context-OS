@@ -1,5 +1,5 @@
-import { lazy, Suspense, useEffect, useState } from "react";
-import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
 import { Sidebar } from "./components/layout/Sidebar";
 import { useFileWatcher } from "./hooks/useFileWatcher";
@@ -47,7 +47,7 @@ const SearchModal = lazy(() =>
   })),
 );
 
-const appWindow = getCurrentWebviewWindow();
+const appWindow = getCurrentWindow();
 
 function isEditableElement(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
@@ -86,6 +86,7 @@ function AppContent() {
   const navigate = useNavigate();
   const [onboarded, setOnboarded] = useState<boolean | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
+  const titlebarRef = useRef<HTMLDivElement>(null);
 
   // Responsive: auto-close explorer on narrow windows
   useEffect(() => {
@@ -132,14 +133,23 @@ function AppContent() {
       .catch(() => setOnboarded(false));
   }, []);
 
-  const handleTitlebarMouseDownCapture = (
-    event: React.MouseEvent<HTMLDivElement>,
-  ) => {
-    if (event.button !== 0) return;
-    if (isTitlebarInteractiveElement(event.target)) return;
-    event.preventDefault();
-    void appWindow.startDragging();
-  };
+  // Native DOM listener for window dragging — bypasses React's synthetic event system
+  // which can interfere with macOS native drag handling
+  useEffect(() => {
+    const el = titlebarRef.current;
+    if (!el) return;
+
+    const onMouseDown = (e: MouseEvent) => {
+      if (e.button !== 0) return;
+      if (isTitlebarInteractiveElement(e.target)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      appWindow.startDragging();
+    };
+
+    el.addEventListener("mousedown", onMouseDown);
+    return () => el.removeEventListener("mousedown", onMouseDown);
+  }, []);
 
   if (onboarded === null) {
     return (
@@ -165,9 +175,9 @@ function AppContent() {
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-[color:var(--bg-0)]">
       <div 
+        ref={titlebarRef}
         data-tauri-drag-region
         className="flex h-[38px] w-full shrink-0 flex-row items-center border-b border-[color:var(--border)] relative z-50 bg-[color:var(--bg-0)]"
-        onMouseDownCapture={handleTitlebarMouseDownCapture}
       >
         <div className="w-[72px] h-full shrink-0" /> {/* Spacer for macOS traffic lights */}
 
