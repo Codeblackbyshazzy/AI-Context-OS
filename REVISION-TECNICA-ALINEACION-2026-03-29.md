@@ -1,69 +1,119 @@
-# Revisión Técnica y Plan de Ejecución (AI Context OS)
+# Revisión Técnica y Plan de Ejecución Operativo (AI Context OS)
 
 Fecha: 2026-03-29
-Propósito: Documento guía para la IA (Bycoding) sobre el estado arquitectónico y el roadmap técnico inmediato.
+Propósito: Documento guía para la IA (Bycoding). Contiene la visión del refactor y las instrucciones técnicas directas a nivel de archivo para ejecutarlo.
 
-## 1. Visión Core y Principios de Ingeniería
+## 1. Visión Estratégica y Diagnóstico
+AI Context OS es la **capa de memoria (Brain Layer) universal** para agentes de IA, operando sobre el sistema de archivos local (`01-context`, etc.) con resolución determinista (L0/L1/L2) y un motor híbrido avanzado. NO es un chat. Evita depender de bases vectoriales opacas para no perder proximidad estructural.
 
-AI Context OS es la **capa de memoria (Brain Layer) y contexto universal** para agentes de IA.
-No es un chat. No depende de una herramienta exclusiva. 
+### Principios rectores del refactor
+1. El sistema canónico no pertenece a ninguna herramienta concreta.
+2. Toda integración externa es un adapter, no la fuente de verdad del sistema.
+3. Toda promesa de UX debe corresponder a una capacidad real.
+4. El motor de contexto debe seguir siendo interpretable, deterministic-first y portable.
+5. El refactor debe preservar compatibilidad temporal mientras se desacopla el núcleo.
 
-**Principios técnicos intocables:**
-1.  **Determinista y Transparente:** El contexto se maneja en el workspace local (`01-context`, etc.) mediante resolución en capas (L0/L1/L2).
-2.  **Motor Híbrido, no puro Vectorial:** Evitamos bases de datos vectoriales opacas. Se mantiene el algoritmo híbrido actual (`scoring.rs`) basado en BM25, Proximidad de Grafo, Recencia y Metadatos, ya que no pierde relaciones estructurales ni palabras clave exactas.
-3.  **Adapter-First:** El núcleo gestiona contexto; la salida se adapta al cliente (Claude, Cursor, etc.).
-
----
-
-## 2. Diagnóstico Arquitectónico y Deuda Técnica Actual
-
-**Fortalezas a mantener:**
-- Presupuesto estricto de tokens con resolución por capas escalonada (`engine.rs`).
-- Puntuación híbrida multidimensional.
-- Integración real vía servidor MCP local (stdio y HTTP).
-
-**Deuda técnica a priorizar (Cuellos de botella):**
-- **Acoplamiento Fuerte:** El código Rust (ej. `commands/router.rs`) usa `claude.md` como *Source of Truth*. Las `.cursorrules` se derivan de ahí textualmente. Esto limita y confunde la propuesta de valor universal.
-- **Falsa Promesa (UI/UX):** El onboarding permite elegir herramientas (GPT, Gemini) que no poseen una integración o *adapter* real habilitado, provocando un *Value Promise Gap*.
-- **Falta de Abstracción de Conectores:** No existe un registro interno predecible sobre qué capacidades tiene cada herramienta (Local Native vs Bridge).
+**Problemas actuales a resolver (Motivación del refactor):**
+1. **Acoplamiento Fuerte:** El núcleo en Rust trata a `claude.md` como la fuente de la verdad (*Source of Truth*). Generadores como `.cursorrules` heredan de ahí.
+2. **Promesas UX Engañosas:** El `OnboardingWizard` ofrece herramientas (GPT, Gemini) que no habilitan una integración real, y "Conectar IA" está enterrado en Observabilidad.
 
 ---
 
-## 3. Hoja de Ruta de Ejecución (Action Plan)
+## 2. Instrucciones de Desarrollo: Roadmap Operativo (Archivo por Archivo)
 
-### Fase 1: Desacoplar el Núcleo (Adapter Pattern)
-Objetivo: Eliminar el hardcoding hacia clientes específicos en la lógica core.
-1.  **Fuente Neutral:** Crear un router maestro abstracto (ej. `_brain-router.json` o mantenerlo puramente en el estado de Rust).
-2.  **Artefactos Derivados:** Modificar los comandos de generación para que `claude.md`, `.cursorrules` y `.windsurfrules` sean **salidas (outputs)** del adaptador, no la fuente primaria.
+### Fase 1: Arquitectura Adapter-First (Desacoplar el Núcleo)
+Objetivo: El sistema genera un estado neutral y los "Adapters" renderizan los archivos de compatibilidad.
 
-### Fase 2: Refactor UI de Conectores
-Objetivo: Sinceridad en el Onboarding y claridad de conexión.
-1.  Eliminar la selección de herramientas engañosa del `OnboardingWizard`.
-2.  Tipificar los modelos de conexión internamente:
-    *   **Local Native:** Claude Desktop, Cursor, Windsurf (Soportan MCP y local fs directo).
-    *   **Bridge/Handoff:** ChatGPT Web (Sólo portapapeles o exportaciones).
-3.  Mover la configuración a una nueva vista dedicada ("Adapters" o "Conectores") fuera de Observabilidad.
+Nota de seguridad del refactor:
 
-### Fase 3: Evolución Matemática del Motor de Contexto
-Objetivo: Exprimir la arquitectura algorítmica y de grafo existente en `scoring.rs`.
+- Durante esta fase debe preservarse compatibilidad temporal con comandos, vistas y flujos que hoy esperan la presencia de `claude.md`.
+- `claude.md` no desaparece en esta fase: deja de ser la fuente de verdad y pasa a ser un artefacto derivado.
+- El objetivo del primer commit es desacoplar el núcleo sin romper el comportamiento actual del producto.
 
-**1. Pesos Dinámicos Consistentes (Intent Routing)**
-*   *Problema actual:* Pesos fijos (Semántica 0.3, BM25 0.15, Grafo 0.1...).
-*   *Implementación Elegante:* Crear 2 o 3 *Profiles* hardcodeados de multiplicadores basados en un chequeo rápido de la query.
-    *   `Profile::Debug`: Si el input contiene `(error|bug|fix|panic|falla)`, el BM25 y Grafo suben al 30% c/u (se busca el archivo exacto y sus dependencias).
-    *   `Profile::Default`: El balance actual.
-    *   *Por qué funciona:* Es determinista, predecible y no requiere llamadas a embeddings externos. Solo condicionales limpios sobre la query de entrada.
+**Operativa Técnica:**
+1. **`src-tauri/src/core/router.rs`**: 
+   - Elimina la noción de generar contenido específico para "Claude".
+   - Para este primer refactor, la función actual debe devolver un `String` neutral con estructura de directorios, reglas base e índice de memoria.
+   - NO introducir aún `RouterNeutralData` salvo que aparezca una necesidad real inmediata en múltiples adapters. El objetivo del primer commit es reducir complejidad y riesgo.
+2. **`src-tauri/src/core/compat.rs`**:
+   - Conviértelo en la capa de "Adapters".
+   - Crea funciones específicas: `pub fn render_claude_adapter(data: &str) -> String` y `pub fn render_cursor_adapter(data: &str) -> String`.
+   - Añade también `pub fn render_windsurf_adapter(data: &str) -> String`.
+   - Elimina el texto hardcodeado `Auto-generated from claude.md`. Debe decir `Auto-generated by AI Context OS`.
+3. **`src-tauri/src/commands/router.rs` y `src-tauri/src/commands/onboarding.rs`**:
+   - Modifica los comandos de escritura. Llama al router neutral y pasa el estado a **cada** adapter (Claude, Cursor, Windsurf) para escribir sus respectivos archivos simultáneamente en la raíz del workspace.
+   - Mantén la escritura de `claude.md` por compatibilidad temporal.
+   - Verifica que cualquier comando o vista que lea `claude.md` siga funcionando sin cambios visibles para el usuario en esta fase.
 
-**2. Grafo de Nivel 2 (Spreading Activation Ligero)**
-*   *Problema actual:* Solo hacemos *boost* a memorias con conexión directa (Profundidad 1) a los "Top 5".
-*   *Implementación:* Durante el Second Pass en `engine.rs`, cargar en memoria los IDs de los hijos de los hijos (Profundidad 2). Asignar un bonus de `+0.10` a los de nivel 1, y `+0.03` a los de nivel 2. Permite descubrir contexto adyacente que el programador olvidó enlazar directamente.
+### Fase 2: Sinceridad UX y Gestión de Conectores
+Objetivo: La UI no promete integraciones inexistentes y modela 3 "Tiers" de conexión (`Local Native`, `Bridge/Handoff`, `Remote`).
 
-**3. Expansión Simple de Query**
-*   *Implementación:* Antes de ejecutar `compute_bm25`, tener un pequeño diccionario rústico (HashMap) o un normalizador de raíces léxicas. Si la query dice `error`, expandir el input real contra BM25 a `error bug fix excepcion`. Es súper liviano en CPU e infla el *recall* del BM25 un 20%.
+**Operativa Técnica:**
+1. **`src/components/onboarding/OnboardingWizard.tsx`**:
+   - ELIMINAR completamente el Paso 3 (Selección de Herramientas de IA). El onboarding solo debe crear el perfil y los directorios genéricos del "Cerebro".
+2. **`src/views/ObservabilityView.tsx`**:
+   - Quitar la pestaña `ConnectTab`. Es conceptualmente incorrecto mezclar configuración con observabilidad.
+3. **Nueva Vista: `src/views/ConnectorsView.tsx`**:
+   - Crear esta vista y enrutarla en `Sidebar` y `App.tsx`.
+   - Definir tipado estricto en TS: `type IntegrationTier = "Local Native" | "Bridge" | "Remote"`.
+   - Para el MVP se puede hardcodear la lista de conectores reales.
+   - Añadir nota de arquitectura: en una iteración posterior mover esta definición a `src/lib/connectors.ts` o a un pequeño registry compartido para evitar duplicación y facilitar escalado.
+   - Lista inicial de conectores reales:
+     - **Claude Desktop / Cursor / Windsurf**: Tier `Local Native` (Instrucciones MCP y `.rules` directos).
+     - **ChatGPT / Gemini Web**: Tier `Bridge`.
 
-**4. Penalizador por Decaimiento de Atención (Over-exposure Penalty)**
-*   *Problema actual:* Memorias que el motor siempre empuja pero el usuario/IA nunca usa.
-*   *Implementación:* Cruce matemático rápido: Si `(times_served / access_count) > X_UMBRAL` (La métrica ya vive en `ObservabilityDb` y metadatos), aplicar multiplicador `-0.1`. Obliga al sistema a "purgar" archivos que han perdido relevancia activa a favor de frescura.
+**Definición del MVP exacto para `Bridge/Handoff`:**
+- `Copiar contexto óptimo`: genera texto listo para pegar en la herramienta externa.
+- `Exportar paquete .zip`: empaqueta contexto y archivos relevantes.
+- `Generar handoff.md`: crea un artefacto legible con objetivo, contexto y archivos relevantes.
 
-### Fase 4: Abstracción MCP 
-1. Estandarizar comandos para que no asuman que el cliente es Claude. Nombrar las tools como `contextos_get`, `brain_save_memory`, logrando que sean protocolos universales de este SO de contexto.
+En esta fase, `Bridge` NO significa integración nativa ni acceso automático remoto a la carpeta. Significa transferencia guiada, honesta y útil del estado de trabajo.
+
+### Fase 3: Evolución Matemática del Motor RAG-Híbrido
+Objetivo: Potenciar la heurística en `scoring.rs` y `engine.rs` con lógicas deterministas sin pasar a *embeddings* pesados.
+
+**Operativa Técnica:**
+
+**3.1. Expansión Ligera de Query**
+- **Archivo:** `src-tauri/src/core/scoring.rs` (antes de la llamada a `compute_bm25`).
+- **Instrucción:** Implementar un mapeo (`HashMap` o estructura estática local) simple de conceptos técnicos. 
+- *Lógica:* Reemplazar/expandir términos en el string de entrada original antes del BM25. Ej: Si `query` contiene "bug", expandir a `"bug error fix excepcion fallo"`.
+- Esta fase debe dejar claro que la expansión aumenta principalmente el *recall* léxico.
+- Idealmente, el resultado expandido debe reutilizarse también en parte del matching heurístico ligero para no limitar el beneficio exclusivamente a BM25.
+
+**3.2. Pesos Dinámicos por Intención (Dynamic Intent Routing)**
+- **Archivo:** `src-tauri/src/core/scoring.rs` (`compute_score`).
+- **Instrucción:** Crear un struct `ScoringWeights { semantic: f64, bm25: f64, graph: f64, recency: f64, importance: f64 }`.
+- *Lógica:* Mediante simple Regex o `.contains()` sobre la string de la query, determinar el perfil.
+  - Perfil `Debug` (query match "error|falla|bug|panic"): Subir `bm25` y `graph` (30% c/u).
+  - Perfil `Brainstorm` (query match "idea|propon|actua"): Subir `importance` y `recency`.
+  - Perfil `Default`: Mantener la ponderación actual (`0.3, 0.15, 0.10, 0.15, 0.20`).
+  - Aplicar los pesos del perfil asignado para calcular el `final_score`.
+  - Los pesos deben seguir sumando exactamente `1.0` en todos los perfiles para evitar comportamientos inconsistentes.
+
+**3.3. Grafo de Adyacencia Profunda (Nivel 2 / Spreading Activation)**
+- **Archivo principal:** `src-tauri/src/core/scoring.rs` (`graph_proximity_score`).
+- **Archivo auxiliar si hace falta:** `src-tauri/src/core/engine.rs`.
+- **Instrucción:** Actualmente el bonus evalúa interacciones directas (Profundidad 1) con los `selected_ids`.
+- *Lógica:* Evolucionar `graph_proximity_score` para contemplar también un salto adyacente extra. Recolectar los IDs referenciados por los propios `selected_ids` y tratarlos como conexiones de Nivel 2.
+- *Scoring:* Asignar `+0.10` a los de Nivel 1 (conexión directa) y `+0.03` a los de Nivel 2 (hijos de los hijos).
+- Evitar meter demasiada lógica específica en `engine.rs` si puede quedar encapsulada como evolución de la proximidad de grafo.
+
+### Fase 3b o Fase 4: Optimización adaptativa del contexto
+Objetivo: introducir señales históricas de uso sin contaminar prematuramente el flujo puro de scoring.
+
+**3.4. Over-exposure Penalty (Penalización por Saturación)**
+- **Archivo:** `src-tauri/src/core/scoring.rs`.
+- **Instrucción:** Requerirá pasar datos históricos de uso desde `engine.rs` o lectura de la BB.DD SQLite.
+- *Lógica:* Ecuación de decaimiento: Si `(times_served_to_llm / max(1, last_used_count))` es mayor a un umbral elevado (ej. 10), es decir, empujamos esta memoria al contexto constantemente pero el usuario o el LLM rara vez la accede o edita, aplicar una penalización al score final de `-0.1`. Obliga rotación de contexto estancado.
+- Esta lógica NO debe entrar en el mismo commit que las mejoras heurísticas base si exige acoplar scoring con observabilidad histórica.
+- Implementarla solo cuando haya una interfaz clara para inyectar métricas históricas sin romper la simplicidad actual del pipeline.
+
+---
+
+## 3. Resumen y Orden Lógico de Hitos
+Para la IA: ejecuta los cambios en este orden preciso para no romper dependencias:
+1. **Commit 1:** Fase 1 (Rutado Neutral y patrón Adaptadores). 
+2. **Commit 2:** Fase 2 (Limpieza Onboarding y creación nueva estructura `ConnectorsView`).
+3. **Commit 3:** Fase 3 (Expansión ligera de query, pesos dinámicos y grafo de adyacencia profunda).
+4. **Commit 4 opcional:** Fase 3b / Fase 4 (Over-exposure Penalty y optimización adaptativa del contexto).
