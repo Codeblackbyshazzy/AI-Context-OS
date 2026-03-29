@@ -132,19 +132,3 @@ pub fn compute_health_score(db: &ObservabilityDb, root: &Path) -> Result<HealthS
     })
 }
 
-use crate::core::observability::ObservabilityStats;
-
-impl Default for ObservabilityStats {
-    fn default() -> Self {
-        Self {
-            requests_this_week: 0,
-            requests_prev_week: 0,
-            tokens_served_total: 0,
-            tokens_avg_per_request: 0,
-            active_memories: 0,
-            total_memories: 0,
-            efficiency_percent: 0.0,
-            force_rate_percent: 0.0,
-        }
-    }
-}

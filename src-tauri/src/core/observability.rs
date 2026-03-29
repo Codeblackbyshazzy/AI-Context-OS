@@ -46,7 +46,7 @@ pub struct MemoryNotLoadedRecord {
     pub reason: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ObservabilityStats {
     pub requests_this_week: u32,
     pub requests_prev_week: u32,
