@@ -57,6 +57,23 @@ body {
   box-sizing: border-box;
 }
 
+/* Tauri: enable native window dragging on marked regions */
+[data-tauri-drag-region] {
+  -webkit-app-region: drag;
+  app-region: drag;
+}
+
+/* Prevent interactive elements inside drag regions from triggering drag */
+[data-tauri-drag-region] button,
+[data-tauri-drag-region] a,
+[data-tauri-drag-region] input,
+[data-tauri-drag-region] select,
+[data-tauri-drag-region] textarea,
+[data-tauri-drag-region] [role="button"] {
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+
 #root {
   min-height: 100vh;
 }
