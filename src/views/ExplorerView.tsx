@@ -1,11 +1,16 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Plus, RefreshCw } from "lucide-react";
 import { clsx } from "clsx";
 import { FileExplorer } from "../components/explorer/FileExplorer";
-import { MemoryEditor } from "../components/editor/MemoryEditor";
 import { useAppStore } from "../lib/store";
 import { createMemory } from "../lib/tauri";
 import type { MemoryType } from "../lib/types";
+
+const MemoryEditor = lazy(() =>
+  import("../components/editor/MemoryEditor").then((module) => ({
+    default: module.MemoryEditor,
+  })),
+);
 
 export function ExplorerView() {
   const {
@@ -176,7 +181,9 @@ export function ExplorerView() {
       )}
 
       <section className="min-w-0 flex-1 bg-[color:var(--bg-1)]">
-        <MemoryEditor />
+        <Suspense fallback={<EditorFallback />}>
+          <MemoryEditor />
+        </Suspense>
       </section>
     </div>
   );
@@ -190,4 +197,12 @@ function normalizeMemoryId(value: string): string {
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "");
+}
+
+function EditorFallback() {
+  return (
+    <div className="flex h-full items-center justify-center text-[color:var(--text-2)]">
+      <div className="h-4 w-4 animate-spin rounded-full border-2 border-[color:var(--text-2)] border-t-transparent" />
+    </div>
+  );
 }

@@ -1,23 +1,50 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
 import { Sidebar } from "./components/layout/Sidebar";
-import { ExplorerView } from "./views/ExplorerView";
-import { GraphViewPage } from "./views/GraphViewPage";
-import { SimulationView } from "./views/SimulationView";
-import { GovernanceView } from "./views/GovernanceView";
-import { JournalView } from "./views/JournalView";
-import { TaskView } from "./views/TaskView";
-import { OnboardingWizard } from "./components/onboarding/OnboardingWizard";
-import { ObservabilityView } from "./views/ObservabilityView";
 import { useFileWatcher } from "./hooks/useFileWatcher";
 import { useContextEvents } from "./hooks/useContextEvents";
 import { useAppStore } from "./lib/store";
 import { isOnboarded } from "./lib/tauri";
-import { SettingsView } from "./views/SettingsView";
 import { HealthBadge } from "./components/layout/HealthBadge";
 import { useThemeEffect } from "./lib/settingsStore";
 import { PanelLeft } from "lucide-react";
-import { SearchModal } from "./components/layout/SearchModal";
+
+const ExplorerView = lazy(() =>
+  import("./views/ExplorerView").then((module) => ({ default: module.ExplorerView })),
+);
+const GraphViewPage = lazy(() =>
+  import("./views/GraphViewPage").then((module) => ({ default: module.GraphViewPage })),
+);
+const SimulationView = lazy(() =>
+  import("./views/SimulationView").then((module) => ({ default: module.SimulationView })),
+);
+const GovernanceView = lazy(() =>
+  import("./views/GovernanceView").then((module) => ({ default: module.GovernanceView })),
+);
+const JournalView = lazy(() =>
+  import("./views/JournalView").then((module) => ({ default: module.JournalView })),
+);
+const TaskView = lazy(() =>
+  import("./views/TaskView").then((module) => ({ default: module.TaskView })),
+);
+const OnboardingWizard = lazy(() =>
+  import("./components/onboarding/OnboardingWizard").then((module) => ({
+    default: module.OnboardingWizard,
+  })),
+);
+const ObservabilityView = lazy(() =>
+  import("./views/ObservabilityView").then((module) => ({
+    default: module.ObservabilityView,
+  })),
+);
+const SettingsView = lazy(() =>
+  import("./views/SettingsView").then((module) => ({ default: module.SettingsView })),
+);
+const SearchModal = lazy(() =>
+  import("./components/layout/SearchModal").then((module) => ({
+    default: module.SearchModal,
+  })),
+);
 
 function isEditableElement(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
@@ -102,12 +129,14 @@ function AppContent() {
 
   if (!onboarded) {
     return (
-      <OnboardingWizard
-        onComplete={() => {
-          setOnboarded(true);
-          initialize();
-        }}
-      />
+      <Suspense fallback={<FullscreenSpinner />}>
+        <OnboardingWizard
+          onComplete={() => {
+            setOnboarded(true);
+            initialize();
+          }}
+        />
+      </Suspense>
     );
   }
 
@@ -151,21 +180,25 @@ function AppContent() {
         <Sidebar />
         <main className="relative flex-1 overflow-hidden">
           <div className="h-full overflow-hidden bg-[color:var(--bg-1)]">
-            <Routes>
-              <Route path="/" element={<ExplorerView />} />
-              <Route path="/journal" element={<JournalView />} />
-              <Route path="/tasks" element={<TaskView />} />
-              <Route path="/graph" element={<GraphViewPage />} />
-              <Route path="/simulation" element={<SimulationView />} />
-              <Route path="/governance" element={<GovernanceView />} />
-              <Route path="/observability" element={<ObservabilityView />} />
-              <Route path="/settings" element={<SettingsView />} />
-            </Routes>
+            <Suspense fallback={<RouteFallback />}>
+              <Routes>
+                <Route path="/" element={<ExplorerView />} />
+                <Route path="/journal" element={<JournalView />} />
+                <Route path="/tasks" element={<TaskView />} />
+                <Route path="/graph" element={<GraphViewPage />} />
+                <Route path="/simulation" element={<SimulationView />} />
+                <Route path="/governance" element={<GovernanceView />} />
+                <Route path="/observability" element={<ObservabilityView />} />
+                <Route path="/settings" element={<SettingsView />} />
+              </Routes>
+            </Suspense>
           </div>
           <Toast message={error} onDismiss={() => setError(null)} />
         </main>
       </div>
-      <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />
+      <Suspense fallback={null}>
+        <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />
+      </Suspense>
     </div>
   );
 }
@@ -209,6 +242,22 @@ function Toast({ message, onDismiss }: { message: string | null; onDismiss: () =
           ×
         </button>
       </div>
+    </div>
+  );
+}
+
+function FullscreenSpinner() {
+  return (
+    <div className="flex h-screen items-center justify-center text-[color:var(--text-2)]">
+      <div className="h-4 w-4 animate-spin rounded-full border-2 border-[color:var(--text-2)] border-t-transparent" />
+    </div>
+  );
+}
+
+function RouteFallback() {
+  return (
+    <div className="flex h-full items-center justify-center text-[color:var(--text-2)]">
+      <div className="h-4 w-4 animate-spin rounded-full border-2 border-[color:var(--text-2)] border-t-transparent" />
     </div>
   );
 }
