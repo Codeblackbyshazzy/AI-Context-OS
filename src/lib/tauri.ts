@@ -130,3 +130,38 @@ export interface OnboardingProfile {
 export const runOnboarding = (profile: OnboardingProfile) =>
   invoke<boolean>("run_onboarding", { profile });
 export const isOnboarded = () => invoke<boolean>("is_onboarded");
+
+// Observability
+import type {
+  ContextRequestRecord,
+  ObservabilityStats,
+  TopMemoryRecord,
+  UnusedMemoryRecord,
+  HealthScore,
+  HealthScoreSnapshot,
+  OptimizationRecord,
+  McpConnectionInfo,
+} from "./types";
+
+export const getRecentContextRequests = (limit: number) =>
+  invoke<ContextRequestRecord[]>("get_recent_context_requests", { limit });
+export const getObservabilityStats = (days: number) =>
+  invoke<ObservabilityStats>("get_observability_stats", { days });
+export const getTopMemoriesStats = (limit: number, days: number) =>
+  invoke<TopMemoryRecord[]>("get_top_memories_stats", { limit, days });
+export const getUnusedMemoriesStats = (days: number) =>
+  invoke<UnusedMemoryRecord[]>("get_unused_memories_stats", { days });
+export const getHealthScore = () =>
+  invoke<HealthScore>("get_health_score");
+export const getHealthHistory = (days: number) =>
+  invoke<HealthScoreSnapshot[]>("get_health_history", { days });
+export const getPendingOptimizations = () =>
+  invoke<OptimizationRecord[]>("get_pending_optimizations");
+export const applyOptimization = (id: number) =>
+  invoke<void>("apply_optimization", { id });
+export const dismissOptimization = (id: number) =>
+  invoke<void>("dismiss_optimization", { id });
+export const runOptimizationAnalysis = () =>
+  invoke<OptimizationRecord[]>("run_optimization_analysis");
+export const getMcpConnectionInfo = () =>
+  invoke<McpConnectionInfo>("get_mcp_connection_info");

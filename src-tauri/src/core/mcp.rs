@@ -358,9 +358,8 @@ impl AiContextMcpServer {
 #[tool_handler(router = self.tool_router)]
 impl ServerHandler for AiContextMcpServer {
     fn get_info(&self) -> rmcp::model::ServerInfo {
-        rmcp::model::ServerInfo {
-            instructions: Some("AI Context OS — Intelligent memory system for AI tools. Use get_context at the start of every task to load relevant context.".into()),
-            ..Default::default()
-        }
+        let mut info = rmcp::model::ServerInfo::default();
+        info.instructions = Some("AI Context OS — Intelligent memory system for AI tools. Use get_context at the start of every task to load relevant context.".into());
+        info
     }
 }

@@ -13,17 +13,15 @@ pub const MCP_HTTP_PORT: u16 = 3847;
 
 /// Build the Axum router for the MCP HTTP/SSE server.
 pub fn build_mcp_router(shared_state: Arc<McpSharedState>) -> Router {
-    let config = StreamableHttpServerConfig {
-        stateful_mode: true,
-        json_response: true,
-        ..Default::default()
-    };
+    let mut config = StreamableHttpServerConfig::default();
+    config.stateful_mode = true;
+    config.json_response = true;
 
-    let session_manager = LocalSessionManager::default();
+    let session_manager = Arc::new(LocalSessionManager::default());
 
-    let factory = move || {
+    let factory = move || -> Result<AiContextMcpServer, std::io::Error> {
         let state = shared_state.clone();
-        AiContextMcpServer::new(state)
+        Ok(AiContextMcpServer::new(state))
     };
 
     let mcp_service = StreamableHttpService::new(factory, session_manager, config);

@@ -1,7 +1,7 @@
 use std::path::Path;
 use std::sync::Mutex;
 
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use rusqlite::{params, Connection};
 use serde::{Deserialize, Serialize};
 
@@ -50,7 +50,7 @@ pub struct MemoryNotLoadedRecord {
 pub struct ObservabilityStats {
     pub requests_this_week: u32,
     pub requests_prev_week: u32,
-    pub tokens_served_total: u64,
+    pub tokens_served_total: i64,
     pub tokens_avg_per_request: u32,
     pub active_memories: u32,
     pub total_memories: u32,
@@ -63,7 +63,7 @@ pub struct TopMemoryRecord {
     pub memory_id: String,
     pub times_served: u32,
     pub typical_level: String,
-    pub total_tokens: u64,
+    pub total_tokens: i64,
     pub pct_of_requests: f64,
 }
 
@@ -237,7 +237,8 @@ impl ObservabilityDb {
                 was_force_loaded as i32,
             ],
         )
-        .map_err(|e| format!("Failed to log memory served: {}", e))
+        .map_err(|e| format!("Failed to log memory served: {}", e))?;
+        Ok(())
     }
 
     /// Log a memory that was considered but not loaded.
@@ -254,7 +255,8 @@ impl ObservabilityDb {
              VALUES (?1, ?2, ?3, ?4)",
             params![request_id, memory_id, final_score, reason],
         )
-        .map_err(|e| format!("Failed to log memory not loaded: {}", e))
+        .map_err(|e| format!("Failed to log memory not loaded: {}", e))?;
+        Ok(())
     }
 
     /// Get recent context requests.
@@ -347,7 +349,7 @@ impl ObservabilityDb {
     pub fn get_stats(&self, days: u32) -> Result<ObservabilityStats, String> {
         let conn = self.conn.lock().unwrap();
 
-        let this_week: (u32, u64, f64) = conn
+        let this_week: (u32, i64, f64) = conn
             .query_row(
                 "SELECT COUNT(*), COALESCE(SUM(tokens_used), 0), COALESCE(AVG(CAST(tokens_used AS REAL) / NULLIF(token_budget, 0) * 100), 0)
                  FROM context_requests WHERE timestamp > datetime('now', ?1)",
@@ -366,7 +368,7 @@ impl ObservabilityDb {
             .map_err(|e| format!("Stats query error: {}", e))?;
 
         let tokens_avg = if this_week.0 > 0 {
-            (this_week.1 / this_week.0 as u64) as u32
+            (this_week.1 / this_week.0 as i64) as u32
         } else {
             0
         };
@@ -431,7 +433,7 @@ impl ObservabilityDb {
                     memory_id: row.get(0)?,
                     times_served: row.get(1)?,
                     typical_level: row.get(2)?,
-                    total_tokens: row.get(3)?,
+                    total_tokens: row.get::<_, i64>(3).unwrap_or(0),
                     pct_of_requests: row.get::<_, f64>(4).unwrap_or(0.0),
                 })
             })

@@ -1,9 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::core::index::scan_memories;
-use crate::core::memory::read_memory;
 use crate::core::observability::ObservabilityDb;
-use crate::core::types::MemoryType;
 use std::path::Path;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
