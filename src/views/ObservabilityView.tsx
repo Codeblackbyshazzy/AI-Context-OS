@@ -44,7 +44,10 @@ export function ObservabilityView() {
   ];
 
   return (
-    <div className="view-container" style={{ padding: 24 }}>
+    <div
+      className="view-container h-full overflow-y-auto"
+      style={{ padding: 24 }}
+    >
       <h1 style={{ fontSize: 20, fontWeight: 700, marginBottom: 16, color: "var(--text-0)" }}>
         Observabilidad
       </h1>
