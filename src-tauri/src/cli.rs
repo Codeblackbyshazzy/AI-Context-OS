@@ -4,6 +4,9 @@ use std::path::PathBuf;
 
 use chrono::Utc;
 use clap::{Parser, Subcommand};
+use rmcp::ServiceExt as _;
+
+use std::sync::Arc;
 
 use core::compat::{generate_cursorrules, generate_windsurfrules};
 use core::index::scan_memories;
@@ -54,6 +57,8 @@ enum Commands {
         /// Memory ID
         id: String,
     },
+    /// Start MCP server (stdio transport for Claude Desktop/Code)
+    McpServer,
 }
 
 fn get_root(root_opt: &Option<String>) -> PathBuf {
@@ -268,6 +273,42 @@ fn main() {
             } else {
                 println!("Memory '{}' not found.", id);
             }
+        }
+
+        Commands::McpServer => {
+            let config = load_config(&root);
+
+            // Initialize observability DB
+            let obs = match core::observability::ObservabilityDb::new(&root) {
+                Ok(db) => Arc::new(std::sync::Mutex::new(Some(db))),
+                Err(e) => {
+                    eprintln!("Warning: Failed to init observability DB: {}", e);
+                    Arc::new(std::sync::Mutex::new(None))
+                }
+            };
+
+            let shared_state = Arc::new(core::mcp::McpSharedState {
+                root_dir: std::sync::RwLock::new(root),
+                config: std::sync::RwLock::new(config),
+                observability: obs,
+            });
+
+            let rt = tokio::runtime::Runtime::new().expect("Failed to create tokio runtime");
+            rt.block_on(async {
+                let server = core::mcp::AiContextMcpServer::new(shared_state);
+                let transport = rmcp::transport::io::stdio();
+                match rmcp::ServiceExt::serve(server, transport).await {
+                    Ok(ct) => {
+                        if let Err(e) = ct.waiting().await {
+                            eprintln!("MCP server error: {}", e);
+                        }
+                    }
+                    Err(e) => {
+                        eprintln!("Failed to start MCP server: {}", e);
+                        std::process::exit(1);
+                    }
+                }
+            });
         }
     }
 }

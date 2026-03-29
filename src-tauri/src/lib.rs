@@ -3,6 +3,7 @@ mod core;
 mod state;
 
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use tauri::Manager;
 
@@ -72,6 +73,18 @@ pub fn run() {
             // Backup
             commands::backup::backup_workspace,
             commands::backup::restore_workspace,
+            // Observability
+            commands::observability::get_recent_context_requests,
+            commands::observability::get_observability_stats,
+            commands::observability::get_top_memories_stats,
+            commands::observability::get_unused_memories_stats,
+            commands::observability::get_health_score,
+            commands::observability::get_health_history,
+            commands::observability::get_pending_optimizations,
+            commands::observability::apply_optimization,
+            commands::observability::dismiss_optimization,
+            commands::observability::run_optimization_analysis,
+            commands::observability::get_mcp_connection_info,
         ])
         .setup(|app| {
             let state = app.state::<AppState>();
@@ -98,6 +111,32 @@ pub fn run() {
                     index.insert(meta.id.clone(), (meta, path));
                 }
                 log::info!("Loaded {} memories from workspace", index.len());
+            }
+
+            // Initialize observability DB
+            match crate::core::observability::ObservabilityDb::new(&root) {
+                Ok(db) => {
+                    *state.observability.lock().unwrap() = Some(db);
+                    log::info!("Observability DB initialized");
+                }
+                Err(e) => {
+                    log::warn!("Failed to initialize observability DB: {}", e);
+                }
+            }
+
+            // Spawn MCP HTTP server
+            {
+                let shared_state = Arc::new(crate::core::mcp::McpSharedState {
+                    root_dir: std::sync::RwLock::new(root.clone()),
+                    config: std::sync::RwLock::new(state.config.read().unwrap().clone()),
+                    observability: state.observability.clone(),
+                });
+                tauri::async_runtime::spawn(async move {
+                    match crate::core::mcp_http::spawn_mcp_http_server(shared_state).await {
+                        Ok(port) => log::info!("MCP HTTP server running on port {}", port),
+                        Err(e) => log::warn!("Failed to start MCP HTTP server: {}", e),
+                    }
+                });
             }
 
             // Start filesystem watcher for live sync.
