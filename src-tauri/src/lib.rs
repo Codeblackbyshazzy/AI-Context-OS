@@ -3,10 +3,103 @@ mod core;
 mod state;
 
 use std::path::PathBuf;
+use std::sync::Arc;
 
+use rmcp::ServiceExt as _;
 use tauri::Manager;
 
 use state::AppState;
+
+fn default_cli_root() -> PathBuf {
+    dirs::home_dir()
+        .unwrap_or_else(|| PathBuf::from("."))
+        .join("AI-Context-OS")
+}
+
+fn expand_cli_root(root: Option<String>) -> PathBuf {
+    match root {
+        Some(path) if path == "~" => dirs::home_dir().unwrap_or_else(|| PathBuf::from(".")),
+        Some(path) if path.starts_with("~/") => dirs::home_dir()
+            .unwrap_or_else(|| PathBuf::from("."))
+            .join(&path[2..]),
+        Some(path) => PathBuf::from(path),
+        None => default_cli_root(),
+    }
+}
+
+fn load_cli_config(root: &PathBuf) -> crate::core::types::Config {
+    crate::commands::config::read_config_from_root(root)
+        .ok()
+        .flatten()
+        .unwrap_or(crate::core::types::Config {
+            root_dir: root.to_string_lossy().to_string(),
+            default_token_budget: 4000,
+            decay_threshold: 0.1,
+            scratch_ttl_days: 7,
+            active_tools: vec!["claude".to_string()],
+        })
+}
+
+pub fn try_run_embedded_mcp_server() -> Result<bool, String> {
+    let mut args = std::env::args().skip(1);
+    let Some(command) = args.next() else {
+        return Ok(false);
+    };
+    if command != "mcp-server" {
+        return Ok(false);
+    }
+
+    let mut root_arg: Option<String> = None;
+    while let Some(arg) = args.next() {
+        match arg.as_str() {
+            "--root" | "-r" => {
+                let value = args
+                    .next()
+                    .ok_or_else(|| "Missing value for --root".to_string())?;
+                root_arg = Some(value);
+            }
+            other => {
+                return Err(format!("Unknown mcp-server argument: {}", other));
+            }
+        }
+    }
+
+    let root = expand_cli_root(root_arg);
+    let config = load_cli_config(&root);
+
+    let obs = match crate::core::observability::ObservabilityDb::new(&root) {
+        Ok(db) => Arc::new(std::sync::Mutex::new(Some(db))),
+        Err(e) => {
+            eprintln!("Warning: Failed to init observability DB: {}", e);
+            Arc::new(std::sync::Mutex::new(None))
+        }
+    };
+
+    let shared_state = Arc::new(crate::core::mcp::McpSharedState {
+        root_dir: Arc::new(std::sync::RwLock::new(root)),
+        config: Arc::new(std::sync::RwLock::new(config)),
+        observability: obs,
+    });
+
+    let rt = tokio::runtime::Runtime::new().map_err(|e| format!("Failed to create tokio runtime: {}", e))?;
+    rt.block_on(async {
+        let server = crate::core::mcp::AiContextMcpServer::new(shared_state);
+        let transport = rmcp::transport::io::stdio();
+        match rmcp::ServiceExt::serve(server, transport).await {
+            Ok(ct) => {
+                if let Err(e) = ct.waiting().await {
+                    eprintln!("MCP server error: {}", e);
+                }
+            }
+            Err(e) => {
+                return Err(format!("Failed to start MCP server: {}", e));
+            }
+        }
+        Ok(())
+    })?;
+
+    Ok(true)
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -72,6 +165,18 @@ pub fn run() {
             // Backup
             commands::backup::backup_workspace,
             commands::backup::restore_workspace,
+            // Observability
+            commands::observability::get_recent_context_requests,
+            commands::observability::get_observability_stats,
+            commands::observability::get_top_memories_stats,
+            commands::observability::get_unused_memories_stats,
+            commands::observability::get_health_score,
+            commands::observability::get_health_history,
+            commands::observability::get_pending_optimizations,
+            commands::observability::apply_optimization,
+            commands::observability::dismiss_optimization,
+            commands::observability::run_optimization_analysis,
+            commands::observability::get_mcp_connection_info,
         ])
         .setup(|app| {
             let state = app.state::<AppState>();
@@ -88,24 +193,27 @@ pub fn run() {
                 }
             }
 
-            if !root.join("claude.md").exists() {
-                log::info!("Workspace not found, will initialize on first use");
-            } else {
-                // Load memory index
-                let all = crate::core::index::scan_memories(&root);
-                let mut index = state.memory_index.write().unwrap();
-                for (meta, path) in all {
-                    index.insert(meta.id.clone(), (meta, path));
-                }
-                log::info!("Loaded {} memories from workspace", index.len());
+            // Spawn MCP HTTP server (shares AppState locks to stay in sync)
+            {
+                let shared_state = Arc::new(crate::core::mcp::McpSharedState {
+                    root_dir: state.root_dir.clone(),
+                    config: state.config.clone(),
+                    observability: state.observability.clone(),
+                });
+                tauri::async_runtime::spawn(async move {
+                    match crate::core::mcp_http::spawn_mcp_http_server(shared_state).await {
+                        Ok(port) => log::info!("MCP HTTP server running on port {}", port),
+                        Err(e) => log::warn!("Failed to start MCP HTTP server: {}", e),
+                    }
+                });
             }
 
-            // Start filesystem watcher for live sync.
-            if root.exists() {
-                if let Err(e) = crate::core::watcher::start_watcher(root.clone(), app.handle().clone(), Some(state.memory_index.clone())) {
-                    log::warn!("Failed to start watcher on {}: {}", root.display(), e);
-                }
+            if !root.join("claude.md").exists() {
+                log::info!("Workspace not found, will initialize on first use");
             }
+
+            crate::commands::config::sync_workspace_runtime(state.inner(), Some(&app.handle().clone()))?;
+            log::info!("Loaded {} memories from workspace", state.memory_index.read().unwrap().len());
 
             Ok(())
         })
@@ -126,6 +234,7 @@ pub fn run() {
                             }
                         }
                     }
+                    state.replace_watcher(None);
                 }
             }
         })

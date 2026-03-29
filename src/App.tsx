@@ -8,10 +8,13 @@ import { GovernanceView } from "./views/GovernanceView";
 import { JournalView } from "./views/JournalView";
 import { TaskView } from "./views/TaskView";
 import { OnboardingWizard } from "./components/onboarding/OnboardingWizard";
+import { ObservabilityView } from "./views/ObservabilityView";
 import { useFileWatcher } from "./hooks/useFileWatcher";
+import { useContextEvents } from "./hooks/useContextEvents";
 import { useAppStore } from "./lib/store";
 import { isOnboarded } from "./lib/tauri";
 import { SettingsView } from "./views/SettingsView";
+import { HealthBadge } from "./components/layout/HealthBadge";
 import { useThemeEffect } from "./lib/settingsStore";
 import { PanelLeft } from "lucide-react";
 import { SearchModal } from "./components/layout/SearchModal";
@@ -31,6 +34,7 @@ function isEditableElement(target: EventTarget | null): boolean {
 
 function AppContent() {
   useFileWatcher();
+  useContextEvents();
   useThemeEffect();
   const error = useAppStore((s) => s.error);
   const setError = useAppStore((s) => s.setError);
@@ -134,6 +138,11 @@ function AppContent() {
           </button>
         </div>
 
+        {/* Health badge */}
+        <div className="flex items-center pr-3">
+          <HealthBadge />
+        </div>
+
         {/* Remaining top window drag region */}
         <div data-tauri-drag-region className="flex-1 h-full" />
       </div>
@@ -149,6 +158,7 @@ function AppContent() {
               <Route path="/graph" element={<GraphViewPage />} />
               <Route path="/simulation" element={<SimulationView />} />
               <Route path="/governance" element={<GovernanceView />} />
+              <Route path="/observability" element={<ObservabilityView />} />
               <Route path="/settings" element={<SettingsView />} />
             </Routes>
           </div>
