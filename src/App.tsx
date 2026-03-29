@@ -179,10 +179,11 @@ function AppContent() {
         data-tauri-drag-region
         className="flex h-[38px] w-full shrink-0 flex-row items-center border-b border-[color:var(--border)] relative z-50 bg-[color:var(--bg-0)]"
       >
-        <div className="w-[72px] h-full shrink-0" /> {/* Spacer for macOS traffic lights */}
+        <div data-tauri-drag-region className="w-[72px] h-full shrink-0" /> {/* Spacer for macOS traffic lights */}
 
         {/* Animated spacer linking Toggle Button to the right edge of Explorer */}
         <div 
+          data-tauri-drag-region
           className="flex h-full items-center justify-start overflow-hidden transition-[width] duration-300 ease-in-out"
           style={{ width: explorerOpen ? "196px" : "0px" }}
         />
@@ -190,7 +191,7 @@ function AppContent() {
         {/* Sliding Toggle Button: Pushed left/right by the animated spacer. 
             mb-[3px] perfectly nudges it upwards to counter optical misalignment with macOS traffic lights 
         */}
-        <div className="flex w-[40px] items-center justify-center shrink-0 mb-[3px]">
+        <div data-tauri-drag-region className="flex w-[40px] items-center justify-center shrink-0 mb-[3px]">
           <button
             onClick={toggleExplorer}
             className="flex h-6 w-6 items-center justify-center rounded-md text-[color:var(--text-2)] transition-colors hover:bg-[color:var(--bg-2)] hover:text-[color:var(--text-1)]"
@@ -201,7 +202,7 @@ function AppContent() {
         </div>
 
         {/* Health badge */}
-        <div className="flex items-center pr-3">
+        <div data-tauri-drag-region className="flex items-center pr-3">
           <HealthBadge />
         </div>
 
