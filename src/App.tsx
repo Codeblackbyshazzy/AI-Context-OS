@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from "react";
-import { getCurrentWindow } from "@tauri-apps/api/window";
+import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
 import { Sidebar } from "./components/layout/Sidebar";
 import { useFileWatcher } from "./hooks/useFileWatcher";
@@ -46,6 +46,8 @@ const SearchModal = lazy(() =>
     default: module.SearchModal,
   })),
 );
+
+const appWindow = getCurrentWebviewWindow();
 
 function isEditableElement(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
@@ -130,10 +132,13 @@ function AppContent() {
       .catch(() => setOnboarded(false));
   }, []);
 
-  const handleTitlebarMouseDown = (event: React.MouseEvent<HTMLDivElement>) => {
+  const handleTitlebarMouseDownCapture = (
+    event: React.MouseEvent<HTMLDivElement>,
+  ) => {
     if (event.button !== 0) return;
     if (isTitlebarInteractiveElement(event.target)) return;
-    void getCurrentWindow().startDragging();
+    event.preventDefault();
+    void appWindow.startDragging();
   };
 
   if (onboarded === null) {
@@ -161,7 +166,7 @@ function AppContent() {
     <div className="flex h-screen flex-col overflow-hidden bg-[color:var(--bg-0)]">
       <div 
         className="flex h-[38px] w-full shrink-0 flex-row items-center border-b border-[color:var(--border)] relative z-50 bg-[color:var(--bg-0)]"
-        onMouseDown={handleTitlebarMouseDown}
+        onMouseDownCapture={handleTitlebarMouseDownCapture}
       >
         <div className="w-[72px] h-full shrink-0" /> {/* Spacer for macOS traffic lights */}
 
