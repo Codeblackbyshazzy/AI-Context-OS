@@ -1,5 +1,20 @@
 {
-  "enabledPlugins": {
-    "superpowers@claude-plugins-official": true
+  "permissions": {
+    "allow": [
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "Bash(cat:*)",
+      "Bash(grep:*)",
+      "Bash(cargo:*)",
+      "Bash(npm:*)",
+      "Bash(npx:*)",
+      "Bash(git:*)",
+      "Bash(mkdir:*)",
+      "Bash(cp:*)",
+      "Bash(mv:*)",
+      "Bash(wc:*)",
+      "Bash(echo:*)",
+      "Bash(touch:*)"
+    ]
   }
 }
