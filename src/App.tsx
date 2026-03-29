@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from "react";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
 import { Sidebar } from "./components/layout/Sidebar";
 import { useFileWatcher } from "./hooks/useFileWatcher";
@@ -57,6 +58,16 @@ function isEditableElement(target: EventTarget | null): boolean {
   }
 
   return Boolean(target.closest("[contenteditable='true']"));
+}
+
+function isTitlebarInteractiveElement(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+
+  return Boolean(
+    target.closest(
+      "button, a, input, textarea, select, [role='button'], [contenteditable='true']",
+    ),
+  );
 }
 
 function AppContent() {
@@ -119,6 +130,12 @@ function AppContent() {
       .catch(() => setOnboarded(false));
   }, []);
 
+  const handleTitlebarMouseDown = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (event.button !== 0) return;
+    if (isTitlebarInteractiveElement(event.target)) return;
+    void getCurrentWindow().startDragging();
+  };
+
   if (onboarded === null) {
     return (
       <div className="flex h-screen items-center justify-center text-[color:var(--text-2)]">
@@ -144,7 +161,7 @@ function AppContent() {
     <div className="flex h-screen flex-col overflow-hidden bg-[color:var(--bg-0)]">
       <div 
         className="flex h-[38px] w-full shrink-0 flex-row items-center border-b border-[color:var(--border)] relative z-50 bg-[color:var(--bg-0)]"
-        data-tauri-drag-region
+        onMouseDown={handleTitlebarMouseDown}
       >
         <div className="w-[72px] h-full shrink-0" /> {/* Spacer for macOS traffic lights */}
 
