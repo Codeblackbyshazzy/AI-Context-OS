@@ -21,6 +21,12 @@ AI Context OS es la **capa de memoria (Brain Layer) universal** para agentes de 
 
 ## 2. Instrucciones de Desarrollo: Roadmap Operativo (Archivo por Archivo)
 
+Nota de ejecución:
+
+- Las fases de este documento son una agrupación lógica de dependencias y prioridades, no una instrucción para detenerse tras cada bloque.
+- La IA debe ejecutar el refactor de forma completa y end-to-end, resolviendo todas las piezas necesarias en el orden técnico más apropiado.
+- Si durante la implementación aparecen dependencias cruzadas entre fases, debe resolverlas sin romper el objetivo principal del refactor.
+
 ### Fase 1: Arquitectura Adapter-First (Desacoplar el Núcleo)
 Objetivo: El sistema genera un estado neutral y los "Adapters" renderizan los archivos de compatibilidad.
 
@@ -72,6 +78,14 @@ En esta fase, `Bridge` NO significa integración nativa ni acceso automático re
 ### Fase 3: Evolución Matemática del Motor RAG-Híbrido
 Objetivo: Potenciar la heurística en `scoring.rs` y `engine.rs` con lógicas deterministas sin pasar a *embeddings* pesados.
 
+Restricciones de seguridad para esta fase:
+
+- No introducir embeddings, bases vectoriales ni dependencias externas de retrieval.
+- No cambiar el formato del workspace ni el modelo de memoria existente.
+- No reescribir agresivamente el pipeline actual de scoring: los cambios deben ser aditivos, conservadores y legibles.
+- Si una mejora obliga a tocar demasiadas piezas del pipeline, reducir alcance antes que introducir fragilidad arquitectónica.
+- Mantener el comportamiento `Default` como baseline estable y comprensible.
+
 **Operativa Técnica:**
 
 **3.1. Expansión Ligera de Query**
@@ -90,6 +104,7 @@ Objetivo: Potenciar la heurística en `scoring.rs` y `engine.rs` con lógicas de
   - Perfil `Default`: Mantener la ponderación actual (`0.3, 0.15, 0.10, 0.15, 0.20`).
   - Aplicar los pesos del perfil asignado para calcular el `final_score`.
   - Los pesos deben seguir sumando exactamente `1.0` en todos los perfiles para evitar comportamientos inconsistentes.
+  - Mantener cambios conservadores: reponderar señales existentes, no eliminar señales actuales ni alterar drásticamente umbrales de carga.
 
 **3.3. Grafo de Adyacencia Profunda (Nivel 2 / Spreading Activation)**
 - **Archivo principal:** `src-tauri/src/core/scoring.rs` (`graph_proximity_score`).
@@ -112,8 +127,10 @@ Objetivo: introducir señales históricas de uso sin contaminar prematuramente e
 ---
 
 ## 3. Resumen y Orden Lógico de Hitos
-Para la IA: ejecuta los cambios en este orden preciso para no romper dependencias:
-1. **Commit 1:** Fase 1 (Rutado Neutral y patrón Adaptadores). 
-2. **Commit 2:** Fase 2 (Limpieza Onboarding y creación nueva estructura `ConnectorsView`).
-3. **Commit 3:** Fase 3 (Expansión ligera de query, pesos dinámicos y grafo de adyacencia profunda).
-4. **Commit 4 opcional:** Fase 3b / Fase 4 (Over-exposure Penalty y optimización adaptativa del contexto).
+Orden lógico interno recomendado:
+1. Arquitectura Adapter-First y preservación de compatibilidad temporal.
+2. Limpieza de onboarding y nueva estructura de conectores.
+3. Mejoras deterministas del core híbrido de scoring y proximidad de grafo.
+4. Optimización adaptativa del contexto solo si no compromete la simplicidad del pipeline.
+
+La IA debe completar el refactor entero de forma coherente, sin interpretar esta lista como una obligación de detenerse entre fases si no existe bloqueo real.
