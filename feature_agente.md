@@ -6,6 +6,8 @@
 - **Base:** La app "AI Context OS" se mantiene gratuita, sirviendo como un potente motor para la gestión de memoria y contexto.
 - **Premium:** Se habilita una pestaña "Agents". Los usuarios de pago tendrán acceso a agentes especializados (estructuras de carpetas predefinidas, promts optimizados, y scripts).
 - **El beneficio para el usuario:** Ahorrar horas de setup iterando en system prompts y organizando estructuras de carpetas. Al hacer clic en un Agente desde el Marketplace, la app reconstruye toda la lógica en un instante.
+- **Idea usaurio premium** en el codigo fuente de la app se puede ver que hay una carpeta premium, dentro de esta pestaña se puede pedir logear o redirigir a la web landing page para la venta de agentes. que será la misma web de la app, tambien te puedes logear si ya eres un usaurio prmium y descargar los agentes disponibles.
+
 
 ## 2. Arquitectura Técnica de la Feature
 
