@@ -51,13 +51,17 @@ fn expand_query(query: &str) -> String {
         ("deploy",   "deploy despliegue release publicar"),
         ("test",     "test prueba testing verificar"),
     ];
-    let mut expanded = q.clone();
+    let mut terms: Vec<String> = q.split_whitespace().map(|term| term.to_string()).collect();
     for (term, extra) in expansions {
-        if expanded.contains(term) {
-            expanded = format!("{expanded} {extra}");
+        if q.contains(term) {
+            for extra_term in extra.split_whitespace() {
+                if !terms.iter().any(|existing| existing == extra_term) {
+                    terms.push(extra_term.to_string());
+                }
+            }
         }
     }
-    expanded
+    terms.join(" ")
 }
 
 // ─── Main scoring function ────────────────────────────────────────────────────
@@ -207,4 +211,21 @@ fn graph_proximity_score(memory: &Memory, all_memories: &[Memory], selected_ids:
     let l2_score = l2_count as f64 * 0.03;
 
     (l1_score + l2_score).min(1.0)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::expand_query;
+
+    #[test]
+    fn expand_query_only_uses_original_terms() {
+        let expanded = expand_query("bug");
+        assert_eq!(expanded, "bug error fix excepcion fallo");
+    }
+
+    #[test]
+    fn expand_query_deduplicates_added_terms() {
+        let expanded = expand_query("error bug");
+        assert_eq!(expanded, "error bug fix excepcion fallo panic");
+    }
 }

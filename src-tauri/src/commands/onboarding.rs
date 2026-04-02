@@ -89,12 +89,21 @@ fn shellexpand(path: &str) -> String {
     path.to_string()
 }
 
+fn tool_summary(tools: &[String]) -> String {
+    if tools.is_empty() {
+        "adaptadores auto-generados".to_string()
+    } else {
+        tools.join(", ")
+    }
+}
+
 fn create_profile_memory(root: &std::path::Path, profile: &OnboardingProfile) -> Result<(), String> {
     let now = Utc::now();
+    let tools_label = tool_summary(&profile.tools);
     let meta = MemoryMeta {
         id: "perfil-profesional".to_string(),
         memory_type: MemoryType::Context,
-        l0: format!("{} — {} | Tools: {}", profile.name, profile.role, profile.tools.join(", ")),
+        l0: format!("{} — {} | Herramientas: {}", profile.name, profile.role, tools_label),
         importance: 0.95,
         always_load: true,
         decay_rate: 0.999,
@@ -114,7 +123,7 @@ fn create_profile_memory(root: &std::path::Path, profile: &OnboardingProfile) ->
 
     let l1 = format!(
         "Nombre: {}. Rol: {}. Herramientas IA: {}. Idioma principal: {}.",
-        profile.name, profile.role, profile.tools.join(", "), profile.language
+        profile.name, profile.role, tools_label, profile.language
     );
 
     let l2 = format!(
@@ -126,7 +135,7 @@ fn create_profile_memory(root: &std::path::Path, profile: &OnboardingProfile) ->
         - **Template elegido:** {}\n\n\
         ## Notas\n\n\
         _Añade aquí información adicional sobre tu perfil, experiencia, objetivos, etc._\n",
-        profile.name, profile.role, profile.tools.join(", "), profile.language, profile.template
+        profile.name, profile.role, tools_label, profile.language, profile.template
     );
 
     let body = format!("<!-- L1 -->\n{}\n\n<!-- L2 -->\n{}", l1, l2);

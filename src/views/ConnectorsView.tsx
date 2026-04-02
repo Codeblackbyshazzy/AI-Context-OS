@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { Copy, FileText, Check } from "lucide-react";
 import { clsx } from "clsx";
-import { getMcpConnectionInfo, simulateContext } from "../lib/tauri";
+import { getMcpConnectionInfo, simulateContext, writeFile } from "../lib/tauri";
 import type { McpConnectionInfo } from "../lib/types";
 
 type IntegrationTier = "Local Native" | "Bridge";
@@ -99,8 +99,8 @@ const CONNECTORS: ConnectorDef[] = [
 ];
 
 const TIER_COLORS: Record<IntegrationTier, { bg: string; text: string; label: string }> = {
-  "Local Native": { bg: "#10b98122", text: "#10b981", label: "Local Native" },
-  "Bridge":       { bg: "#f59e0b22", text: "#f59e0b", label: "Bridge" },
+  "Local Native": { bg: "var(--bg-2)", text: "var(--success)", label: "Nativo local" },
+  "Bridge": { bg: "var(--bg-2)", text: "var(--warning)", label: "Puente manual" },
 };
 
 export function ConnectorsView() {
@@ -108,6 +108,8 @@ export function ConnectorsView() {
   const [activeConnector, setActiveConnector] = useState<string>("claude-code");
   const [bridgeStatus, setBridgeStatus] = useState<"idle" | "loading" | "done">("idle");
   const [bridgeText, setBridgeText] = useState<string>("");
+  const [bridgeFeedback, setBridgeFeedback] = useState<string>("");
+  const [bridgeError, setBridgeError] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
 
   useEffect(() => {
@@ -124,20 +126,23 @@ export function ConnectorsView() {
 
   const handleBridgeAction = async (action: "copy" | "handoff") => {
     setBridgeStatus("loading");
+    setBridgeFeedback("");
+    setBridgeError(null);
     try {
       const budget = action === "handoff" ? 6000 : 4000;
       const memories = await simulateContext("contexto general del proyecto", budget);
+      const connectorName = active?.name ?? "la herramienta seleccionada";
 
       let text: string;
       if (action === "handoff") {
         text = [
-          "# Handoff — AI Context OS",
+          `# Handoff para ${connectorName}`,
           "",
-          `Fecha: ${new Date().toLocaleString()}`,
+          `Fecha: ${new Date().toLocaleString("es-ES")}`,
           "",
           "## Instrucciones",
           "Este documento contiene el contexto activo de mi workspace de memorias.",
-          "Úsalo como referencia para entender mi proyecto y responder mis preguntas.",
+          `Úsalo como referencia para continuar el trabajo en ${connectorName}.`,
           "",
           "## Memorias activas",
           "",
@@ -148,9 +153,20 @@ export function ConnectorsView() {
       }
 
       await navigator.clipboard.writeText(text);
+      if (action === "handoff") {
+        if (!info) {
+          throw new Error("No se pudo resolver la ubicación del workspace");
+        }
+        const handoffPath = `${info.workspace_root}/09-scratch/handoff.md`;
+        await writeFile(handoffPath, text);
+        setBridgeFeedback(`Archivo guardado en 09-scratch/handoff.md y copiado al portapapeles.`);
+      } else {
+        setBridgeFeedback("Contexto copiado al portapapeles.");
+      }
       setBridgeText(text);
       setBridgeStatus("done");
     } catch {
+      setBridgeError("No se pudo preparar la transferencia de contexto.");
       setBridgeStatus("idle");
     }
   };
@@ -184,7 +200,7 @@ export function ConnectorsView() {
               width: 8,
               height: 8,
               borderRadius: "50%",
-              background: info.is_http_running ? "#10b981" : "#ef4444",
+              background: info.is_http_running ? "var(--success)" : "var(--danger)",
               flexShrink: 0,
             }}
           />
@@ -220,6 +236,8 @@ export function ConnectorsView() {
                     setActiveConnector(c.id);
                     setBridgeStatus("idle");
                     setBridgeText("");
+                    setBridgeFeedback("");
+                    setBridgeError(null);
                   }}
                   className={clsx(
                     "w-full text-left rounded-lg border px-3 py-2 mb-1 transition-colors",
@@ -293,7 +311,7 @@ export function ConnectorsView() {
                       color: TIER_COLORS[active.tier].text,
                     }}
                   >
-                    {active.tier}
+                    {TIER_COLORS[active.tier].label}
                   </div>
                 </div>
               </div>
@@ -404,7 +422,7 @@ export function ConnectorsView() {
                     </p>
                     {(() => {
                       const config = JSON.stringify(
-                        { mcpServers: { "ai-context-os": { url: `${info.http_url}/mcp` } } },
+                        { mcpServers: { "ai-context-os": { url: info.http_url } } },
                         null,
                         2
                       );
@@ -441,7 +459,7 @@ export function ConnectorsView() {
                     </p>
                     {(() => {
                       const config = JSON.stringify(
-                        { mcpServers: { "ai-context-os": { url: `${info.http_url}/mcp` } } },
+                        { mcpServers: { "ai-context-os": { url: info.http_url } } },
                         null,
                         2
                       );
@@ -502,6 +520,8 @@ export function ConnectorsView() {
                     connectorId={active.id}
                     status={bridgeStatus}
                     resultText={bridgeText}
+                    feedback={bridgeFeedback}
+                    error={bridgeError}
                     onAction={handleBridgeAction}
                   />
                 </div>
@@ -512,6 +532,8 @@ export function ConnectorsView() {
                   connectorId={active.id}
                   status={bridgeStatus}
                   resultText={bridgeText}
+                  feedback={bridgeFeedback}
+                  error={bridgeError}
                   onAction={handleBridgeAction}
                 />
               )}
@@ -535,11 +557,15 @@ function BridgePanel({
   connectorId,
   status,
   resultText,
+  feedback,
+  error,
   onAction,
 }: {
   connectorId: string;
   status: "idle" | "loading" | "done";
   resultText: string;
+  feedback: string;
+  error: string | null;
   onAction: (action: "copy" | "handoff") => void;
 }) {
   return (
@@ -548,15 +574,14 @@ function BridgePanel({
         style={{
           padding: "10px 14px",
           borderRadius: 8,
-          background: "#f59e0b11",
-          border: "1px solid #f59e0b33",
+          background: "var(--bg-2)",
+          border: "1px solid var(--warning)",
           fontSize: 12,
           color: "var(--text-2)",
         }}
       >
-        <strong style={{ color: "var(--text-1)" }}>Bridge / Handoff</strong> — Transferencia
-        guiada del estado de trabajo. No hay integración nativa; el contexto se prepara para
-        pegarlo manualmente.
+        <strong style={{ color: "var(--text-1)" }}>Transferencia manual</strong> — Prepara el
+        contexto para copiarlo o guardarlo como archivo cuando no hay integración nativa.
       </div>
 
       {connectorId === "copilot" && (
@@ -589,11 +614,17 @@ function BridgePanel({
         />
       </div>
 
+      {feedback && (
+        <div style={{ fontSize: 11, color: "var(--accent)" }}>{feedback}</div>
+      )}
+
+      {error && (
+        <div style={{ fontSize: 11, color: "var(--danger)" }}>{error}</div>
+      )}
+
       {status === "done" && resultText && (
         <div>
-          <div style={{ fontSize: 11, color: "var(--accent)", marginBottom: 4 }}>
-            Copiado al portapapeles
-          </div>
+          <div style={{ fontSize: 11, color: "var(--accent)", marginBottom: 4 }}>Vista previa</div>
           <pre
             style={{
               padding: 10,
