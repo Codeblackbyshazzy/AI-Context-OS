@@ -29,32 +29,17 @@ En el futuro, los scripts asociados al workflow de un agente (ej. validación, p
 
 ## 3. Prueba de Concepto (PoC): El SM Agent (Social Media)
 
-Antes de integrar todo el ecosistema del marketplace, el primer paso será desarrollar y probar iterativamente el Agente de Social Media (SM Agent) de forma "manual".
+Antes de integrar todo el ecosistema del marketplace, el primer paso será desarrollar y probar iterativamente el Agente de Social Media (SM Agent) de forma "manual". 
 
 ### Componentes del SM Agent (A testear localmente)
+esto es un ejemplo de lo que se puede hacer con la app - desarrollado por mi en otra carpeta de contexto con skills, script, conectaores, etc. 
 - **Ingesta:** URL -> procesado a Markdown.
 - **Contexto:** Lee `Voice DNA`, `hooks`, contexto de red.
 - **Adaptación:** Re-escribe post por red (LinkedIn, X, Threads, Substack).
 - **Métricas:** Sistema basado en comentarios HTML (`<!-- metrics ... -->`).
 - **Purga y Aprendizajes:** Script de purga mensual analizando umbrales.
 
-### Estructura de prueba propuesta para el PoC (Desarrollo manual previo):
-Podemos crear manualmente una carpeta en el workspace de prueba:
-```text
-[workspace_dir]/08-agents/sm-manager/
-├── CLAUDE.md
-├── plan.md
-├── config/ 
-│   ├── perfil.md
-│   └── umbrales.md
-├── estilo/
-│   ├── voice-dna.md
-│   ├── hooks-que-funcionan.md
-│   └── competidores.md
-├── originales/
-├── logs/
-└── redes/ (linkedin, x, threads, etc.)
-```
+
 
 ## 4. Próximos Pasos Recomendados
 
