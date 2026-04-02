@@ -18,26 +18,26 @@ interface ConnectorDef {
 
 const CONNECTORS: ConnectorDef[] = [
   {
-    id: "claude-code",
-    name: "Claude Code",
-    tier: "Local Native",
-    description: "Integración completa: MCP nativo con 4 herramientas + contexto automático vía claude.md.",
-    icon: ">_",
-    capabilities: [
-      "MCP stdio (get_context, save_memory, get_skill, log_session)",
-      "Lectura automática de claude.md al abrir el workspace",
-      "Cowork: sesión colaborativa con acceso directo a archivos",
-    ],
-  },
-  {
     id: "claude-desktop",
     name: "Claude Desktop",
     tier: "Local Native",
-    description: "Servidor MCP vía stdio. Claude accede a las 4 herramientas del workspace.",
+    description: "App nativa (recomendada). Sesión Cowork con acceso automático al contexto y MCP.",
     icon: "C",
     capabilities: [
-      "MCP stdio (get_context, save_memory, get_skill, log_session)",
-      "Contexto completo con scoring híbrido y niveles L0/L1/L2",
+      "Cowork: la forma óptima de trabajar con tus archivos",
+      "MCP stdio automático (get_context, save_memory, get_skill, log_session)",
+      "Lectura automática de claude.md"
+    ],
+  },
+  {
+    id: "claude-code",
+    name: "Claude Code",
+    tier: "Local Native",
+    description: "Integración desde CLI: MCP nativo con 4 herramientas + contexto automático.",
+    icon: ">_",
+    capabilities: [
+      "MCP stdio en la terminal",
+      "Lectura automática de claude.md al abrir el workspace",
     ],
   },
   {
@@ -105,7 +105,7 @@ const TIER_COLORS: Record<IntegrationTier, { bg: string; text: string; label: st
 
 export function ConnectorsView() {
   const [info, setInfo] = useState<McpConnectionInfo | null>(null);
-  const [activeConnector, setActiveConnector] = useState<string>("claude-code");
+  const [activeConnector, setActiveConnector] = useState<string>("claude-desktop");
   const [bridgeStatus, setBridgeStatus] = useState<"idle" | "loading" | "done">("idle");
   const [bridgeText, setBridgeText] = useState<string>("");
   const [bridgeFeedback, setBridgeFeedback] = useState<string>("");
@@ -335,55 +335,21 @@ export function ConnectorsView() {
 
               {/* ─── Configuration panels per connector ─── */}
 
-              {active.id === "claude-code" && info && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                  {/* Option 1: Terminal / Cowork */}
-                  <div>
-                    <SectionLabel>Opción 1 — Uso nativo (recomendado)</SectionLabel>
-                    <p style={{ fontSize: 12, color: "var(--text-2)", marginBottom: 8 }}>
-                      Es la forma óptima y más fácil de usar nuestro sistema. Solo se requiere abrir 
-                      el proyecto con la app desktop de Claude y usar la pestaña de <b>cowork</b>.
-                      Para usar el terminal de Claude de forma equivalente con la carpeta:
-                    </p>
-                    <SnippetCard
-                      snippet={`claude "${info.workspace_root}"`}
-                      onCopy={() => copyWithFeedback(`claude "${info.workspace_root}"`, "terminal")}
-                      copied={copied === "terminal"}
-                    />
-                  </div>
-
-                  {/* Option 2: MCP add */}
-                  <div>
-                    <SectionLabel>Opción 2 — Registrar servidor MCP</SectionLabel>
-                    <p style={{ fontSize: 12, color: "var(--text-2)", marginBottom: 8 }}>
-                      Registra AI Context OS como servidor MCP permanente.
-                      Disponible en cualquier proyecto, no solo en esta carpeta.
-                    </p>
-                    <SnippetCard
-                      snippet={`claude mcp add ai-context-os -- "${info.binary_path}" mcp-server --root "${info.workspace_root}"`}
-                      onCopy={() => copyWithFeedback(
-                        `claude mcp add ai-context-os -- "${info.binary_path}" mcp-server --root "${info.workspace_root}"`,
-                        "mcp-add"
-                      )}
-                      copied={copied === "mcp-add"}
-                    />
-                  </div>
-
-                  <InfoBox>
-                    <strong>Cowork vs MCP:</strong> Cowork da acceso directo a archivos + lectura de claude.md.
-                    MCP expone las 4 herramientas de scoring inteligente (get_context, save_memory, get_skill, log_session).
-                    Pueden usarse juntos.
-                  </InfoBox>
-                </div>
-              )}
-
               {active.id === "claude-desktop" && info && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                   <div>
-                    <SectionLabel>Configuración MCP (stdio)</SectionLabel>
+                    <SectionLabel>Opción 1 — Cowork (recomendado)</SectionLabel>
                     <p style={{ fontSize: 12, color: "var(--text-2)", marginBottom: 8 }}>
-                      Agrega este bloque a{" "}
-                      <code style={{ color: "var(--accent)" }}>~/Library/Application Support/Claude/claude_desktop_config.json</code>:
+                      Es la forma óptima y más fácil de usar nuestro sistema. Solo requiere abrir 
+                      el proyecto con la app desktop de Claude y usar la pestaña <b>Cowork</b>. 
+                      Claude accederá de forma nativa a todo el contexto y archivos locales.
+                    </p>
+                  </div>
+
+                  <div>
+                    <SectionLabel>Opción 2 — Servidor MCP (stdio)</SectionLabel>
+                    <p style={{ fontSize: 12, color: "var(--text-2)", marginBottom: 8 }}>
+                      Para acceder a tu base de conocimientos desde cualquier conversación, agrega AI Context OS a <code style={{ color: "var(--accent)" }}>claude_desktop_config.json</code>:
                     </p>
                     {(() => {
                       const config = JSON.stringify(
@@ -408,7 +374,44 @@ export function ConnectorsView() {
                     })()}
                   </div>
                   <InfoBox>
-                    Después de guardar, reinicia Claude Desktop. El servidor MCP se lanza automáticamente con cada conversación.
+                    <strong>Cowork + MCP:</strong> Recomendamos usar Cowork como base. Si añades la configuración MCP, tendrás a tu disposición herramientas avanzadas como búsquedas o grafos globales.
+                  </InfoBox>
+                </div>
+              )}
+
+              {active.id === "claude-code" && info && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                  {/* Option 1: Terminal */}
+                  <div>
+                    <SectionLabel>Opción 1 — CLI local (recomendado)</SectionLabel>
+                    <p style={{ fontSize: 12, color: "var(--text-2)", marginBottom: 8 }}>
+                      Abre tu terminal en la carpeta origen e inicializa sesion con:
+                    </p>
+                    <SnippetCard
+                      snippet={`claude "${info.workspace_root}"`}
+                      onCopy={() => copyWithFeedback(`claude "${info.workspace_root}"`, "terminal")}
+                      copied={copied === "terminal"}
+                    />
+                  </div>
+
+                  {/* Option 2: MCP add */}
+                  <div>
+                    <SectionLabel>Opción 2 — Registrar servidor global</SectionLabel>
+                    <p style={{ fontSize: 12, color: "var(--text-2)", marginBottom: 8 }}>
+                      Registra AI Context OS como servidor MCP permanente para invocarlo desde otras sesiones.
+                    </p>
+                    <SnippetCard
+                      snippet={`claude mcp add ai-context-os -- "${info.binary_path}" mcp-server --root "${info.workspace_root}"`}
+                      onCopy={() => copyWithFeedback(
+                        `claude mcp add ai-context-os -- "${info.binary_path}" mcp-server --root "${info.workspace_root}"`,
+                        "mcp-add"
+                      )}
+                      copied={copied === "mcp-add"}
+                    />
+                  </div>
+
+                  <InfoBox>
+                    Se cargarán las herramientas para manejar las memorias automáticamente en CLI.
                   </InfoBox>
                 </div>
               )}
