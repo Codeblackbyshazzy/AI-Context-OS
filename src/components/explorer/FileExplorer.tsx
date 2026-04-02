@@ -5,6 +5,8 @@ import {
   ChevronRight,
   Clipboard,
   Copy,
+  Eye,
+  EyeOff,
   FilePlus,
   FileText,
   Folder,
@@ -583,6 +585,7 @@ export function FileExplorer() {
     setError,
   } = useAppStore();
   const showSystemFiles = useSettingsStore((s) => s.showSystemFiles);
+  const toggleShowSystemFiles = useSettingsStore((s) => s.toggleShowSystemFiles);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [conflictIds, setConflictIds] = useState<Set<string>>(new Set());
   const [ctxMenu, setCtxMenu] = useState<ContextMenuState | null>(null);
@@ -598,9 +601,13 @@ export function FileExplorer() {
   const suppressClickRef = useRef(false);
   const suppressClickTimeoutRef = useRef<number | null>(null);
   const isDragging = dragSourcePath !== null;
-  const { nodes: visibleTree, hiddenCount } = useMemo(
+  const { nodes: visibleTree } = useMemo(
     () => filterExplorerTree(fileTree, showSystemFiles),
     [fileTree, showSystemFiles],
+  );
+  const advancedItemCount = useMemo(
+    () => filterExplorerTree(fileTree, false).hiddenCount,
+    [fileTree],
   );
 
   useEffect(() => {
@@ -1244,23 +1251,6 @@ export function FileExplorer() {
 
   return (
     <div className="px-1 py-1">
-      {!showSystemFiles && hiddenCount > 0 && (
-        <div className="mx-2 mb-2 rounded-md border border-[color:var(--border)] bg-[color:var(--bg-1)] px-2.5 py-2">
-          <p className="text-[11px] font-medium uppercase tracking-wider text-[color:var(--text-2)]">
-            Vista enfocada
-          </p>
-          <p className="mt-1 text-xs text-[color:var(--text-2)]">
-            {hiddenCount} {hiddenCount === 1 ? "elemento avanzado oculto" : "elementos avanzados ocultos"}.
-          </p>
-        </div>
-      )}
-
-      {showSystemFiles && (
-        <div className="mx-2 mb-2 rounded-md border border-[color:var(--accent)]/25 bg-[color:var(--accent)]/8 px-2.5 py-2 text-xs text-[color:var(--text-2)]">
-          Modo avanzado activo. Se muestran archivos del sistema junto a las memorias.
-        </div>
-      )}
-
       {visibleTree.map((node) => (
         <TreeNode
           key={node.path}
@@ -1295,6 +1285,21 @@ export function FileExplorer() {
         <p className="px-3 py-8 text-center text-xs text-[color:var(--text-2)]">
           {showSystemFiles ? "No hay archivos todavía." : "No hay memorias visibles en esta vista."}
         </p>
+      )}
+
+      {advancedItemCount > 0 && (
+        <button
+          type="button"
+          onClick={toggleShowSystemFiles}
+          className="mx-2 mt-2 flex w-[calc(100%-1rem)] items-center gap-1.5 rounded px-2 py-1 text-left text-[11px] text-[color:var(--text-2)] transition-colors hover:bg-[color:var(--bg-1)] hover:text-[color:var(--text-1)]"
+        >
+          {showSystemFiles ? (
+            <Eye className="h-3 w-3 shrink-0" />
+          ) : (
+            <EyeOff className="h-3 w-3 shrink-0" />
+          )}
+          <span>{showSystemFiles ? "Modo experto" : "Archivos de sistema ocultos"}</span>
+        </button>
       )}
 
       {ctxMenu && (
