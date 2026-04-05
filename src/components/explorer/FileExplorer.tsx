@@ -633,6 +633,7 @@ function filterExplorerTree(
       const shouldShowDirectory =
         node.memory_type !== null ||
         isSpecialWorkspaceNode(node) ||
+        inferFolderTypeFromPath(node.path) !== null ||
         filteredChildren.nodes.length > 0;
 
       hiddenCount += filteredChildren.hiddenCount;
