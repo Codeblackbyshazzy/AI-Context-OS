@@ -186,15 +186,25 @@ function getTypeColor(node: FileNode): string | undefined {
 function folderToType(folder: string): MemoryType | null {
   const map: Record<string, MemoryType> = {
     sources: "source",
+    "01-sources": "source",
     "01-context": "context",
+    "02-context": "context",
     "02-daily": "daily",
+    "03-daily": "daily",
     "03-intelligence": "intelligence",
+    "04-intelligence": "intelligence",
     "04-projects": "project",
+    "05-projects": "project",
     "05-resources": "resource",
+    "06-resources": "resource",
     "06-skills": "skill",
+    "07-skills": "skill",
     "07-tasks": "task",
+    "08-tasks": "task",
     "08-rules": "rule",
+    "09-rules": "rule",
     "09-scratch": "scratch",
+    "10-scratch": "scratch",
   };
   return map[folder] ?? null;
 }
@@ -521,27 +531,27 @@ const PROTECTED_FILE_NAMES = new Set([
   ".windsurfrules",
 ]);
 
-const INBOX_FOLDER_NAME = "inbox";
-const SOURCES_FOLDER_NAME = "sources";
+const INBOX_FOLDER_NAMES = new Set(["inbox", "00-inbox"]);
+const SOURCES_FOLDER_NAMES = new Set(["sources", "01-sources"]);
 
 function pathSegments(path: string): string[] {
   return path.replace(/\\/g, "/").split("/").filter(Boolean);
 }
 
 function isInboxPath(path: string): boolean {
-  return pathSegments(path).includes(INBOX_FOLDER_NAME);
+  return pathSegments(path).some((segment) => INBOX_FOLDER_NAMES.has(segment));
 }
 
 function isInboxNode(node: FileNode): boolean {
-  return node.name === INBOX_FOLDER_NAME || isInboxPath(node.path);
+  return INBOX_FOLDER_NAMES.has(node.name) || isInboxPath(node.path);
 }
 
 function isSourcesPath(path: string): boolean {
-  return pathSegments(path).includes(SOURCES_FOLDER_NAME);
+  return pathSegments(path).some((segment) => SOURCES_FOLDER_NAMES.has(segment));
 }
 
 function isSourcesNode(node: FileNode): boolean {
-  return node.name === SOURCES_FOLDER_NAME || isSourcesPath(node.path);
+  return SOURCES_FOLDER_NAMES.has(node.name) || isSourcesPath(node.path);
 }
 
 function isSpecialWorkspaceNode(node: FileNode): boolean {
@@ -622,7 +632,7 @@ function filterExplorerTree(
       const filteredChildren = filterExplorerTree(node.children, showSystemFiles);
       const shouldShowDirectory =
         node.memory_type !== null ||
-        node.name === INBOX_FOLDER_NAME ||
+        isSpecialWorkspaceNode(node) ||
         filteredChildren.nodes.length > 0;
 
       hiddenCount += filteredChildren.hiddenCount;
