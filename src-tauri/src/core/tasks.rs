@@ -7,9 +7,9 @@ use uuid::Uuid;
 
 use crate::core::types::{TaskFilter, TaskItem, TaskPriority, TaskState};
 
-/// List all task files from 08-tasks/ directory.
+/// List all task files from 07-tasks/ directory.
 pub fn list_tasks(root: &Path, filter: &Option<TaskFilter>) -> Result<Vec<TaskItem>, String> {
-    let tasks_dir = root.join("08-tasks");
+    let tasks_dir = root.join("07-tasks");
     if !tasks_dir.exists() {
         return Ok(Vec::new());
     }
@@ -71,7 +71,7 @@ pub fn list_tasks(root: &Path, filter: &Option<TaskFilter>) -> Result<Vec<TaskIt
     Ok(tasks)
 }
 
-/// Read a single task from a Markdown file in 08-tasks/.
+/// Read a single task from a Markdown file in 07-tasks/.
 fn read_task_file(path: &Path) -> Result<TaskItem, String> {
     let raw = fs::read_to_string(path).map_err(|e| format!("Failed to read task: {}", e))?;
 
@@ -136,9 +136,9 @@ struct TaskMeta {
     due: Option<String>,
 }
 
-/// Create a new task and write it to 08-tasks/.
+/// Create a new task and write it to 07-tasks/.
 pub fn create_task(root: &Path, task: &TaskItem) -> Result<String, String> {
-    let tasks_dir = root.join("08-tasks");
+    let tasks_dir = root.join("07-tasks");
     fs::create_dir_all(&tasks_dir).map_err(|e| format!("Failed to create tasks dir: {}", e))?;
 
     let file_path = tasks_dir.join(format!("{}.md", &task.id));
@@ -151,7 +151,7 @@ pub fn create_task(root: &Path, task: &TaskItem) -> Result<String, String> {
 
 /// Update an existing task.
 pub fn update_task(root: &Path, task: &TaskItem) -> Result<String, String> {
-    let file_path = root.join("08-tasks").join(format!("{}.md", &task.id));
+    let file_path = root.join("07-tasks").join(format!("{}.md", &task.id));
     let content = serialize_task(task);
 
     fs::write(&file_path, &content).map_err(|e| format!("Failed to write task: {}", e))?;
@@ -161,7 +161,7 @@ pub fn update_task(root: &Path, task: &TaskItem) -> Result<String, String> {
 
 /// Delete a task file.
 pub fn delete_task(root: &Path, id: &str) -> Result<(), String> {
-    let file_path = root.join("08-tasks").join(format!("{}.md", id));
+    let file_path = root.join("07-tasks").join(format!("{}.md", id));
     if file_path.exists() {
         fs::remove_file(&file_path).map_err(|e| format!("Failed to delete task: {}", e))?;
     }

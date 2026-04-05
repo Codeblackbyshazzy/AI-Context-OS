@@ -185,16 +185,16 @@ function getTypeColor(node: FileNode): string | undefined {
 
 function folderToType(folder: string): MemoryType | null {
   const map: Record<string, MemoryType> = {
-    "01-sources": "source",
-    "02-context": "context",
-    "03-daily": "daily",
-    "04-intelligence": "intelligence",
-    "05-projects": "project",
-    "06-resources": "resource",
-    "07-skills": "skill",
-    "08-tasks": "task",
-    "09-rules": "rule",
-    "10-scratch": "scratch",
+    sources: "source",
+    "01-context": "context",
+    "02-daily": "daily",
+    "03-intelligence": "intelligence",
+    "04-projects": "project",
+    "05-resources": "resource",
+    "06-skills": "skill",
+    "07-tasks": "task",
+    "08-rules": "rule",
+    "09-scratch": "scratch",
   };
   return map[folder] ?? null;
 }
@@ -521,8 +521,8 @@ const PROTECTED_FILE_NAMES = new Set([
   ".windsurfrules",
 ]);
 
-const INBOX_FOLDER_NAME = "00-inbox";
-const SOURCES_FOLDER_NAME = "01-sources";
+const INBOX_FOLDER_NAME = "inbox";
+const SOURCES_FOLDER_NAME = "sources";
 
 function pathSegments(path: string): string[] {
   return path.replace(/\\/g, "/").split("/").filter(Boolean);

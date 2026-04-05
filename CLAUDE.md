@@ -1,6 +1,6 @@
 # AI Context OS
 
-Tauri v2 desktop app. Files ARE the database: ~/AI-Context-OS/ con 10 carpetas numeradas (01-sources/ a 10-scratch/) + `00-inbox/`, archivos .md con YAML frontmatter + marcadores <!-- L1 --> / <!-- L2 -->.
+Tauri v2 desktop app. Files ARE the database: ~/AI-Context-OS/ con `inbox/`, `sources/` y 9 carpetas numeradas (`01-context/` a `09-scratch/`), archivos .md con YAML frontmatter + marcadores <!-- L1 --> / <!-- L2 -->.
 
 ## Gotchas
 
@@ -10,9 +10,9 @@ Tauri v2 desktop app. Files ARE the database: ~/AI-Context-OS/ con 10 carpetas n
 - **Todos los useState ANTES de cualquier return condicional** — violar esto causa pantalla negra
 - **titleBarStyle: "Overlay"** — traffic lights de macOS se solapan; top bar tiene spacer de 72px con data-tauri-drag-region
 - **TipTap sin toolbar** — formato markdown solo por atajos de teclado, diseño intencional
-- **Journal: 03-daily/YYYY-MM-DD.md** (outliner bullets estilo Logseq). El daily-log.jsonl es SOLO para eventos de sistema
-- **Tasks: 08-tasks/task-{id}.md** con frontmatter YAML (state/priority)
-- **Ingesta:** `00-inbox/` es staging, `01-sources/` guarda fuentes aceptadas. `protected: true` bloquea edición salvo desbloqueo explícito.
+- **Journal: 02-daily/YYYY-MM-DD.md** (outliner bullets estilo Logseq). El daily-log.jsonl es SOLO para eventos de sistema
+- **Tasks: 07-tasks/task-{id}.md** con frontmatter YAML (state/priority)
+- **Ingesta:** `inbox/` es staging, `sources/` guarda fuentes aceptadas. `protected: true` bloquea edición salvo desbloqueo explícito.
 - **UI text en español** (labels, placeholders, empty states)
 - **CSS variables para todo el theming** (--bg-0..3, --text-0..2, --accent, --border), nunca colores hardcoded
 

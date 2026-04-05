@@ -13,7 +13,7 @@ pub fn generate_router_content(memories: &[MemoryMeta], config: &Config) -> Stri
         .filter(|m| m.memory_type == MemoryType::Rule)
         .collect();
     if rules.is_empty() {
-        out.push_str("_No rules defined yet. Add rules in 09-rules/_\n\n");
+        out.push_str("_No rules defined yet. Add rules in 08-rules/_\n\n");
     } else {
         for rule in &rules {
             out.push_str(&format!("- **{}**: {}\n", rule.id, rule.l0));
@@ -33,51 +33,51 @@ pub fn generate_router_content(memories: &[MemoryMeta], config: &Config) -> Stri
     out.push_str(
         "7. Memorias con always_load: true se cargan SIEMPRE como L1 para su tipo de tarea\n",
     );
-    out.push_str("8. Si un output de herramienta supera 2000 tokens, escríbelo en 10-scratch/\n\n");
+    out.push_str("8. Si un output de herramienta supera 2000 tokens, escríbelo en 09-scratch/\n\n");
 
     out.push_str("## Escritura\n");
     out.push_str("- Usa el frontmatter YAML estándar (id, type, l0, importance, tags, related)\n");
     out.push_str("- Separa contenido con <!-- L1 --> y <!-- L2 -->\n");
     out.push_str("- Incrementa version: y actualiza modified: al editar\n");
-    out.push_str("- Archivos temporales van a 10-scratch/ con nombre descriptivo + timestamp\n\n");
+    out.push_str("- Archivos temporales van a 09-scratch/ con nombre descriptivo + timestamp\n\n");
 
     // ========== SECTION 3: Ingestion Rule ==========
     out.push_str("## Ingesta\n");
-    out.push_str("- Si trabajas con archivos de `00-inbox/`, lee primero `00-inbox/_INGEST.md` y sigue su protocolo\n");
+    out.push_str("- Si trabajas con archivos de `inbox/`, lee primero `inbox/_INGEST.md` y sigue su protocolo\n");
     out.push_str("- Archivos protegidos (protected: true) NO deben editarse sin desbloqueo explícito del usuario\n\n");
 
     // ========== SECTION 4: Folder Structure ==========
     out.push_str("# Estructura de Carpetas\n\n");
     out.push_str("```\n");
     out.push_str(&format!("{}/\n", config.root_dir));
-    out.push_str("├── 00-inbox/                    ← zona temporal de captura\n");
-    out.push_str("├── 01-sources/                  ← fuentes aceptadas (protegidas)\n");
+    out.push_str("├── inbox/                       ← zona temporal de captura\n");
+    out.push_str("├── sources/                     ← fuentes aceptadas (protegidas)\n");
     out.push_str("├── claude.md                    ← ESTE ARCHIVO (enrutador maestro)\n");
     out.push_str("├── _index.yaml                  ← catálogo L0 autogenerado\n");
     out.push_str("├── _config.yaml                 ← configuración global\n");
-    out.push_str("├── 02-context/                  ← información estática del usuario\n");
-    out.push_str("├── 03-daily/                    ← registros diarios (JSONL)\n");
+    out.push_str("├── 01-context/                  ← información estática del usuario\n");
+    out.push_str("├── 02-daily/                    ← registros diarios (JSONL)\n");
     out.push_str("│   ├── daily-log.jsonl\n");
     out.push_str("│   └── sessions/\n");
-    out.push_str("├── 04-intelligence/             ← investigación, mercado\n");
-    out.push_str("├── 05-projects/                 ← un subdirectorio por proyecto\n");
-    out.push_str("├── 06-resources/                ← plantillas, ejemplos\n");
-    out.push_str("├── 07-skills/                   ← habilidades/instrucciones IA\n");
-    out.push_str("├── 08-tasks/                    ← tareas (JSONL)\n");
+    out.push_str("├── 03-intelligence/             ← investigación, mercado\n");
+    out.push_str("├── 04-projects/                 ← un subdirectorio por proyecto\n");
+    out.push_str("├── 05-resources/                ← plantillas, ejemplos\n");
+    out.push_str("├── 06-skills/                   ← habilidades/instrucciones IA\n");
+    out.push_str("├── 07-tasks/                    ← tareas (JSONL)\n");
     out.push_str("│   └── backlog.jsonl\n");
-    out.push_str("├── 09-rules/                    ← restricciones y directrices\n");
-    out.push_str("└── 10-scratch/                  ← buffer temporal de la IA\n");
+    out.push_str("├── 08-rules/                    ← restricciones y directrices\n");
+    out.push_str("└── 09-scratch/                  ← buffer temporal de la IA\n");
     out.push_str("```\n\n");
 
     // ========== SECTION 5: Compaction Rule ==========
     out.push_str("# Regla de Compaction de Sesión\n\n");
     out.push_str("Si llevas más de 15-20 intercambios en esta sesión:\n");
-    out.push_str("1. Escribe un resumen estructurado en 03-daily/sessions/YYYY-MM-DD-resumen.md\n");
+    out.push_str("1. Escribe un resumen estructurado en 02-daily/sessions/YYYY-MM-DD-resumen.md\n");
     out.push_str("2. Incluye: decisiones tomadas, hechos nuevos, tareas pendientes\n");
     out.push_str("3. Appenda los hechos clave al daily-log.jsonl\n");
     out.push_str("4. Sugiere al usuario iniciar nueva sesión para tareas no relacionadas\n\n");
     out.push_str("Si generas un output largo (análisis, búsqueda, código):\n");
-    out.push_str("1. Escríbelo en 10-scratch/ con nombre descriptivo + timestamp\n");
+    out.push_str("1. Escríbelo en 09-scratch/ con nombre descriptivo + timestamp\n");
     out.push_str("2. Referencia la ruta en la conversación\n");
     out.push_str("3. Lee selectivamente cuando necesites datos específicos\n\n");
 

@@ -157,9 +157,9 @@ export function ConnectorsView() {
         if (!info) {
           throw new Error("No se pudo resolver la ubicación del workspace");
         }
-        const handoffPath = `${info.workspace_root}/10-scratch/handoff.md`;
+        const handoffPath = `${info.workspace_root}/09-scratch/handoff.md`;
         await writeFile(handoffPath, text);
-        setBridgeFeedback(`Archivo guardado en 10-scratch/handoff.md y copiado al portapapeles.`);
+        setBridgeFeedback(`Archivo guardado en 09-scratch/handoff.md y copiado al portapapeles.`);
       } else {
         setBridgeFeedback("Contexto copiado al portapapeles.");
       }

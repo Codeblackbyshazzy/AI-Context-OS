@@ -13,18 +13,18 @@ use crate::state::AppState;
 pub fn create_workspace_structure(root: &Path, active_tools: &[String]) -> Result<Config, String> {
     // Create all directories
     let dirs = [
-        "00-inbox",
-        "01-sources",
-        "02-context",
-        "03-daily",
-        "03-daily/sessions",
-        "04-intelligence",
-        "05-projects",
-        "06-resources",
-        "07-skills",
-        "08-tasks",
-        "09-rules",
-        "10-scratch",
+        "inbox",
+        "sources",
+        "01-context",
+        "02-daily",
+        "02-daily/sessions",
+        "03-intelligence",
+        "04-projects",
+        "05-resources",
+        "06-skills",
+        "07-tasks",
+        "08-rules",
+        "09-scratch",
         ".cache",
     ];
 
@@ -59,7 +59,7 @@ Este archivo se genera automáticamente. No editar manualmente.
 
 # RULES
 
-_No hay reglas definidas. Añade archivos en 09-rules/_
+_No hay reglas definidas. Añade archivos en 08-rules/_
 
 # Reglas de Lectura y Escritura de Memorias
 
@@ -76,7 +76,7 @@ _No hay reglas definidas. Añade archivos en 09-rules/_
 - Incrementa version: y actualiza modified: al editar
 
 ## Ingesta
-- Si trabajas con archivos de `00-inbox/`, lee primero `00-inbox/_INGEST.md` y sigue su protocolo
+- Si trabajas con archivos de `inbox/`, lee primero `inbox/_INGEST.md` y sigue su protocolo
 - Archivos protegidos (`protected: true`) no deben editarse sin confirmación explícita del usuario
 
 # Índice de Memorias Disponibles
@@ -88,11 +88,11 @@ _No hay memorias aún. Crea tu primera memoria desde la app._
 
     // Create JSONL files with schema lines
     create_jsonl_with_schema(
-        &root.join("03-daily/daily-log.jsonl"),
+        &root.join("02-daily/daily-log.jsonl"),
         "timestamp,type,summary,tags,source",
     )?;
     create_jsonl_with_schema(
-        &root.join("08-tasks/backlog.jsonl"),
+        &root.join("07-tasks/backlog.jsonl"),
         "timestamp,id,title,status,priority,tags",
     )?;
 
@@ -118,13 +118,13 @@ Cada skill sabe qué memorias necesita (campo requires/optional).
 <!-- L2 -->
 ## Cómo crear un skill
 
-1. Crea un archivo .md en 07-skills/
+1. Crea un archivo .md en 06-skills/
 2. Añade frontmatter con: id, type: skill, triggers, requires, optional
 3. Escribe las instrucciones detalladas en la sección L2
 4. El sistema cargará automáticamente las memorias requeridas
 "#;
     fs::write(
-        root.join("07-skills/_skill-instructions.md"),
+        root.join("06-skills/_skill-instructions.md"),
         skill_instructions,
     )
     .map_err(|e| format!("Failed to write skill instructions: {}", e))?;
@@ -132,7 +132,7 @@ Cada skill sabe qué memorias necesita (campo requires/optional).
     // Create inbox ingestion protocol
     let ingest_instructions = r#"# Ingestion Instructions — AI Context OS
 
-When processing files from `00-inbox/`, follow this protocol:
+When processing files from `inbox/`, follow this protocol:
 
 ## 1. Analyze
 - Read the full file
@@ -151,7 +151,7 @@ If the user is not available, classify it using your best judgment.
 - L2: fully processed content
 
 ## 4. Classify And Route
-- If it is original reference material, move it to `01-sources/` with `protected: true`
+- If it is original reference material, move it to `sources/` with `protected: true`
 - If it is knowledge to integrate, create or update the corresponding memory and add `derived_from`
 - If it has no lasting value, mark it as `processed` and leave it in inbox for the user to review
 
@@ -159,7 +159,7 @@ If the user is not available, classify it using your best judgment.
 - Update the original inbox file to `status: processed`
 - If you created new memories, make sure `derived_from` points to the source
 "#;
-    fs::write(root.join("00-inbox/_INGEST.md"), ingest_instructions)
+    fs::write(root.join("inbox/_INGEST.md"), ingest_instructions)
         .map_err(|e| format!("Failed to write _INGEST.md: {}", e))?;
 
     Ok(config)

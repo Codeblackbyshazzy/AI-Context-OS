@@ -352,7 +352,7 @@ impl AiContextMcpServer {
         let root = self.state.root_dir.read().unwrap().clone();
         let today = Utc::now().format("%Y-%m-%d").to_string();
         let log_path = root
-            .join("03-daily")
+            .join("02-daily")
             .join("sessions")
             .join(format!("{}.jsonl", today));
 

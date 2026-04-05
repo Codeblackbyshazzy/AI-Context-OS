@@ -8,7 +8,7 @@ use crate::core::types::{JournalBlock, JournalDateInfo, JournalPage, TaskPriorit
 
 /// Get the path for a journal date file.
 pub fn journal_path(root: &Path, date: &str) -> PathBuf {
-    root.join("03-daily").join(format!("{}.md", date))
+    root.join("02-daily").join(format!("{}.md", date))
 }
 
 /// Read a journal page from disk.
@@ -52,7 +52,7 @@ pub fn save_journal_page(root: &Path, date: &str, content: &str) -> Result<Strin
 
 /// List all journal dates that have files, sorted descending.
 pub fn list_journal_dates(root: &Path) -> Result<Vec<JournalDateInfo>, String> {
-    let daily_dir = root.join("03-daily");
+    let daily_dir = root.join("02-daily");
     if !daily_dir.exists() {
         return Ok(Vec::new());
     }
