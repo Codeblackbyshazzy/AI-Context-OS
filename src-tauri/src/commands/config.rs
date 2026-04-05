@@ -8,6 +8,20 @@ use crate::core::types::Config;
 use crate::core::watcher::start_watcher;
 use crate::state::AppState;
 
+const LEGACY_FOLDER_MIGRATIONS: [(&str, &str); 11] = [
+    ("00-inbox", "inbox"),
+    ("01-sources", "sources"),
+    ("02-context", "01-context"),
+    ("03-daily", "02-daily"),
+    ("04-intelligence", "03-intelligence"),
+    ("05-projects", "04-projects"),
+    ("06-resources", "05-resources"),
+    ("07-skills", "06-skills"),
+    ("08-tasks", "07-tasks"),
+    ("09-rules", "08-rules"),
+    ("10-scratch", "09-scratch"),
+];
+
 /// Create the workspace directory structure and starter files.
 /// Reusable by both init_workspace and onboarding.
 pub fn create_workspace_structure(root: &Path, active_tools: &[String]) -> Result<Config, String> {
@@ -165,6 +179,31 @@ If the user is not available, classify it using your best judgment.
     Ok(config)
 }
 
+fn migrate_legacy_workspace_structure(root: &Path) -> Result<bool, String> {
+    let mut migrated = false;
+
+    for (old_name, new_name) in LEGACY_FOLDER_MIGRATIONS {
+        let old_path = root.join(old_name);
+        let new_path = root.join(new_name);
+
+        if !old_path.exists() || new_path.exists() {
+            continue;
+        }
+
+        fs::rename(&old_path, &new_path).map_err(|e| {
+            format!(
+                "Failed to migrate workspace folder {} to {}: {}",
+                old_path.display(),
+                new_path.display(),
+                e
+            )
+        })?;
+        migrated = true;
+    }
+
+    Ok(migrated)
+}
+
 pub fn read_config_from_root(root: &Path) -> Result<Option<Config>, String> {
     let config_path = root.join("_config.yaml");
     if !config_path.exists() {
@@ -242,9 +281,13 @@ pub fn sync_workspace_runtime(
 #[tauri::command]
 pub fn init_workspace(app: AppHandle, state: State<AppState>) -> Result<bool, String> {
     let root = state.get_root();
+    let migrated = migrate_legacy_workspace_structure(&root)?;
 
     if root.join("claude.md").exists() {
-        return Ok(false);
+        if migrated {
+            sync_workspace_runtime(state.inner(), Some(&app))?;
+        }
+        return Ok(migrated);
     }
 
     let config = create_workspace_structure(&root, &[])?;
