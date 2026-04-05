@@ -54,7 +54,8 @@ pub fn build_graph(memories: &[Memory]) -> Graph<String, String, Undirected> {
 pub fn to_graph_data(memories: &[Memory], _decay_threshold: f64) -> GraphData {
     let graph = build_graph(memories);
 
-    let id_map: HashMap<String, &Memory> = memories.iter().map(|m| (m.meta.id.clone(), m)).collect();
+    let id_map: HashMap<String, &Memory> =
+        memories.iter().map(|m| (m.meta.id.clone(), m)).collect();
 
     let mut nodes = Vec::new();
     let mut edges = Vec::new();

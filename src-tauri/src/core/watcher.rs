@@ -38,7 +38,10 @@ pub fn start_watcher(
     is_recent_write: Arc<dyn Fn(&str) -> bool + Send + Sync>,
 ) -> Result<WatcherHandle, String> {
     if !root.exists() {
-        return Err(format!("Cannot watch missing directory: {}", root.display()));
+        return Err(format!(
+            "Cannot watch missing directory: {}",
+            root.display()
+        ));
     }
 
     let (tx, rx) = std::sync::mpsc::channel();

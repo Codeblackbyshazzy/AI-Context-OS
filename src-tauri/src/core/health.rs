@@ -76,7 +76,8 @@ pub fn compute_health_score(db: &ObservabilityDb, root: &Path) -> Result<HealthS
 
     // 4. Balance (15%) — distribution across memory types
     let balance = {
-        let mut type_counts: std::collections::HashMap<String, u32> = std::collections::HashMap::new();
+        let mut type_counts: std::collections::HashMap<String, u32> =
+            std::collections::HashMap::new();
         for (meta, _) in &all_entries {
             let type_name = format!("{:?}", meta.memory_type);
             *type_counts.entry(type_name).or_insert(0) += 1;
@@ -85,8 +86,15 @@ pub fn compute_health_score(db: &ObservabilityDb, root: &Path) -> Result<HealthS
         // Ideal: at least 4 different types populated
         let type_diversity = (num_types / 4.0).min(1.0);
         // Check for extreme concentration (one type > 60%)
-        let max_pct = type_counts.values().map(|c| *c as f64 / total_memories).fold(0.0, f64::max);
-        let concentration_penalty = if max_pct > 0.6 { (max_pct - 0.6) * 100.0 } else { 0.0 };
+        let max_pct = type_counts
+            .values()
+            .map(|c| *c as f64 / total_memories)
+            .fold(0.0, f64::max);
+        let concentration_penalty = if max_pct > 0.6 {
+            (max_pct - 0.6) * 100.0
+        } else {
+            0.0
+        };
         (type_diversity * 100.0 - concentration_penalty).max(0.0)
     };
 
@@ -100,7 +108,11 @@ pub fn compute_health_score(db: &ObservabilityDb, root: &Path) -> Result<HealthS
     };
 
     // Weighted score
-    let weighted = coverage * 0.25 + efficiency * 0.25 + freshness * 0.20 + balance * 0.15 + cleanliness * 0.15;
+    let weighted = coverage * 0.25
+        + efficiency * 0.25
+        + freshness * 0.20
+        + balance * 0.15
+        + cleanliness * 0.15;
     let score = weighted.round() as u32;
 
     let summary = if score > 70 {
@@ -129,4 +141,3 @@ pub fn compute_health_score(db: &ObservabilityDb, root: &Path) -> Result<HealthS
         summary,
     })
 }
-

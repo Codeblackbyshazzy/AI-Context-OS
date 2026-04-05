@@ -426,10 +426,9 @@ function TreeNode({
         )}
 
         {isProtectedMemory && (
-          <Lock
-            className="h-3 w-3 shrink-0 text-[color:var(--text-2)]"
-            title="Archivo protegido"
-          />
+          <span title="Archivo protegido">
+            <Lock className="h-3 w-3 shrink-0 text-[color:var(--text-2)]" />
+          </span>
         )}
 
         {!node.is_dir && isInboxPath(node.path) && memoryStatus && (

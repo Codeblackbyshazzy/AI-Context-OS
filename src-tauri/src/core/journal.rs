@@ -42,12 +42,10 @@ pub fn save_journal_page(root: &Path, date: &str, content: &str) -> Result<Strin
 
     // Ensure directory exists
     if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent)
-            .map_err(|e| format!("Failed to create directory: {}", e))?;
+        fs::create_dir_all(parent).map_err(|e| format!("Failed to create directory: {}", e))?;
     }
 
-    fs::write(&path, content)
-        .map_err(|e| format!("Failed to write {}: {}", path.display(), e))?;
+    fs::write(&path, content).map_err(|e| format!("Failed to write {}: {}", path.display(), e))?;
 
     Ok(path.to_string_lossy().to_string())
 }
@@ -62,8 +60,8 @@ pub fn list_journal_dates(root: &Path) -> Result<Vec<JournalDateInfo>, String> {
     let date_re = Regex::new(r"^\d{4}-\d{2}-\d{2}\.md$").unwrap();
     let mut dates: Vec<JournalDateInfo> = Vec::new();
 
-    let entries = fs::read_dir(&daily_dir)
-        .map_err(|e| format!("Failed to read daily dir: {}", e))?;
+    let entries =
+        fs::read_dir(&daily_dir).map_err(|e| format!("Failed to read daily dir: {}", e))?;
 
     for entry in entries.flatten() {
         let name = entry.file_name().to_string_lossy().to_string();

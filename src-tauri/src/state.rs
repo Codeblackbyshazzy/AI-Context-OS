@@ -93,7 +93,8 @@ impl AppState {
     pub fn mark_recent_write(&self, path: &Path) {
         let mut recent_writes = self.recent_writes.lock().unwrap();
         let now = Instant::now();
-        recent_writes.retain(|_, written_at| now.duration_since(*written_at) < Duration::from_secs(2));
+        recent_writes
+            .retain(|_, written_at| now.duration_since(*written_at) < Duration::from_secs(2));
         recent_writes.insert(path.to_string_lossy().to_string(), now);
     }
 
@@ -114,8 +115,13 @@ impl AppState {
     fn persist_root_hint(root: &Path) -> Result<(), String> {
         let home = dirs::home_dir().ok_or_else(|| "Home directory not available".to_string())?;
         let hint_path = Self::root_hint_path(&home);
-        fs::write(&hint_path, root.to_string_lossy().to_string())
-            .map_err(|e| format!("Failed to persist workspace root at {}: {}", hint_path.display(), e))
+        fs::write(&hint_path, root.to_string_lossy().to_string()).map_err(|e| {
+            format!(
+                "Failed to persist workspace root at {}: {}",
+                hint_path.display(),
+                e
+            )
+        })
     }
 
     fn expand_home(path: &str) -> PathBuf {

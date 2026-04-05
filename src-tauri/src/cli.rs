@@ -11,7 +11,7 @@ use std::sync::Arc;
 use core::compat::{render_claude_adapter, render_cursor_adapter, render_windsurf_adapter};
 use core::index::scan_memories;
 use core::memory::read_memory;
-use core::router::{generate_router_content, generate_index_yaml};
+use core::router::{generate_index_yaml, generate_router_content};
 use core::scoring::compute_score;
 use core::types::{Config, Memory};
 
@@ -102,9 +102,7 @@ fn load_all_memories(root: &PathBuf) -> Vec<Memory> {
     let scanned = scan_memories(root);
     scanned
         .iter()
-        .filter_map(|(_meta, path)| {
-            read_memory(std::path::Path::new(path)).ok()
-        })
+        .filter_map(|(_meta, path)| read_memory(std::path::Path::new(path)).ok())
         .collect()
 }
 
@@ -120,9 +118,19 @@ fn main() {
             }
 
             let dirs = [
-                "00-inbox", "01-sources", "02-context", "03-daily", "03-daily/sessions",
-                "04-intelligence", "05-projects", "06-resources", "07-skills", "08-tasks",
-                "09-rules", "10-scratch", ".cache",
+                "00-inbox",
+                "01-sources",
+                "02-context",
+                "03-daily",
+                "03-daily/sessions",
+                "04-intelligence",
+                "05-projects",
+                "06-resources",
+                "07-skills",
+                "08-tasks",
+                "09-rules",
+                "10-scratch",
+                ".cache",
             ];
 
             for dir in &dirs {
@@ -138,7 +146,11 @@ fn main() {
             };
             let yaml = serde_yaml::to_string(&config).unwrap();
             std::fs::write(root.join("_config.yaml"), yaml).unwrap();
-            std::fs::write(root.join("claude.md"), "# AI Context OS — Router\n\nInitialized.\n").unwrap();
+            std::fs::write(
+                root.join("claude.md"),
+                "# AI Context OS — Router\n\nInitialized.\n",
+            )
+            .unwrap();
             std::fs::write(root.join("_index.yaml"), "memories: []\n").unwrap();
 
             println!("Workspace initialized at {}", root.display());
@@ -165,13 +177,7 @@ fn main() {
             println!("Search results for: \"{}\"", query);
             println!("{:-<60}", "");
             for (i, (score, m)) in scored.iter().take(limit).enumerate() {
-                println!(
-                    "  {}. [{:.2}] {} ({})",
-                    i + 1,
-                    score,
-                    m.meta.l0,
-                    m.meta.id
-                );
+                println!("  {}. [{:.2}] {} ({})", i + 1, score, m.meta.l0, m.meta.id);
             }
         }
 
@@ -194,7 +200,10 @@ fn main() {
 
             scored.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap());
 
-            println!("Context simulation: \"{}\" (budget: {} tokens)", query, budget);
+            println!(
+                "Context simulation: \"{}\" (budget: {} tokens)",
+                query, budget
+            );
             println!("{:-<60}", "");
 
             let mut used: u32 = 0;

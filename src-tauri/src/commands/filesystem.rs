@@ -61,12 +61,10 @@ fn read_dir_recursive(dir: &Path, depth: u32) -> Result<Vec<FileNode>, String> {
     }
 
     // Sort: directories first, then alphabetically
-    entries.sort_by(|a, b| {
-        match (a.is_dir, b.is_dir) {
-            (true, false) => std::cmp::Ordering::Less,
-            (false, true) => std::cmp::Ordering::Greater,
-            _ => a.name.cmp(&b.name),
-        }
+    entries.sort_by(|a, b| match (a.is_dir, b.is_dir) {
+        (true, false) => std::cmp::Ordering::Less,
+        (false, true) => std::cmp::Ordering::Greater,
+        _ => a.name.cmp(&b.name),
     });
 
     Ok(entries)
@@ -83,8 +81,7 @@ pub fn read_file(path: String) -> Result<String, String> {
 pub fn write_file(path: String, content: String, state: State<AppState>) -> Result<(), String> {
     // Ensure parent directory exists
     if let Some(parent) = Path::new(&path).parent() {
-        fs::create_dir_all(parent)
-            .map_err(|e| format!("Failed to create directory: {}", e))?;
+        fs::create_dir_all(parent).map_err(|e| format!("Failed to create directory: {}", e))?;
     }
     fs::write(&path, content).map_err(|e| format!("Failed to write {}: {}", path, e))?;
     state.mark_recent_write(Path::new(&path));
@@ -111,8 +108,13 @@ pub fn rename_path(old_path: String, new_path: String) -> Result<String, String>
         return Err(format!("Target already exists: {}", new_path));
     }
     if let Some(parent) = new.parent() {
-        fs::create_dir_all(parent)
-            .map_err(|e| format!("Failed to create target directory {}: {}", parent.display(), e))?;
+        fs::create_dir_all(parent).map_err(|e| {
+            format!(
+                "Failed to create target directory {}: {}",
+                parent.display(),
+                e
+            )
+        })?;
     }
 
     fs::rename(&old, &new)

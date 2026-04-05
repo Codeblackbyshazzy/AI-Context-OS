@@ -2,10 +2,10 @@ use std::collections::{HashMap, HashSet};
 
 /// Common Spanish and English stopwords to exclude from matching.
 const STOPWORDS: &[&str] = &[
-    "el", "la", "los", "las", "un", "una", "de", "del", "en", "con", "por", "para",
-    "que", "es", "y", "o", "a", "the", "is", "in", "of", "and", "to", "for", "a",
-    "an", "it", "on", "at", "by", "or", "as", "be", "was", "are", "this", "that",
-    "with", "from", "not", "but", "have", "has", "had", "do", "does", "did",
+    "el", "la", "los", "las", "un", "una", "de", "del", "en", "con", "por", "para", "que", "es",
+    "y", "o", "a", "the", "is", "in", "of", "and", "to", "for", "a", "an", "it", "on", "at", "by",
+    "or", "as", "be", "was", "are", "this", "that", "with", "from", "not", "but", "have", "has",
+    "had", "do", "does", "did",
 ];
 
 /// Tokenize text into lowercase words, filtering stopwords.
@@ -20,7 +20,13 @@ pub fn tokenize(text: &str) -> Vec<String> {
 
 /// Simple BM25 scoring for a query against a document.
 /// k1 = 1.2, b = 0.75 (standard parameters).
-pub fn bm25_score(query: &str, document: &str, avg_doc_len: f64, total_docs: usize, doc_freq: &HashMap<String, usize>) -> f64 {
+pub fn bm25_score(
+    query: &str,
+    document: &str,
+    avg_doc_len: f64,
+    total_docs: usize,
+    doc_freq: &HashMap<String, usize>,
+) -> f64 {
     let k1 = 1.2;
     let b = 0.75;
 
@@ -105,7 +111,10 @@ mod tests {
 
     #[test]
     fn test_tag_match() {
-        let score = tag_match_score("write linkedin post", &["linkedin".into(), "writing".into()]);
+        let score = tag_match_score(
+            "write linkedin post",
+            &["linkedin".into(), "writing".into()],
+        );
         assert!(score > 0.0);
     }
 }

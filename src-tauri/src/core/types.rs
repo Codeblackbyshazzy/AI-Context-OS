@@ -279,7 +279,7 @@ pub struct JournalBlock {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct JournalPage {
-    pub date: String,          // YYYY-MM-DD
+    pub date: String, // YYYY-MM-DD
     pub blocks: Vec<JournalBlock>,
     pub raw_content: String,
     pub file_path: String,
@@ -287,7 +287,7 @@ pub struct JournalPage {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct JournalDateInfo {
-    pub date: String,          // YYYY-MM-DD
+    pub date: String, // YYYY-MM-DD
     pub block_count: u32,
     pub has_tasks: bool,
 }
@@ -329,14 +329,14 @@ pub struct TaskItem {
     pub priority: Option<TaskPriority>,
     #[serde(default)]
     pub tags: Vec<String>,
-    pub source_date: Option<String>,   // journal date YYYY-MM-DD if from journal
-    pub source_file: Option<String>,   // file path of origin
+    pub source_date: Option<String>, // journal date YYYY-MM-DD if from journal
+    pub source_file: Option<String>, // file path of origin
     pub created: DateTime<Utc>,
     pub modified: DateTime<Utc>,
     #[serde(default)]
     pub notes: String,
     #[serde(default)]
-    pub due: Option<String>,           // YYYY-MM-DD due date
+    pub due: Option<String>, // YYYY-MM-DD due date
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

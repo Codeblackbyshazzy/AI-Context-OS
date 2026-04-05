@@ -186,8 +186,13 @@ pub fn save_memory(
     write_memory(&target_file_path, &memory)?;
     state.mark_recent_write(&target_file_path);
     if target_file_path != old_file_path && old_file_path.exists() {
-        fs::remove_file(&old_file_path)
-            .map_err(|e| format!("Failed to move memory file {}: {}", old_file_path.display(), e))?;
+        fs::remove_file(&old_file_path).map_err(|e| {
+            format!(
+                "Failed to move memory file {}: {}",
+                old_file_path.display(),
+                e
+            )
+        })?;
     }
 
     // Update index
@@ -212,11 +217,7 @@ pub fn save_memory(
 
 /// Delete a memory file.
 #[tauri::command]
-pub fn delete_memory(
-    id: String,
-    app: AppHandle,
-    state: State<AppState>,
-) -> Result<(), String> {
+pub fn delete_memory(id: String, app: AppHandle, state: State<AppState>) -> Result<(), String> {
     let mut index = state.memory_index.write().unwrap();
     let (_meta, path) = index
         .remove(&id)
@@ -261,7 +262,10 @@ pub fn rename_memory_file(
 
     let new_path = old_path.with_file_name(format!("{}.md", trimmed_id));
     if new_path.exists() && new_path != old_path {
-        return Err(format!("A memory file already exists at {}", new_path.display()));
+        return Err(format!(
+            "A memory file already exists at {}",
+            new_path.display()
+        ));
     }
 
     memory.meta.id = trimmed_id.to_string();
@@ -323,7 +327,10 @@ pub fn duplicate_memory_file(
 
     let target_path = source_path.with_file_name(format!("{}.md", trimmed_id));
     if target_path.exists() {
-        return Err(format!("A memory file already exists at {}", target_path.display()));
+        return Err(format!(
+            "A memory file already exists at {}",
+            target_path.display()
+        ));
     }
 
     let now = Utc::now();
@@ -364,7 +371,10 @@ pub fn duplicate_memory_file(
     let mut index = state.memory_index.write().unwrap();
     index.insert(
         memory.meta.id.clone(),
-        (memory.meta.clone(), target_path.to_string_lossy().to_string()),
+        (
+            memory.meta.clone(),
+            target_path.to_string_lossy().to_string(),
+        ),
     );
     drop(index);
 
@@ -389,10 +399,16 @@ pub fn move_memory_file(
 
     let destination_dir = PathBuf::from(&destination_dir);
     if !destination_dir.exists() {
-        return Err(format!("Destination does not exist: {}", destination_dir.display()));
+        return Err(format!(
+            "Destination does not exist: {}",
+            destination_dir.display()
+        ));
     }
     if !destination_dir.is_dir() {
-        return Err(format!("Destination is not a directory: {}", destination_dir.display()));
+        return Err(format!(
+            "Destination is not a directory: {}",
+            destination_dir.display()
+        ));
     }
 
     let root = state.get_root();
@@ -404,7 +420,10 @@ pub fn move_memory_file(
         return Ok(memory);
     }
     if target_path.exists() {
-        return Err(format!("A memory file already exists at {}", target_path.display()));
+        return Err(format!(
+            "A memory file already exists at {}",
+            target_path.display()
+        ));
     }
 
     let old_id = memory.meta.id.clone();
@@ -427,7 +446,10 @@ pub fn move_memory_file(
     let mut index = state.memory_index.write().unwrap();
     index.insert(
         old_id,
-        (memory.meta.clone(), target_path.to_string_lossy().to_string()),
+        (
+            memory.meta.clone(),
+            target_path.to_string_lossy().to_string(),
+        ),
     );
     drop(index);
 
@@ -510,16 +532,26 @@ fn create_memory_internal(
     Ok(memory)
 }
 
-fn memory_type_for_directory(root: &std::path::Path, dir: &std::path::Path) -> Result<MemoryType, String> {
-    let relative = dir
-        .strip_prefix(root)
-        .map_err(|_| format!("Destination must stay inside the workspace: {}", dir.display()))?;
+fn memory_type_for_directory(
+    root: &std::path::Path,
+    dir: &std::path::Path,
+) -> Result<MemoryType, String> {
+    let relative = dir.strip_prefix(root).map_err(|_| {
+        format!(
+            "Destination must stay inside the workspace: {}",
+            dir.display()
+        )
+    })?;
     let folder = relative
         .components()
         .next()
         .and_then(|component| component.as_os_str().to_str())
         .ok_or_else(|| format!("Failed to infer memory type from {}", dir.display()))?;
 
-    MemoryType::from_folder(folder)
-        .ok_or_else(|| format!("Destination must be inside a memory folder: {}", dir.display()))
+    MemoryType::from_folder(folder).ok_or_else(|| {
+        format!(
+            "Destination must be inside a memory folder: {}",
+            dir.display()
+        )
+    })
 }

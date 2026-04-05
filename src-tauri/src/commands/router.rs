@@ -5,7 +5,7 @@ use tauri::{AppHandle, Emitter, State};
 
 use crate::core::compat::{render_claude_adapter, render_cursor_adapter, render_windsurf_adapter};
 use crate::core::index::scan_memories;
-use crate::core::router::{generate_router_content, generate_index_yaml};
+use crate::core::router::{generate_index_yaml, generate_router_content};
 use crate::core::types::{Config, MemoryMeta};
 use crate::state::AppState;
 

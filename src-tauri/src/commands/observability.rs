@@ -35,7 +35,10 @@ pub fn get_recent_context_requests(
 }
 
 #[tauri::command]
-pub fn get_observability_stats(days: u32, state: State<AppState>) -> Result<ObservabilityStats, String> {
+pub fn get_observability_stats(
+    days: u32,
+    state: State<AppState>,
+) -> Result<ObservabilityStats, String> {
     // Acquire and release Mutex before touching RwLock to prevent deadlock
     let mut stats = {
         let obs = state.observability.lock().unwrap();
@@ -65,7 +68,10 @@ pub fn get_top_memories_stats(
 }
 
 #[tauri::command]
-pub fn get_unused_memories_stats(days: u32, state: State<AppState>) -> Result<Vec<UnusedMemoryRecord>, String> {
+pub fn get_unused_memories_stats(
+    days: u32,
+    state: State<AppState>,
+) -> Result<Vec<UnusedMemoryRecord>, String> {
     let root = state.get_root();
     let obs = state.observability.lock().unwrap();
     match obs.as_ref() {
@@ -87,7 +93,10 @@ pub fn get_health_score(state: State<AppState>) -> Result<HealthScore, String> {
 }
 
 #[tauri::command]
-pub fn get_health_history(days: u32, state: State<AppState>) -> Result<Vec<HealthScoreSnapshot>, String> {
+pub fn get_health_history(
+    days: u32,
+    state: State<AppState>,
+) -> Result<Vec<HealthScoreSnapshot>, String> {
     let obs = state.observability.lock().unwrap();
     match obs.as_ref() {
         Some(db) => db.get_health_history(days),
@@ -98,7 +107,9 @@ pub fn get_health_history(days: u32, state: State<AppState>) -> Result<Vec<Healt
 // ─── Optimizations ───
 
 #[tauri::command]
-pub fn get_pending_optimizations(state: State<AppState>) -> Result<Vec<OptimizationRecord>, String> {
+pub fn get_pending_optimizations(
+    state: State<AppState>,
+) -> Result<Vec<OptimizationRecord>, String> {
     let obs = state.observability.lock().unwrap();
     match obs.as_ref() {
         Some(db) => db.get_pending_optimizations(),
@@ -125,7 +136,9 @@ pub fn dismiss_optimization(id: i64, state: State<AppState>) -> Result<(), Strin
 }
 
 #[tauri::command]
-pub fn run_optimization_analysis(state: State<AppState>) -> Result<Vec<OptimizationRecord>, String> {
+pub fn run_optimization_analysis(
+    state: State<AppState>,
+) -> Result<Vec<OptimizationRecord>, String> {
     let root = state.get_root();
     let obs = state.observability.lock().unwrap();
     match obs.as_ref() {
