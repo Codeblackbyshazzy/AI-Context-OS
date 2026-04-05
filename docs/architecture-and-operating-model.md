@@ -191,6 +191,12 @@ Current scoring is deterministic and heuristic-first. It combines:
 
 The system does not currently use Tantivy or production embeddings as its active retrieval core.
 
+The intended future direction is likely:
+
+- stronger local lexical retrieval first
+- semantic layers second
+- local embeddings used initially for maintenance and assistance, not as the only source of retrieval truth
+
 ## Governance model
 
 The system already contains a governance layer that inspects the knowledge base for quality issues.

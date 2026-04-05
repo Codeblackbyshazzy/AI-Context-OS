@@ -185,6 +185,66 @@ Candidate improvements:
 - better merge suggestions
 - better source-to-memory traceability
 
+### Phase 5: Tantivy plus local embeddings
+
+This area should be approached in a staged and pragmatic way.
+
+#### Tantivy / stronger lexical retrieval
+
+Recommendation:
+
+- yes, likely yes
+- close-to-mid-term roadmap candidate
+- especially valuable once ingestion starts increasing file count and memory count
+
+Expected benefits:
+
+- better lexical search quality
+- faster retrieval on larger workspaces
+- stronger handling of exact technical terms, names, file references, and precise wording
+- more reliable candidate generation before the higher-level scoring or LLM reasoning layer acts
+
+Why this matters:
+
+- ingestion will increase both raw sources and derived memories
+- simple file scanning and lightweight heuristics will become less competitive as scale grows
+- stronger lexical retrieval improves both responsiveness and trust
+
+Product recommendation:
+
+- prioritize robust local lexical retrieval before shipping a more complex semantic retrieval layer
+
+#### Local embeddings
+
+Recommendation:
+
+- yes, but not as the first jump
+- after ingestion foundations and stronger lexical retrieval are in place
+
+Where local embeddings add real value:
+
+- detecting duplicates
+- suggesting merges
+- semantic clustering
+- finding related pages when wording differs
+- enriching ingestion
+- enriching governance and lint workflows
+
+Why not first:
+
+- adds more operational complexity
+- requires background indexing and model lifecycle management
+- increases CPU, RAM, and disk expectations
+- introduces UX questions around model downloads and updates
+
+Implementation philosophy:
+
+1. lexical retrieval first
+2. embeddings second
+3. embeddings initially used as an assistive maintenance layer, not as the only retrieval backbone
+
+This keeps the system deterministic-first and explainable while still opening the door to semantic power.
+
 ## Recommendation on local models
 
 From a PM and engineering perspective, local models are useful, but mainly for maintenance and support tasks at first.
@@ -199,6 +259,90 @@ Best near-term use cases:
 - suggest governance actions
 
 External AI tools through MCP should remain first-class even if local models are added later.
+
+## Local models inside the app
+
+This is now a meaningful strategic direction for the product.
+
+The point is not to replace Claude, Codex, or other external agents. The point is to add an optional local intelligence layer that helps maintain, clean, enrich, and organize the workspace from inside the app itself.
+
+### Best near-term roles for local models
+
+- classify source type
+- propose ontology
+- autofill YAML/frontmatter fields
+- detect duplicate candidates
+- suggest merges
+- generate ingestion summaries
+- propose links and related pages
+- detect contradiction candidates
+- support lint and governance passes
+- normalize structure and formatting
+
+These are high-value tasks because they improve the knowledge base continuously without requiring a frontier model for every background operation.
+
+### Useful model tiers
+
+#### Small local models
+
+Best for:
+
+- classification
+- extraction
+- labeling
+- format normalization
+- metadata suggestions
+
+This tier is useful for lightweight, frequent, low-cost background assistance.
+
+#### Small/medium local models
+
+Best for:
+
+- ingestion summaries
+- ontology proposals
+- duplicate detection support
+- relationship suggestions
+- governance proposals
+- light synthesis and maintenance
+
+This is likely the practical sweet spot for many advanced users with decent hardware.
+
+#### Large local models
+
+Best for:
+
+- deeper local synthesis
+- more autonomous maintenance passes
+- stronger private/offline workflows
+- users or teams that want local-first intelligence
+
+These should be optional, never baseline assumptions.
+
+### Likely integration direction
+
+The most practical early direction is:
+
+- external tools remain first-class through MCP
+- local models act as app-native maintenance workers
+- users download models on demand
+- the system routes tasks to different local capabilities based on size and purpose
+
+From a practical integration perspective, a local runtime approach such as Ollama is a credible early option because it reduces friction and allows model download on demand, while keeping the app architecture open to future alternatives.
+
+### Product and business opportunity
+
+This capability could become more than an internal technical feature.
+
+Potential product outcomes:
+
+- premium tier for advanced local maintenance features
+- paid private/offline workflows for users with stronger hardware
+- differentiated prosumer offering for people who want AI maintenance without cloud dependence
+- commercial agreements or partnerships around bundled local AI experiences
+- stronger enterprise value proposition for privacy-sensitive teams
+
+In product terms, this is one of the clearest paths from "useful tool" to "stronger platform".
 
 ## How future AI agents should read this project
 
