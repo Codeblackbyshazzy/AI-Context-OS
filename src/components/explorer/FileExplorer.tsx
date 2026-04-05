@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
+  BookOpen,
   ChevronDown,
   ChevronRight,
   Clipboard,
@@ -13,6 +14,8 @@ import {
   FolderPlus,
   FolderSearch,
   GripVertical,
+  Inbox,
+  Lock,
   MoveRight,
   Pencil,
   Trash2,
@@ -182,15 +185,26 @@ function getTypeColor(node: FileNode): string | undefined {
 
 function folderToType(folder: string): MemoryType | null {
   const map: Record<string, MemoryType> = {
+    sources: "source",
+    "01-sources": "source",
     "01-context": "context",
+    "02-context": "context",
     "02-daily": "daily",
+    "03-daily": "daily",
     "03-intelligence": "intelligence",
+    "04-intelligence": "intelligence",
     "04-projects": "project",
+    "05-projects": "project",
     "05-resources": "resource",
+    "06-resources": "resource",
     "06-skills": "skill",
+    "07-skills": "skill",
     "07-tasks": "task",
+    "08-tasks": "task",
     "08-rules": "rule",
+    "09-rules": "rule",
     "09-scratch": "scratch",
+    "10-scratch": "scratch",
   };
   return map[folder] ?? null;
 }
@@ -282,6 +296,7 @@ function TreeNode({
   const isExpanded = expanded.has(node.path);
   const isSelected = selectedPath === node.path;
   const color = getTypeColor(node);
+  const isSpecialFolder = isSpecialWorkspaceNode(node);
 
   const isMarkdown = isMarkdownFile(node.name);
   const memoryId = isMarkdown ? stripMdExtension(node.name) : "";
@@ -289,7 +304,9 @@ function TreeNode({
   const hasConflict = conflictIds.has(memoryId);
   const isRawSupported = isRawViewerSupported(node.name);
   const opacity = memoryMeta ? computeDecayOpacity(memoryMeta) : 1;
-  const isProtected = isProtectedNode(node);
+  const isProtectedMemory = memoryMeta?.protected ?? false;
+  const memoryStatus = memoryMeta?.status ?? null;
+  const isProtected = isProtectedNode(node) || isProtectedMemory;
   const canDrag = !node.is_dir && !isProtected;
   const isDropTarget = dropTargetPath === node.path;
   const isDragSource = dragSourcePath === node.path;
@@ -379,7 +396,13 @@ function TreeNode({
             ) : (
               <ChevronRight className="h-3 w-3 shrink-0 text-[color:var(--text-2)]" />
             )}
-            <Folder className="h-3.5 w-3.5 shrink-0" style={{ color: color ?? "var(--text-2)" }} />
+            {isInboxNode(node) ? (
+              <Inbox className="h-3.5 w-3.5 shrink-0 text-[color:var(--text-2)]" />
+            ) : isSourcesNode(node) ? (
+              <BookOpen className="h-3.5 w-3.5 shrink-0 text-[color:var(--text-2)]" />
+            ) : (
+              <Folder className="h-3.5 w-3.5 shrink-0" style={{ color: color ?? "var(--text-2)" }} />
+            )}
           </>
         ) : (
           <>
@@ -401,6 +424,7 @@ function TreeNode({
             className="flex-1 rounded border border-[color:var(--accent)] bg-[color:var(--bg-0)] px-1 text-[13px] text-[color:var(--text-0)] outline-none"
             value={renameValue}
             onChange={(event) => onRenameChange(event.target.value)}
+            onFocus={(event) => event.target.select()}
             onKeyDown={(event) => {
               if (event.key === "Enter") onRenameCommit();
               if (event.key === "Escape") onRenameCancel();
@@ -410,7 +434,32 @@ function TreeNode({
             onPointerDown={(event) => event.stopPropagation()}
           />
         ) : (
-          <span className="truncate">{node.name}</span>
+          <span
+            className={clsx(
+              "flex-1 truncate",
+              isSpecialFolder && "font-semibold text-[color:var(--text-0)]",
+            )}
+          >
+            {node.name}
+          </span>
+        )}
+
+        {isProtectedMemory && (
+          <span title="Archivo protegido">
+            <Lock className="h-3 w-3 shrink-0 text-[color:var(--text-2)]" />
+          </span>
+        )}
+
+        {!node.is_dir && isInboxPath(node.path) && memoryStatus && (
+          <span
+            className={clsx(
+              "h-1.5 w-1.5 shrink-0 rounded-full",
+              memoryStatus === "unprocessed"
+                ? "bg-[color:var(--warning)]"
+                : "bg-[color:var(--success)]",
+            )}
+            title={memoryStatus === "unprocessed" ? "Sin procesar" : "Procesado"}
+          />
         )}
 
         {isDropTarget && (
@@ -483,18 +532,31 @@ const PROTECTED_FILE_NAMES = new Set([
   ".windsurfrules",
 ]);
 
-const INBOX_FOLDER_NAME = "00-inbox";
+const INBOX_FOLDER_NAMES = new Set(["inbox", "00-inbox"]);
+const SOURCES_FOLDER_NAMES = new Set(["sources", "01-sources"]);
 
 function pathSegments(path: string): string[] {
   return path.replace(/\\/g, "/").split("/").filter(Boolean);
 }
 
 function isInboxPath(path: string): boolean {
-  return pathSegments(path).includes(INBOX_FOLDER_NAME);
+  return pathSegments(path).some((segment) => INBOX_FOLDER_NAMES.has(segment));
 }
 
 function isInboxNode(node: FileNode): boolean {
-  return node.name === INBOX_FOLDER_NAME || isInboxPath(node.path);
+  return INBOX_FOLDER_NAMES.has(node.name) || isInboxPath(node.path);
+}
+
+function isSourcesPath(path: string): boolean {
+  return pathSegments(path).some((segment) => SOURCES_FOLDER_NAMES.has(segment));
+}
+
+function isSourcesNode(node: FileNode): boolean {
+  return SOURCES_FOLDER_NAMES.has(node.name) || isSourcesPath(node.path);
+}
+
+function isSpecialWorkspaceNode(node: FileNode): boolean {
+  return node.is_dir && (isInboxNode(node) || isSourcesNode(node));
 }
 
 function isProtectedNode(node: FileNode): boolean {
@@ -558,6 +620,7 @@ function isAdvancedOnlyFile(node: FileNode): boolean {
 function filterExplorerTree(
   nodes: FileNode[],
   showSystemFiles: boolean,
+  isRootLevel: boolean = true,
 ): { nodes: FileNode[]; hiddenCount: number } {
   if (showSystemFiles) {
     return { nodes, hiddenCount: 0 };
@@ -568,10 +631,12 @@ function filterExplorerTree(
 
   for (const node of nodes) {
     if (node.is_dir) {
-      const filteredChildren = filterExplorerTree(node.children, showSystemFiles);
+      const filteredChildren = filterExplorerTree(node.children, showSystemFiles, false);
       const shouldShowDirectory =
         node.memory_type !== null ||
-        node.name === INBOX_FOLDER_NAME ||
+        isSpecialWorkspaceNode(node) ||
+        inferFolderTypeFromPath(node.path) !== null ||
+        isRootLevel ||
         filteredChildren.nodes.length > 0;
 
       hiddenCount += filteredChildren.hiddenCount;
@@ -610,6 +675,8 @@ export function FileExplorer() {
     selectFile,
     selectRawFile,
     setError,
+    pendingCreate,
+    setPendingCreate,
   } = useAppStore();
   const expertModeEnabled = useSettingsStore((s) => s.expertModeEnabled);
   const showSystemFiles = useSettingsStore((s) => s.showSystemFiles);
@@ -993,6 +1060,64 @@ export function FileExplorer() {
     }
   };
 
+  /* ────── Toolbar-triggered inline create ────── */
+  useEffect(() => {
+    if (!pendingCreate) return;
+    const mode = pendingCreate;
+    setPendingCreate(null);
+
+    // Derive workspace root from the tree
+    const rootPath = fileTree.length > 0 ? getParentPath(fileTree[0].path) : null;
+
+    // Find a target directory from current selection
+    const findSelectedDir = (): FileNode | null => {
+      if (!selectedPath) return null;
+      const selectedNode = findNodeByPath(fileTree, selectedPath);
+      if (selectedNode?.is_dir) return selectedNode;
+      const parentPath = getParentPath(selectedPath);
+      return findNodeByPath(fileTree, parentPath);
+    };
+
+    const selectedDir = findSelectedDir();
+
+    if (mode === "folder") {
+      // For folders: use selected dir, or workspace root
+      if (selectedDir) {
+        openDirectory(selectedDir.path);
+        void handleCreateFolder(selectedDir);
+      } else if (rootPath) {
+        // Create at workspace root
+        void (async () => {
+          try {
+            const existingNames = new Set(fileTree.map((n) => n.name));
+            const nextName = uniqueName("nueva-carpeta", existingNames);
+            const createdPath = await createDirectory(`${rootPath}/${nextName}`);
+            await loadFileTree();
+            setRenamingTarget({ path: createdPath, name: nextName, isDir: true });
+            setRenameValue(nextName);
+          } catch (error) {
+            setError(String(error));
+          }
+        })();
+      } else {
+        setError("No hay un workspace configurado");
+      }
+    } else {
+      // For files: need a typed workspace folder
+      const targetDir =
+        selectedDir && inferFolderTypeFromPath(selectedDir.path) !== null
+          ? selectedDir
+          : fileTree.find((n) => n.is_dir && n.memory_type !== null) ?? null;
+
+      if (!targetDir) {
+        setError("No hay una carpeta de memoria disponible");
+        return;
+      }
+      openDirectory(targetDir.path);
+      void handleCreateNote(targetDir);
+    }
+  }, [pendingCreate]);
+
   const currentNode = ctxMenu?.node ?? null;
   const currentNodeIsProtected = currentNode ? isProtectedNode(currentNode) : false;
   const currentNodeIsManagedMemory = currentNode ? isManagedMemoryFile(currentNode, memoryIds) : false;
@@ -1283,35 +1408,51 @@ export function FileExplorer() {
 
   return (
     <div className="px-1 py-1">
-      {visibleTree.map((node) => (
-        <TreeNode
-          key={node.path}
-          node={node}
-          depth={0}
-          expanded={expanded}
-          toggleExpand={toggleExpand}
-          conflictIds={conflictIds}
-          onContextMenu={handleContextMenu}
-          dropTargetPath={dropTargetPath}
-          dragSourcePath={dragSourcePath}
-          isDragging={isDragging}
-          getDraggedItem={getDraggedItem}
-          canDropPathOnDirectory={canDropPathOnDirectory}
-          onPointerDragStart={handlePointerDragStart}
-          isClickSuppressed={isClickSuppressed}
-          onDragHoverDirectory={setDropTargetPath}
-          onDropOnDirectory={(target, sourcePath) => {
-            void handleDropOnDirectory(target, sourcePath);
-          }}
-          renamingPath={renamingTarget?.path ?? null}
-          renameValue={renameValue}
-          onRenameChange={setRenameValue}
-          onRenameCommit={() => {
-            void handleRenameCommit();
-          }}
-          onRenameCancel={cancelRename}
-        />
-      ))}
+      {visibleTree.map((node, index) => {
+        const previousNode = index > 0 ? visibleTree[index - 1] : null;
+        const showSpecialDivider =
+          !isSpecialWorkspaceNode(node) &&
+          previousNode !== null &&
+          isSpecialWorkspaceNode(previousNode);
+
+        return (
+          <div key={node.path}>
+            {showSpecialDivider && (
+              <div className="mx-3 my-2 flex items-center gap-2" aria-hidden="true">
+                <div className="h-px flex-1 bg-[color:var(--border)]" />
+                <div className="text-[10px] text-[color:var(--text-2)]">•</div>
+                <div className="h-px flex-1 bg-[color:var(--border)]" />
+              </div>
+            )}
+            <TreeNode
+              node={node}
+              depth={0}
+              expanded={expanded}
+              toggleExpand={toggleExpand}
+              conflictIds={conflictIds}
+              onContextMenu={handleContextMenu}
+              dropTargetPath={dropTargetPath}
+              dragSourcePath={dragSourcePath}
+              isDragging={isDragging}
+              getDraggedItem={getDraggedItem}
+              canDropPathOnDirectory={canDropPathOnDirectory}
+              onPointerDragStart={handlePointerDragStart}
+              isClickSuppressed={isClickSuppressed}
+              onDragHoverDirectory={setDropTargetPath}
+              onDropOnDirectory={(target, sourcePath) => {
+                void handleDropOnDirectory(target, sourcePath);
+              }}
+              renamingPath={renamingTarget?.path ?? null}
+              renameValue={renameValue}
+              onRenameChange={setRenameValue}
+              onRenameCommit={() => {
+                void handleRenameCommit();
+              }}
+              onRenameCancel={cancelRename}
+            />
+          </div>
+        );
+      })}
 
       {visibleTree.length === 0 && (
         <p className="px-3 py-8 text-center text-xs text-[color:var(--text-2)]">

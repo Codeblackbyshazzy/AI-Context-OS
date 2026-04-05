@@ -9,6 +9,7 @@ pub fn scan_memories(root: &Path) -> Vec<(MemoryMeta, String)> {
     let mut results = Vec::new();
 
     let folders = [
+        "sources",
         "01-context",
         "02-daily",
         "03-intelligence",

@@ -11,7 +11,8 @@ pub fn read_jsonl<T: DeserializeOwned>(path: &Path) -> Result<Vec<T>, String> {
         return Ok(Vec::new());
     }
 
-    let file = fs::File::open(path).map_err(|e| format!("Failed to open {}: {}", path.display(), e))?;
+    let file =
+        fs::File::open(path).map_err(|e| format!("Failed to open {}: {}", path.display(), e))?;
     let reader = BufReader::new(file);
     let mut entries = Vec::new();
 
@@ -38,12 +39,10 @@ pub fn read_jsonl<T: DeserializeOwned>(path: &Path) -> Result<Vec<T>, String> {
 pub fn append_jsonl<T: Serialize>(path: &Path, entry: &T) -> Result<(), String> {
     // Ensure parent directory exists
     if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent)
-            .map_err(|e| format!("Failed to create directory: {}", e))?;
+        fs::create_dir_all(parent).map_err(|e| format!("Failed to create directory: {}", e))?;
     }
 
-    let json = serde_json::to_string(entry)
-        .map_err(|e| format!("Failed to serialize: {}", e))?;
+    let json = serde_json::to_string(entry).map_err(|e| format!("Failed to serialize: {}", e))?;
 
     let mut file = OpenOptions::new()
         .create(true)
@@ -51,8 +50,7 @@ pub fn append_jsonl<T: Serialize>(path: &Path, entry: &T) -> Result<(), String> 
         .open(path)
         .map_err(|e| format!("Failed to open {}: {}", path.display(), e))?;
 
-    writeln!(file, "{}", json)
-        .map_err(|e| format!("Failed to write: {}", e))?;
+    writeln!(file, "{}", json).map_err(|e| format!("Failed to write: {}", e))?;
 
     Ok(())
 }
@@ -60,8 +58,7 @@ pub fn append_jsonl<T: Serialize>(path: &Path, entry: &T) -> Result<(), String> 
 /// Create a new JSONL file with a schema line.
 pub fn create_jsonl_with_schema(path: &Path, schema: &str) -> Result<(), String> {
     if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent)
-            .map_err(|e| format!("Failed to create directory: {}", e))?;
+        fs::create_dir_all(parent).map_err(|e| format!("Failed to create directory: {}", e))?;
     }
 
     let schema_line = format!("{{\"_schema\": \"{}\"}}\n", schema);

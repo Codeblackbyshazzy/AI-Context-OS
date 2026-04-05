@@ -164,27 +164,26 @@ pub fn execute_context_query(
         let l1_tokens = estimate_tokens(&mem.l1_content);
         let l2_tokens = estimate_tokens(&mem.l2_content);
 
-        let (level, tokens) = if remaining_budget >= l0_tokens + l1_tokens + l2_tokens
-            && score.final_score > 0.3
-        {
-            (LoadLevel::L2, l0_tokens + l1_tokens + l2_tokens)
-        } else if remaining_budget >= l0_tokens + l1_tokens
-            && (score.final_score > 0.15 || is_force_loaded)
-        {
-            (LoadLevel::L1, l0_tokens + l1_tokens)
-        } else if remaining_budget >= l0_tokens {
-            (LoadLevel::L0, l0_tokens)
-        } else {
-            // Budget exhausted — add to unloaded
-            unloaded.push(UnloadedMemory {
-                memory_id: mem.meta.id.clone(),
-                l0: mem.meta.l0.clone(),
-                memory_type: mem.meta.memory_type.clone(),
-                score: score.final_score,
-                reason: "budget_exhausted".to_string(),
-            });
-            continue;
-        };
+        let (level, tokens) =
+            if remaining_budget >= l0_tokens + l1_tokens + l2_tokens && score.final_score > 0.3 {
+                (LoadLevel::L2, l0_tokens + l1_tokens + l2_tokens)
+            } else if remaining_budget >= l0_tokens + l1_tokens
+                && (score.final_score > 0.15 || is_force_loaded)
+            {
+                (LoadLevel::L1, l0_tokens + l1_tokens)
+            } else if remaining_budget >= l0_tokens {
+                (LoadLevel::L0, l0_tokens)
+            } else {
+                // Budget exhausted — add to unloaded
+                unloaded.push(UnloadedMemory {
+                    memory_id: mem.meta.id.clone(),
+                    l0: mem.meta.l0.clone(),
+                    memory_type: mem.meta.memory_type.clone(),
+                    score: score.final_score,
+                    reason: "budget_exhausted".to_string(),
+                });
+                continue;
+            };
 
         remaining_budget = remaining_budget.saturating_sub(tokens);
 

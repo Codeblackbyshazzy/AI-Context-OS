@@ -14,12 +14,11 @@ pub fn backup_workspace(destination: String, state: State<AppState>) -> Result<S
     let root = state.get_root();
     let dest_path = Path::new(&destination);
 
-    let file = fs::File::create(dest_path)
-        .map_err(|e| format!("Failed to create backup file: {}", e))?;
+    let file =
+        fs::File::create(dest_path).map_err(|e| format!("Failed to create backup file: {}", e))?;
 
     let mut zip = zip::ZipWriter::new(file);
-    let options = SimpleFileOptions::default()
-        .compression_method(zip::CompressionMethod::Deflated);
+    let options = SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
 
     add_dir_to_zip(&mut zip, &root, &root, options)?;
 
@@ -36,11 +35,10 @@ pub fn restore_workspace(source: String, state: State<AppState>) -> Result<bool,
     let root = state.get_root();
     let source_path = Path::new(&source);
 
-    let file = fs::File::open(source_path)
-        .map_err(|e| format!("Failed to open backup file: {}", e))?;
+    let file =
+        fs::File::open(source_path).map_err(|e| format!("Failed to open backup file: {}", e))?;
 
-    let mut archive = zip::ZipArchive::new(file)
-        .map_err(|e| format!("Invalid zip file: {}", e))?;
+    let mut archive = zip::ZipArchive::new(file).map_err(|e| format!("Invalid zip file: {}", e))?;
 
     for i in 0..archive.len() {
         let mut entry = archive
@@ -53,8 +51,7 @@ pub fn restore_workspace(source: String, state: State<AppState>) -> Result<bool,
         };
 
         if entry.is_dir() {
-            fs::create_dir_all(&entry_path)
-                .map_err(|e| format!("Failed to create dir: {}", e))?;
+            fs::create_dir_all(&entry_path).map_err(|e| format!("Failed to create dir: {}", e))?;
         } else {
             if let Some(parent) = entry_path.parent() {
                 fs::create_dir_all(parent)
@@ -81,8 +78,8 @@ fn add_dir_to_zip<W: Write + std::io::Seek>(
     root: &Path,
     options: SimpleFileOptions,
 ) -> Result<(), String> {
-    let entries = fs::read_dir(dir)
-        .map_err(|e| format!("Failed to read dir {}: {}", dir.display(), e))?;
+    let entries =
+        fs::read_dir(dir).map_err(|e| format!("Failed to read dir {}: {}", dir.display(), e))?;
 
     for entry in entries.flatten() {
         let path = entry.path();
@@ -98,8 +95,8 @@ fn add_dir_to_zip<W: Write + std::io::Seek>(
         } else {
             zip.start_file(&name, options)
                 .map_err(|e| format!("Failed to start zip entry: {}", e))?;
-            let data = fs::read(&path)
-                .map_err(|e| format!("Failed to read {}: {}", path.display(), e))?;
+            let data =
+                fs::read(&path).map_err(|e| format!("Failed to read {}: {}", path.display(), e))?;
             zip.write_all(&data)
                 .map_err(|e| format!("Failed to write zip data: {}", e))?;
         }

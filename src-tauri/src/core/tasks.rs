@@ -16,8 +16,8 @@ pub fn list_tasks(root: &Path, filter: &Option<TaskFilter>) -> Result<Vec<TaskIt
 
     let mut tasks: Vec<TaskItem> = Vec::new();
 
-    let entries = fs::read_dir(&tasks_dir)
-        .map_err(|e| format!("Failed to read tasks dir: {}", e))?;
+    let entries =
+        fs::read_dir(&tasks_dir).map_err(|e| format!("Failed to read tasks dir: {}", e))?;
 
     for entry in entries.flatten() {
         let path = entry.path();
@@ -73,8 +73,7 @@ pub fn list_tasks(root: &Path, filter: &Option<TaskFilter>) -> Result<Vec<TaskIt
 
 /// Read a single task from a Markdown file in 07-tasks/.
 fn read_task_file(path: &Path) -> Result<TaskItem, String> {
-    let raw = fs::read_to_string(path)
-        .map_err(|e| format!("Failed to read task: {}", e))?;
+    let raw = fs::read_to_string(path).map_err(|e| format!("Failed to read task: {}", e))?;
 
     parse_task_md(&raw, path)
 }
@@ -87,8 +86,7 @@ fn parse_task_md(raw: &str, path: &Path) -> Result<TaskItem, String> {
     }
 
     let after_first = &trimmed[3..];
-    let end_pos = after_first.find("\n---")
-        .ok_or("No closing frontmatter")?;
+    let end_pos = after_first.find("\n---").ok_or("No closing frontmatter")?;
 
     let yaml_str = &after_first[..end_pos];
     let body_start = 3 + end_pos + 4;
@@ -98,8 +96,8 @@ fn parse_task_md(raw: &str, path: &Path) -> Result<TaskItem, String> {
         String::new()
     };
 
-    let meta: TaskMeta = serde_yaml::from_str(yaml_str)
-        .map_err(|e| format!("YAML parse error: {}", e))?;
+    let meta: TaskMeta =
+        serde_yaml::from_str(yaml_str).map_err(|e| format!("YAML parse error: {}", e))?;
 
     Ok(TaskItem {
         id: meta.id,
@@ -141,14 +139,12 @@ struct TaskMeta {
 /// Create a new task and write it to 07-tasks/.
 pub fn create_task(root: &Path, task: &TaskItem) -> Result<String, String> {
     let tasks_dir = root.join("07-tasks");
-    fs::create_dir_all(&tasks_dir)
-        .map_err(|e| format!("Failed to create tasks dir: {}", e))?;
+    fs::create_dir_all(&tasks_dir).map_err(|e| format!("Failed to create tasks dir: {}", e))?;
 
     let file_path = tasks_dir.join(format!("{}.md", &task.id));
     let content = serialize_task(task);
 
-    fs::write(&file_path, &content)
-        .map_err(|e| format!("Failed to write task: {}", e))?;
+    fs::write(&file_path, &content).map_err(|e| format!("Failed to write task: {}", e))?;
 
     Ok(file_path.to_string_lossy().to_string())
 }
@@ -158,8 +154,7 @@ pub fn update_task(root: &Path, task: &TaskItem) -> Result<String, String> {
     let file_path = root.join("07-tasks").join(format!("{}.md", &task.id));
     let content = serialize_task(task);
 
-    fs::write(&file_path, &content)
-        .map_err(|e| format!("Failed to write task: {}", e))?;
+    fs::write(&file_path, &content).map_err(|e| format!("Failed to write task: {}", e))?;
 
     Ok(file_path.to_string_lossy().to_string())
 }
@@ -168,8 +163,7 @@ pub fn update_task(root: &Path, task: &TaskItem) -> Result<String, String> {
 pub fn delete_task(root: &Path, id: &str) -> Result<(), String> {
     let file_path = root.join("07-tasks").join(format!("{}.md", id));
     if file_path.exists() {
-        fs::remove_file(&file_path)
-            .map_err(|e| format!("Failed to delete task: {}", e))?;
+        fs::remove_file(&file_path).map_err(|e| format!("Failed to delete task: {}", e))?;
     }
     Ok(())
 }
@@ -198,7 +192,14 @@ fn serialize_task(task: &TaskItem) -> String {
     let tags_str = if task.tags.is_empty() {
         "[]".to_string()
     } else {
-        format!("[{}]", task.tags.iter().map(|t| format!("\"{}\"", t)).collect::<Vec<_>>().join(", "))
+        format!(
+            "[{}]",
+            task.tags
+                .iter()
+                .map(|t| format!("\"{}\"", t))
+                .collect::<Vec<_>>()
+                .join(", ")
+        )
     };
 
     let mut yaml = format!(

@@ -31,9 +31,7 @@ pub fn build_mcp_router(shared_state: Arc<McpSharedState>) -> Router {
         .allow_methods(Any)
         .allow_headers(Any);
 
-    Router::new()
-        .nest_service("/mcp", mcp_service)
-        .layer(cors)
+    Router::new().nest_service("/mcp", mcp_service).layer(cors)
 }
 
 /// Spawn the MCP HTTP server as a background tokio task.

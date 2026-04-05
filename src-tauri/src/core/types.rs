@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum MemoryType {
+    Source,
     Context,
     Daily,
     Intelligence,
@@ -18,6 +19,7 @@ pub enum MemoryType {
 impl MemoryType {
     pub fn folder_name(&self) -> &str {
         match self {
+            MemoryType::Source => "sources",
             MemoryType::Context => "01-context",
             MemoryType::Daily => "02-daily",
             MemoryType::Intelligence => "03-intelligence",
@@ -32,15 +34,26 @@ impl MemoryType {
 
     pub fn from_folder(folder: &str) -> Option<Self> {
         match folder {
+            "sources" => Some(MemoryType::Source),
+            "01-sources" => Some(MemoryType::Source),
             "01-context" => Some(MemoryType::Context),
+            "02-context" => Some(MemoryType::Context),
             "02-daily" => Some(MemoryType::Daily),
+            "03-daily" => Some(MemoryType::Daily),
             "03-intelligence" => Some(MemoryType::Intelligence),
+            "04-intelligence" => Some(MemoryType::Intelligence),
             "04-projects" => Some(MemoryType::Project),
+            "05-projects" => Some(MemoryType::Project),
             "05-resources" => Some(MemoryType::Resource),
+            "06-resources" => Some(MemoryType::Resource),
             "06-skills" => Some(MemoryType::Skill),
+            "07-skills" => Some(MemoryType::Skill),
             "07-tasks" => Some(MemoryType::Task),
+            "08-tasks" => Some(MemoryType::Task),
             "08-rules" => Some(MemoryType::Rule),
+            "09-rules" => Some(MemoryType::Rule),
             "09-scratch" => Some(MemoryType::Scratch),
+            "10-scratch" => Some(MemoryType::Scratch),
             _ => None,
         }
     }
@@ -55,9 +68,16 @@ pub enum MemoryOntology {
     Synthesis,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum MemoryStatus {
+    Unprocessed,
+    Processed,
+}
+
 pub fn default_ontology_for_memory_type(memory_type: &MemoryType) -> MemoryOntology {
     match memory_type {
-        MemoryType::Resource => MemoryOntology::Source,
+        MemoryType::Source | MemoryType::Resource => MemoryOntology::Source,
         MemoryType::Project | MemoryType::Context | MemoryType::Task => MemoryOntology::Entity,
         MemoryType::Skill | MemoryType::Rule => MemoryOntology::Concept,
         MemoryType::Daily | MemoryType::Intelligence | MemoryType::Scratch => {
@@ -105,6 +125,12 @@ pub struct MemoryMeta {
     pub output_format: Option<String>,
     #[serde(default)]
     pub ontology: Option<MemoryOntology>,
+    #[serde(default)]
+    pub status: Option<MemoryStatus>,
+    #[serde(default)]
+    pub protected: bool,
+    #[serde(default)]
+    pub derived_from: Vec<String>,
 }
 
 fn default_importance() -> f64 {
@@ -263,7 +289,7 @@ pub struct JournalBlock {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct JournalPage {
-    pub date: String,          // YYYY-MM-DD
+    pub date: String, // YYYY-MM-DD
     pub blocks: Vec<JournalBlock>,
     pub raw_content: String,
     pub file_path: String,
@@ -271,7 +297,7 @@ pub struct JournalPage {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct JournalDateInfo {
-    pub date: String,          // YYYY-MM-DD
+    pub date: String, // YYYY-MM-DD
     pub block_count: u32,
     pub has_tasks: bool,
 }
@@ -313,14 +339,14 @@ pub struct TaskItem {
     pub priority: Option<TaskPriority>,
     #[serde(default)]
     pub tags: Vec<String>,
-    pub source_date: Option<String>,   // journal date YYYY-MM-DD if from journal
-    pub source_file: Option<String>,   // file path of origin
+    pub source_date: Option<String>, // journal date YYYY-MM-DD if from journal
+    pub source_file: Option<String>, // file path of origin
     pub created: DateTime<Utc>,
     pub modified: DateTime<Utc>,
     #[serde(default)]
     pub notes: String,
     #[serde(default)]
-    pub due: Option<String>,           // YYYY-MM-DD due date
+    pub due: Option<String>, // YYYY-MM-DD due date
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

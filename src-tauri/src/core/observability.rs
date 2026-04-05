@@ -293,7 +293,10 @@ impl ObservabilityDb {
     }
 
     /// Get memories served for a specific request.
-    pub fn get_memories_for_request(&self, request_id: i64) -> Result<Vec<MemoryServedRecord>, String> {
+    pub fn get_memories_for_request(
+        &self,
+        request_id: i64,
+    ) -> Result<Vec<MemoryServedRecord>, String> {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn
             .prepare(
@@ -322,7 +325,10 @@ impl ObservabilityDb {
     }
 
     /// Get memories that were not loaded for a specific request.
-    pub fn get_not_loaded_for_request(&self, request_id: i64) -> Result<Vec<MemoryNotLoadedRecord>, String> {
+    pub fn get_not_loaded_for_request(
+        &self,
+        request_id: i64,
+    ) -> Result<Vec<MemoryNotLoadedRecord>, String> {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn
             .prepare(
@@ -448,7 +454,11 @@ impl ObservabilityDb {
     }
 
     /// Get memories that haven't been served in N+ days.
-    pub fn get_unused_memories(&self, root: &Path, days: u32) -> Result<Vec<UnusedMemoryRecord>, String> {
+    pub fn get_unused_memories(
+        &self,
+        root: &Path,
+        days: u32,
+    ) -> Result<Vec<UnusedMemoryRecord>, String> {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn
             .prepare(
@@ -461,10 +471,7 @@ impl ObservabilityDb {
 
         let rows = stmt
             .query_map([], |row| {
-                Ok((
-                    row.get::<_, String>(0)?,
-                    row.get::<_, Option<String>>(1)?,
-                ))
+                Ok((row.get::<_, String>(0)?, row.get::<_, Option<String>>(1)?))
             })
             .map_err(|e| format!("Query error: {}", e))?;
 
@@ -482,7 +489,10 @@ impl ObservabilityDb {
                     let last = chrono::DateTime::parse_from_rfc3339(timestamp)
                         .map(|dt| dt.with_timezone(&Utc))
                         .unwrap_or(meta.last_access);
-                    (Some(timestamp.clone()), (now - last).num_days().max(0) as u32)
+                    (
+                        Some(timestamp.clone()),
+                        (now - last).num_days().max(0) as u32,
+                    )
                 }
                 Some(None) | None => (None, (now - meta.last_access).num_days().max(0) as u32),
             };

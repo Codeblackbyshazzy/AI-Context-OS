@@ -5,7 +5,10 @@ use crate::core::observability::{ObservabilityDb, OptimizationRecord};
 use std::path::Path;
 
 /// Run all optimization detectors and store results in the DB.
-pub fn run_optimizations(db: &ObservabilityDb, root: &Path) -> Result<Vec<OptimizationRecord>, String> {
+pub fn run_optimizations(
+    db: &ObservabilityDb,
+    root: &Path,
+) -> Result<Vec<OptimizationRecord>, String> {
     // Clear old pending optimizations before fresh analysis
     db.clear_pending_optimizations()?;
 
@@ -38,7 +41,11 @@ pub fn run_optimizations(db: &ObservabilityDb, root: &Path) -> Result<Vec<Optimi
                     "L1 de '{}' tiene ~{} tokens. Considera comprimir el resumen.",
                     mem.meta.l0, l1_tokens
                 ),
-                impact: if l1_tokens > 800 { "high".to_string() } else { "medium".to_string() },
+                impact: if l1_tokens > 800 {
+                    "high".to_string()
+                } else {
+                    "medium".to_string()
+                },
                 evidence: format!("{} tokens en L1", l1_tokens),
                 estimated_token_saving: Some(l1_tokens.saturating_sub(300)),
                 status: "pending".to_string(),
@@ -144,8 +151,13 @@ pub fn run_optimizations(db: &ObservabilityDb, root: &Path) -> Result<Vec<Optimi
                     mem.meta.l0, decay_score
                 ),
                 impact: "low".to_string(),
-                evidence: format!("Decay score: {:.3}, importancia: {:.2}", decay_score, mem.meta.importance),
-                estimated_token_saving: Some(estimate_tokens(&mem.l1_content) + estimate_tokens(&mem.l2_content)),
+                evidence: format!(
+                    "Decay score: {:.3}, importancia: {:.2}",
+                    decay_score, mem.meta.importance
+                ),
+                estimated_token_saving: Some(
+                    estimate_tokens(&mem.l1_content) + estimate_tokens(&mem.l2_content),
+                ),
                 status: "pending".to_string(),
             });
         }
@@ -193,12 +205,15 @@ pub fn run_optimizations(db: &ObservabilityDb, root: &Path) -> Result<Vec<Optimi
     if stats.requests_this_week > 0 {
         // Check recent not-loaded memories with high scores
         let recent = db.get_recent_requests(10).unwrap_or_default();
-        let mut near_threshold_counts: std::collections::HashMap<String, u32> = std::collections::HashMap::new();
+        let mut near_threshold_counts: std::collections::HashMap<String, u32> =
+            std::collections::HashMap::new();
         for req in &recent {
             if let Ok(not_loaded) = db.get_not_loaded_for_request(req.id) {
                 for nl in &not_loaded {
                     if nl.final_score > 0.12 && nl.reason == "below_threshold" {
-                        *near_threshold_counts.entry(nl.memory_id.clone()).or_insert(0) += 1;
+                        *near_threshold_counts
+                            .entry(nl.memory_id.clone())
+                            .or_insert(0) += 1;
                     }
                 }
             }

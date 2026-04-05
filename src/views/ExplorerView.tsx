@@ -1,10 +1,8 @@
-import { lazy, Suspense, useEffect, useState } from "react";
-import { Eye, EyeOff, Plus, RefreshCw } from "lucide-react";
+import { lazy, Suspense, useEffect } from "react";
+import { Eye, EyeOff, FilePlus, FolderPlus, RefreshCw } from "lucide-react";
 import { clsx } from "clsx";
 import { FileExplorer } from "../components/explorer/FileExplorer";
 import { useAppStore } from "../lib/store";
-import { createMemory } from "../lib/tauri";
-import type { MemoryType } from "../lib/types";
 import { useSettingsStore } from "../lib/settingsStore";
 
 const MemoryEditor = lazy(() =>
@@ -22,16 +20,11 @@ export function ExplorerView() {
     regenerateRouter,
     memories,
     explorerOpen,
-    isCreateMemoryOpen,
-    setCreateMemoryOpen,
+    setPendingCreate,
   } = useAppStore();
   const expertModeEnabled = useSettingsStore((s) => s.expertModeEnabled);
   const showSystemFiles = useSettingsStore((s) => s.showSystemFiles);
   const toggleShowSystemFiles = useSettingsStore((s) => s.toggleShowSystemFiles);
-  const [newId, setNewId] = useState("");
-  const [newType, setNewType] = useState<MemoryType>("context");
-  const [newL0, setNewL0] = useState("");
-  const [newIdTouched, setNewIdTouched] = useState(false);
 
   useEffect(() => {
     if (!initialized) {
@@ -43,46 +36,12 @@ export function ExplorerView() {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "n") {
         e.preventDefault();
-        setCreateMemoryOpen(true);
+        setPendingCreate("file");
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, []);
-
-  useEffect(() => {
-    if (!isCreateMemoryOpen) {
-      setNewIdTouched(false);
-      return;
-    }
-    if (!newIdTouched) {
-      setNewId(normalizeMemoryId(newL0));
-    }
-  }, [isCreateMemoryOpen, newIdTouched, newL0]);
-
-  const handleCreate = async () => {
-    const l0 = newL0.trim();
-    const nextId = normalizeMemoryId(newId || l0);
-    if (!nextId || !l0) return;
-    try {
-      await createMemory({
-        id: nextId,
-        memory_type: newType,
-        l0,
-        importance: 0.5,
-        tags: [],
-        l1_content: "",
-        l2_content: "",
-      });
-      await regenerateRouter();
-      setCreateMemoryOpen(false);
-      setNewId("");
-      setNewL0("");
-      setNewIdTouched(false);
-    } catch (e) {
-      console.error("Failed to create memory:", e);
-    }
-  };
+  }, [setPendingCreate]);
 
   const handleRegenerate = async () => {
     try {
@@ -119,11 +78,18 @@ export function ExplorerView() {
               </button>
             )}
             <button
-              onClick={() => setCreateMemoryOpen(!isCreateMemoryOpen)}
+              onClick={() => setPendingCreate("file")}
               className="rounded p-1 text-[color:var(--text-2)] transition-colors hover:bg-[color:var(--bg-2)] hover:text-[color:var(--text-1)]"
-              title="Nueva memoria (Cmd+N)"
+              title="Nueva nota (Cmd+N)"
             >
-              <Plus className="h-3.5 w-3.5" />
+              <FilePlus className="h-3.5 w-3.5" />
+            </button>
+            <button
+              onClick={() => setPendingCreate("folder")}
+              className="rounded p-1 text-[color:var(--text-2)] transition-colors hover:bg-[color:var(--bg-2)] hover:text-[color:var(--text-1)]"
+              title="Nueva carpeta"
+            >
+              <FolderPlus className="h-3.5 w-3.5" />
             </button>
             <button
               onClick={handleRegenerate}
@@ -134,63 +100,6 @@ export function ExplorerView() {
             </button>
           </div>
         </div>
-
-        {isCreateMemoryOpen && (
-          <div className="space-y-2 border-b border-[var(--border)] px-3 py-2.5 bg-[color:var(--bg-1)]">
-            <input
-              type="text"
-              value={newId}
-              onChange={(e) => {
-                setNewIdTouched(true);
-                setNewId(normalizeMemoryId(e.target.value));
-              }}
-              placeholder="memory-id"
-              className="w-full rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-2.5 py-1.5 text-xs text-[color:var(--text-0)] placeholder:text-[color:var(--text-2)]"
-            />
-            <input
-              type="text"
-              value={newL0}
-              onChange={(e) => setNewL0(e.target.value)}
-              placeholder="Resumen (L0)"
-              className="w-full rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-2.5 py-1.5 text-xs text-[color:var(--text-0)] placeholder:text-[color:var(--text-2)]"
-            />
-            <select
-              value={newType}
-              onChange={(e) => setNewType(e.target.value as MemoryType)}
-              className="w-full rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-2.5 py-1.5 text-xs text-[color:var(--text-1)]"
-            >
-              <option value="context">Contexto</option>
-              <option value="intelligence">Inteligencia</option>
-              <option value="project">Proyecto</option>
-              <option value="resource">Recurso</option>
-              <option value="skill">Skill</option>
-              <option value="daily">Diario</option>
-              <option value="task">Tarea</option>
-              <option value="rule">Regla</option>
-              <option value="scratch">Scratch</option>
-            </select>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setCreateMemoryOpen(false)}
-                className="flex-1 rounded-md border border-[var(--border)] py-1.5 text-xs text-[color:var(--text-2)] transition-colors hover:bg-[color:var(--bg-2)] hover:text-[color:var(--text-1)]"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleCreate}
-                disabled={!newId.trim() || !newL0.trim()}
-                className={clsx(
-                  "flex-1 rounded-md py-1.5 text-xs font-medium transition-opacity",
-                  normalizeMemoryId(newId || newL0) && newL0.trim()
-                    ? "bg-[color:var(--accent)] text-white hover:opacity-90"
-                    : "bg-[color:var(--bg-3)] text-[color:var(--text-2)] opacity-50",
-                )}
-              >
-                Crear
-              </button>
-            </div>
-          </div>
-        )}
 
         <div className="min-h-0 flex-1 overflow-y-auto">
           <FileExplorer />
@@ -205,16 +114,6 @@ export function ExplorerView() {
       </section>
     </div>
   );
-}
-
-function normalizeMemoryId(value: string): string {
-  return value
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9-_ ]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "");
 }
 
 function EditorFallback() {

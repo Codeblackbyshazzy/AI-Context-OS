@@ -81,7 +81,8 @@ pub fn try_run_embedded_mcp_server() -> Result<bool, String> {
         observability: obs,
     });
 
-    let rt = tokio::runtime::Runtime::new().map_err(|e| format!("Failed to create tokio runtime: {}", e))?;
+    let rt = tokio::runtime::Runtime::new()
+        .map_err(|e| format!("Failed to create tokio runtime: {}", e))?;
     rt.block_on(async {
         let server = crate::core::mcp::AiContextMcpServer::new(shared_state);
         let transport = rmcp::transport::io::stdio();
@@ -212,8 +213,14 @@ pub fn run() {
                 log::info!("Workspace not found, will initialize on first use");
             }
 
-            crate::commands::config::sync_workspace_runtime(state.inner(), Some(&app.handle().clone()))?;
-            log::info!("Loaded {} memories from workspace", state.memory_index.read().unwrap().len());
+            crate::commands::config::sync_workspace_runtime(
+                state.inner(),
+                Some(&app.handle().clone()),
+            )?;
+            log::info!(
+                "Loaded {} memories from workspace",
+                state.memory_index.read().unwrap().len()
+            );
 
             Ok(())
         })
@@ -224,11 +231,16 @@ pub fn run() {
                     if let Ok(index) = state.memory_index.read() {
                         for (_id, (meta, path)) in index.iter() {
                             if meta.access_count > 0 {
-                                if let Ok(mut memory) = crate::core::memory::read_memory(std::path::Path::new(path)) {
+                                if let Ok(mut memory) =
+                                    crate::core::memory::read_memory(std::path::Path::new(path))
+                                {
                                     if memory.meta.access_count != meta.access_count {
                                         memory.meta.access_count = meta.access_count;
                                         memory.meta.last_access = meta.last_access;
-                                        let _ = crate::core::memory::write_memory(std::path::Path::new(path), &memory);
+                                        let _ = crate::core::memory::write_memory(
+                                            std::path::Path::new(path),
+                                            &memory,
+                                        );
                                     }
                                 }
                             }

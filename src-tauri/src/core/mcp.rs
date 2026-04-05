@@ -4,7 +4,7 @@ use std::sync::{Arc, Mutex, RwLock};
 use chrono::Utc;
 use rmcp::handler::server::router::tool::ToolRouter;
 use rmcp::handler::server::wrapper::Parameters;
-use rmcp::{ServerHandler, tool, tool_handler, tool_router};
+use rmcp::{tool, tool_handler, tool_router, ServerHandler};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -196,6 +196,7 @@ impl AiContextMcpServer {
         let root = self.state.root_dir.read().unwrap().clone();
 
         let memory_type = match params.memory_type.to_lowercase().as_str() {
+            "source" => MemoryType::Source,
             "context" => MemoryType::Context,
             "daily" => MemoryType::Daily,
             "intelligence" => MemoryType::Intelligence,
@@ -205,7 +206,7 @@ impl AiContextMcpServer {
             "task" => MemoryType::Task,
             "rule" => MemoryType::Rule,
             "scratch" => MemoryType::Scratch,
-            other => return format!("Unknown memory type: '{}'. Valid: context, daily, intelligence, project, resource, skill, task, rule, scratch", other),
+            other => return format!("Unknown memory type: '{}'. Valid: source, context, daily, intelligence, project, resource, skill, task, rule, scratch", other),
         };
         let ontology = default_ontology_for_memory_type(&memory_type);
 
@@ -233,6 +234,9 @@ impl AiContextMcpServer {
             optional: vec![],
             output_format: None,
             ontology: Some(ontology),
+            status: None,
+            protected: false,
+            derived_from: vec![],
         };
 
         let body = join_levels(&params.l1_content, &params.l2_content);
@@ -292,7 +296,9 @@ impl AiContextMcpServer {
                 if !skill_meta.requires.is_empty() {
                     output.push_str("---\n# DEPENDENCIAS REQUERIDAS\n\n");
                     for req_id in &skill_meta.requires {
-                        if let Some((_, dep_path)) = all_entries.iter().find(|(m, _)| m.id == *req_id) {
+                        if let Some((_, dep_path)) =
+                            all_entries.iter().find(|(m, _)| m.id == *req_id)
+                        {
                             if let Ok(dep) = read_memory(std::path::Path::new(dep_path)) {
                                 output.push_str(&format!("## {} ({})\n", dep.meta.l0, dep.meta.id));
                                 if !dep.l1_content.is_empty() {
@@ -310,14 +316,17 @@ impl AiContextMcpServer {
                     .optional
                     .iter()
                     .filter(|opt_id| {
-                        all_entries.iter().any(|(m, _)| m.id == **opt_id) && !loaded_ids.contains(opt_id)
+                        all_entries.iter().any(|(m, _)| m.id == **opt_id)
+                            && !loaded_ids.contains(opt_id)
                     })
                     .collect();
 
                 if !optional_found.is_empty() {
                     output.push_str("---\n# CONTEXTO OPCIONAL\n\n");
                     for opt_id in optional_found {
-                        if let Some((_, dep_path)) = all_entries.iter().find(|(m, _)| m.id == *opt_id) {
+                        if let Some((_, dep_path)) =
+                            all_entries.iter().find(|(m, _)| m.id == *opt_id)
+                        {
                             if let Ok(dep) = read_memory(std::path::Path::new(dep_path)) {
                                 output.push_str(&format!("## {} ({})\n", dep.meta.l0, dep.meta.id));
                                 if !dep.l1_content.is_empty() {
@@ -342,7 +351,10 @@ impl AiContextMcpServer {
     async fn log_session(&self, Parameters(params): Parameters<LogSessionParams>) -> String {
         let root = self.state.root_dir.read().unwrap().clone();
         let today = Utc::now().format("%Y-%m-%d").to_string();
-        let log_path = root.join("02-daily").join("sessions").join(format!("{}.jsonl", today));
+        let log_path = root
+            .join("02-daily")
+            .join("sessions")
+            .join(format!("{}.jsonl", today));
 
         let entry = SessionLogEntry {
             timestamp: Utc::now().to_rfc3339(),

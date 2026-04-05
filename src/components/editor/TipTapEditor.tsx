@@ -11,6 +11,7 @@ interface Props {
   onBlur?: () => void;
   placeholder?: string;
   className?: string;
+  editable?: boolean;
 }
 
 /**
@@ -24,6 +25,7 @@ export function TipTapEditor({
   onBlur,
   placeholder,
   className,
+  editable = true,
 }: Props) {
   const initialContent = normalizeMarkdown(content);
   const editor = useEditor({
@@ -36,6 +38,7 @@ export function TipTapEditor({
         emptyEditorClass: "is-editor-empty",
       }),
     ],
+    editable,
     editorProps: {
       attributes: {
         class: clsx(
@@ -63,6 +66,10 @@ export function TipTapEditor({
       }
     }
   }, [content, editor, documentKey]);
+
+  useEffect(() => {
+    editor?.setEditable(editable);
+  }, [editable, editor]);
 
   if (!editor) {
     return (

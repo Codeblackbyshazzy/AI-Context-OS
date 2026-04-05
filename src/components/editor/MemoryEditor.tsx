@@ -79,7 +79,7 @@ export function MemoryEditor() {
   }, []);
 
   useEffect(() => {
-    if (!activeMemory || !meta || !dirty) {
+    if (!activeMemory || !meta || !dirty || activeMemory.meta.id !== meta.id) {
       latestDraftRef.current = null;
       return;
     }
@@ -220,6 +220,7 @@ export function MemoryEditor() {
     };
 
     meta.related.forEach((id) => pushLink(id, "related"));
+    meta.derived_from.forEach((id) => pushLink(id, "derived_from"));
     meta.requires.forEach((id) => pushLink(id, "requires"));
     meta.optional.forEach((id) => pushLink(id, "optional"));
 
@@ -237,6 +238,7 @@ export function MemoryEditor() {
       if (item.id === targetId) continue;
       const kinds: string[] = [];
       if (item.related.includes(targetId)) kinds.push("related");
+      if (item.derived_from.includes(targetId)) kinds.push("derived_from");
       if (item.requires.includes(targetId)) kinds.push("requires");
       if (item.optional.includes(targetId)) kinds.push("optional");
       if (kinds.length === 0) continue;
@@ -262,6 +264,8 @@ export function MemoryEditor() {
       { label: "Accesos", value: String(meta.access_count) },
     ];
   }, [meta]);
+  const isProtected = meta?.protected ?? false;
+  const isStateSynced = meta?.id === activeMemory?.meta.id;
 
   const handleOpenMemory = useCallback(
     async (id: string) => {
@@ -296,6 +300,10 @@ export function MemoryEditor() {
     );
   }
 
+  if (!isStateSynced) {
+    return null;
+  }
+
   return (
     <div className="flex h-full min-h-0 flex-col">
       {/* Minimal top bar — actions only */}
@@ -313,9 +321,9 @@ export function MemoryEditor() {
         <button
           type="button"
           onClick={handleDelete}
-          disabled={loading}
+          disabled={loading || isProtected}
           className="rounded p-1 text-[color:var(--text-2)] transition-colors hover:text-[color:var(--danger)] disabled:opacity-50"
-          title="Eliminar memoria"
+          title={isProtected ? "Archivo protegido" : "Eliminar memoria"}
         >
           <Trash2 className="h-3.5 w-3.5" />
         </button>
@@ -332,6 +340,7 @@ export function MemoryEditor() {
               onChange={(e) => {
                 handleMetaChange({ ...meta, l0: e.target.value });
               }}
+              readOnly={isProtected}
               placeholder="Sin titulo"
               className="mb-1 w-full bg-transparent text-2xl font-semibold text-[color:var(--text-0)] placeholder:text-[color:var(--text-2)]/40 focus:outline-none"
             />
@@ -356,6 +365,7 @@ export function MemoryEditor() {
               onBlur={() => void handleSave()}
               className="min-h-[400px]"
               placeholder="Escribe aqui..."
+              editable={!isProtected}
             />
 
             {/* L1 — Collapsible summary */}
@@ -387,6 +397,7 @@ export function MemoryEditor() {
                     onBlur={() => void handleSave()}
                     className="min-h-[120px]"
                     placeholder="Resumen L1 (150-300 tokens)..."
+                    editable={!isProtected}
                   />
                 </div>
               )}
@@ -422,7 +433,7 @@ export function MemoryEditor() {
 
             <div className="min-h-0 flex-1 overflow-y-auto">
               {inspectorTab === "properties" && (
-                <FrontmatterForm meta={meta} onChange={handleMetaChange} />
+                <FrontmatterForm meta={meta} onChange={handleMetaChange} readonly={isProtected} />
               )}
               {inspectorTab === "links" && (
                 <LinksPanel
@@ -883,6 +894,10 @@ function toComparableMemoryMeta(meta: MemoryMeta) {
     requires: meta.requires,
     optional: meta.optional,
     output_format: meta.output_format,
+    ontology: meta.ontology,
+    status: meta.status,
+    protected: meta.protected,
+    derived_from: meta.derived_from,
   };
 }
 

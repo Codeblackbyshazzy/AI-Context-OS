@@ -1,16 +1,18 @@
 # AI Context OS
 
-Tauri v2 desktop app. Files ARE the database: ~/AI-Context-OS/ con 9 carpetas numeradas (01-context/ a 09-scratch/), archivos .md con YAML frontmatter + marcadores <!-- L1 --> / <!-- L2 -->.
+Tauri v2 desktop app. Files ARE the database: ~/AI-Context-OS/ con `inbox/`, `sources/` y 9 carpetas numeradas (`01-context/` a `09-scratch/`), archivos .md con YAML frontmatter + marcadores <!-- L1 --> / <!-- L2 -->.
 
 ## Gotchas
 
 - **Nuevo comando Rust → registrar en 3 sitios**: `core/mod.rs`, `commands/mod.rs`, Y `lib.rs` invoke_handler. **Actualizar también la sección IPC de este CLAUDE.md**
 - **types.ts debe ser espejo exacto de types.rs** — desajustes causan fallos IPC silenciosos
+- **Al añadir/quitar campos de un struct o interface**: grep `NombreStruct {` para encontrar TODOS los constructores (en Rust, `#[serde(default)]` no aplica a struct literals) y buscar funciones que comparen/copien campos manualmente (ej. `toComparableMemoryMeta`). Si no los actualizas todos: error de compilación en Rust, bugs silenciosos en TS.
 - **Todos los useState ANTES de cualquier return condicional** — violar esto causa pantalla negra
 - **titleBarStyle: "Overlay"** — traffic lights de macOS se solapan; top bar tiene spacer de 72px con data-tauri-drag-region
 - **TipTap sin toolbar** — formato markdown solo por atajos de teclado, diseño intencional
 - **Journal: 02-daily/YYYY-MM-DD.md** (outliner bullets estilo Logseq). El daily-log.jsonl es SOLO para eventos de sistema
 - **Tasks: 07-tasks/task-{id}.md** con frontmatter YAML (state/priority)
+- **Ingesta:** `inbox/` es staging, `sources/` guarda fuentes aceptadas. `protected: true` bloquea edición salvo desbloqueo explícito.
 - **UI text en español** (labels, placeholders, empty states)
 - **CSS variables para todo el theming** (--bg-0..3, --text-0..2, --accent, --border), nunca colores hardcoded
 

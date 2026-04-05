@@ -34,8 +34,7 @@ pub fn save_journal_page(
     let result = journal::save_journal_page(&root, &date, &content)?;
 
     // Extract typed bullets and append to daily-log.jsonl
-    let tag_re = Regex::new(r"#(decision|idea|meeting|goal|blocker|insight|question)")
-        .unwrap();
+    let tag_re = Regex::new(r"#(decision|idea|meeting|goal|blocker|insight|question)").unwrap();
     let task_re = Regex::new(r"^-\s*\[\s*\]\s+(.+)$").unwrap();
     let daily_path = root.join("02-daily/daily-log.jsonl");
     let now = Utc::now();
@@ -108,8 +107,7 @@ pub fn save_journal_page(
         for (mem_id, (meta, file_path)) in index.iter() {
             let id_lower = mem_id.to_lowercase();
             let l0_lower = meta.l0.to_lowercase();
-            let existing_tags: Vec<String> =
-                meta.tags.iter().map(|t| t.to_lowercase()).collect();
+            let existing_tags: Vec<String> = meta.tags.iter().map(|t| t.to_lowercase()).collect();
 
             // Check if any extracted #tag matches this memory's id, l0, or existing tags
             let matching: Vec<&String> = found_tags
@@ -125,16 +123,11 @@ pub fn save_journal_page(
                 // Add the journal date as a tag to this memory if not already present
                 let date_tag = date.clone();
                 if !meta.tags.contains(&date_tag) {
-                    if let Ok(mut mem) =
-                        memory::read_memory(std::path::Path::new(file_path))
-                    {
+                    if let Ok(mut mem) = memory::read_memory(std::path::Path::new(file_path)) {
                         if !mem.meta.tags.contains(&date_tag) {
                             mem.meta.tags.push(date_tag);
                             mem.meta.modified = now;
-                            let _ = memory::write_memory(
-                                std::path::Path::new(file_path),
-                                &mem,
-                            );
+                            let _ = memory::write_memory(std::path::Path::new(file_path), &mem);
                         }
                     }
                 }

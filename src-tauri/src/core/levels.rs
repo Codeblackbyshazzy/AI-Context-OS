@@ -10,9 +10,7 @@ pub fn split_levels(body: &str) -> (String, String) {
 
     match (l1_start, l2_start) {
         (Some(l1_pos), Some(l2_pos)) => {
-            let l1 = body[l1_pos + l1_marker.len()..l2_pos]
-                .trim()
-                .to_string();
+            let l1 = body[l1_pos + l1_marker.len()..l2_pos].trim().to_string();
             let l2 = body[l2_pos + l2_marker.len()..].trim().to_string();
             (l1, l2)
         }

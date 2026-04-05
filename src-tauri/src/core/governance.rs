@@ -4,7 +4,9 @@ use std::path::Path;
 
 use crate::core::decay::should_archive;
 use crate::core::search::tokenize;
-use crate::core::types::{Conflict, ConsolidationSuggestion, DailyEntry, Memory, MemoryMeta, MemoryType};
+use crate::core::types::{
+    Conflict, ConsolidationSuggestion, DailyEntry, Memory, MemoryMeta, MemoryType,
+};
 
 /// Detect potential conflicts between related memories.
 /// Heuristic: if two related memories share tags but their L1 content contains
@@ -46,10 +48,7 @@ pub fn detect_conflicts(memories: &[Memory]) -> Vec<Conflict> {
                                 "{} mentions '{}' but {} mentions '{}'",
                                 a.meta.id, term_a, b.meta.id, term_b
                             ),
-                            conflicting_terms: vec![
-                                term_a.to_string(),
-                                term_b.to_string(),
-                            ],
+                            conflicting_terms: vec![term_a.to_string(), term_b.to_string()],
                         });
                     }
                 }
@@ -67,7 +66,11 @@ pub fn detect_conflicts(memories: &[Memory]) -> Vec<Conflict> {
 }
 
 /// Find memories that should be flagged for archival based on decay.
-pub fn find_decay_candidates(memories: &[MemoryMeta], now: DateTime<Utc>, threshold: f64) -> Vec<MemoryMeta> {
+pub fn find_decay_candidates(
+    memories: &[MemoryMeta],
+    now: DateTime<Utc>,
+    threshold: f64,
+) -> Vec<MemoryMeta> {
     memories
         .iter()
         .filter(|m| {
@@ -134,7 +137,10 @@ pub fn suggest_consolidation(entries: &[DailyEntry]) -> Vec<ConsolidationSuggest
             entries: decisions.iter().map(|e| (*e).clone()).collect(),
             suggested_type: MemoryType::Project,
             suggested_folder: "04-projects".to_string(),
-            summary: format!("{} decisions that could be documented as project decisions", decisions.len()),
+            summary: format!(
+                "{} decisions that could be documented as project decisions",
+                decisions.len()
+            ),
         });
     }
 
@@ -143,7 +149,10 @@ pub fn suggest_consolidation(entries: &[DailyEntry]) -> Vec<ConsolidationSuggest
             entries: ideas.iter().map(|e| (*e).clone()).collect(),
             suggested_type: MemoryType::Intelligence,
             suggested_folder: "03-intelligence".to_string(),
-            summary: format!("{} ideas that could become intelligence/research notes", ideas.len()),
+            summary: format!(
+                "{} ideas that could become intelligence/research notes",
+                ideas.len()
+            ),
         });
     }
 

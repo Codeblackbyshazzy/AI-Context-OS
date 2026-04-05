@@ -7,6 +7,8 @@ use tauri::State;
 use crate::core::types::{FileNode, MemoryType};
 use crate::state::AppState;
 
+const SPECIAL_ROOT_ORDER: [&str; 4] = ["inbox", "sources", "00-inbox", "01-sources"];
+
 /// Get the file tree of the workspace.
 #[tauri::command]
 pub fn get_file_tree(state: State<AppState>) -> Result<Vec<FileNode>, String> {
@@ -60,8 +62,19 @@ fn read_dir_recursive(dir: &Path, depth: u32) -> Result<Vec<FileNode>, String> {
         });
     }
 
-    // Sort: directories first, then alphabetically
+    // Sort: special workspace dirs first at root, then directories, then alphabetically.
     entries.sort_by(|a, b| {
+        if depth == 0 {
+            let a_special = SPECIAL_ROOT_ORDER.iter().position(|name| *name == a.name);
+            let b_special = SPECIAL_ROOT_ORDER.iter().position(|name| *name == b.name);
+            match (a_special, b_special) {
+                (Some(a_idx), Some(b_idx)) => return a_idx.cmp(&b_idx),
+                (Some(_), None) => return std::cmp::Ordering::Less,
+                (None, Some(_)) => return std::cmp::Ordering::Greater,
+                (None, None) => {}
+            }
+        }
+
         match (a.is_dir, b.is_dir) {
             (true, false) => std::cmp::Ordering::Less,
             (false, true) => std::cmp::Ordering::Greater,
@@ -83,8 +96,7 @@ pub fn read_file(path: String) -> Result<String, String> {
 pub fn write_file(path: String, content: String, state: State<AppState>) -> Result<(), String> {
     // Ensure parent directory exists
     if let Some(parent) = Path::new(&path).parent() {
-        fs::create_dir_all(parent)
-            .map_err(|e| format!("Failed to create directory: {}", e))?;
+        fs::create_dir_all(parent).map_err(|e| format!("Failed to create directory: {}", e))?;
     }
     fs::write(&path, content).map_err(|e| format!("Failed to write {}: {}", path, e))?;
     state.mark_recent_write(Path::new(&path));
@@ -111,8 +123,13 @@ pub fn rename_path(old_path: String, new_path: String) -> Result<String, String>
         return Err(format!("Target already exists: {}", new_path));
     }
     if let Some(parent) = new.parent() {
-        fs::create_dir_all(parent)
-            .map_err(|e| format!("Failed to create target directory {}: {}", parent.display(), e))?;
+        fs::create_dir_all(parent).map_err(|e| {
+            format!(
+                "Failed to create target directory {}: {}",
+                parent.display(),
+                e
+            )
+        })?;
     }
 
     fs::rename(&old, &new)

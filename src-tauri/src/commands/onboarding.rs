@@ -97,13 +97,19 @@ fn tool_summary(tools: &[String]) -> String {
     }
 }
 
-fn create_profile_memory(root: &std::path::Path, profile: &OnboardingProfile) -> Result<(), String> {
+fn create_profile_memory(
+    root: &std::path::Path,
+    profile: &OnboardingProfile,
+) -> Result<(), String> {
     let now = Utc::now();
     let tools_label = tool_summary(&profile.tools);
     let meta = MemoryMeta {
         id: "perfil-profesional".to_string(),
         memory_type: MemoryType::Context,
-        l0: format!("{} — {} | Herramientas: {}", profile.name, profile.role, tools_label),
+        l0: format!(
+            "{} — {} | Herramientas: {}",
+            profile.name, profile.role, tools_label
+        ),
         importance: 0.95,
         always_load: true,
         decay_rate: 0.999,
@@ -120,6 +126,9 @@ fn create_profile_memory(root: &std::path::Path, profile: &OnboardingProfile) ->
         optional: vec![],
         output_format: None,
         ontology: Some(default_ontology_for_memory_type(&MemoryType::Context)),
+        status: None,
+        protected: false,
+        derived_from: vec![],
     };
 
     let l1 = format!(
@@ -186,11 +195,14 @@ fn write_memory_file(
         optional: vec![],
         output_format: None,
         ontology: Some(ontology),
+        status: None,
+        protected: false,
+        derived_from: vec![],
     };
 
     let body = format!("<!-- L1 -->\n{}\n\n<!-- L2 -->\n{}", l1, l2);
-    let content = serialize_frontmatter(&meta, &body)
-        .map_err(|e| format!("Failed to serialize: {}", e))?;
+    let content =
+        serialize_frontmatter(&meta, &body).map_err(|e| format!("Failed to serialize: {}", e))?;
 
     let dir = root.join(folder);
     fs::create_dir_all(&dir).ok();

@@ -7,9 +7,11 @@ use crate::core::types::Memory;
 
 /// Read a Memory from a .md file on disk.
 pub fn read_memory(path: &Path) -> Result<Memory, String> {
-    let raw = fs::read_to_string(path).map_err(|e| format!("Failed to read {}: {}", path.display(), e))?;
+    let raw = fs::read_to_string(path)
+        .map_err(|e| format!("Failed to read {}: {}", path.display(), e))?;
 
-    let (meta, body) = parse_frontmatter(&raw).map_err(|e| format!("Failed to parse frontmatter in {}: {}", path.display(), e))?;
+    let (meta, body) = parse_frontmatter(&raw)
+        .map_err(|e| format!("Failed to parse frontmatter in {}: {}", path.display(), e))?;
 
     let (l1, l2) = split_levels(&body);
 
@@ -30,12 +32,10 @@ pub fn write_memory(path: &Path, memory: &Memory) -> Result<(), String> {
 
     // Ensure parent directory exists
     if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent)
-            .map_err(|e| format!("Failed to create directory: {}", e))?;
+        fs::create_dir_all(parent).map_err(|e| format!("Failed to create directory: {}", e))?;
     }
 
-    fs::write(path, content)
-        .map_err(|e| format!("Failed to write {}: {}", path.display(), e))?;
+    fs::write(path, content).map_err(|e| format!("Failed to write {}: {}", path.display(), e))?;
 
     Ok(())
 }
