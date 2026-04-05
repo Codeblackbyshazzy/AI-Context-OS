@@ -4,7 +4,7 @@ use chrono::Utc;
 use tauri::{AppHandle, State};
 
 use crate::core::frontmatter::serialize_frontmatter;
-use crate::core::types::{MemoryMeta, MemoryType};
+use crate::core::types::{default_ontology_for_memory_type, MemoryMeta, MemoryType};
 use crate::state::AppState;
 
 #[derive(Debug, Clone, serde::Deserialize)]
@@ -119,6 +119,7 @@ fn create_profile_memory(root: &std::path::Path, profile: &OnboardingProfile) ->
         requires: vec![],
         optional: vec![],
         output_format: None,
+        ontology: Some(default_ontology_for_memory_type(&MemoryType::Context)),
     };
 
     let l1 = format!(
@@ -183,6 +184,7 @@ fn write_memory_file(
         requires: requires.iter().map(|s| s.to_string()).collect(),
         optional: vec![],
         output_format: None,
+        ontology: Some(default_ontology_for_memory_type(&mem_type)),
     };
 
     let body = format!("<!-- L1 -->\n{}\n\n<!-- L2 -->\n{}", l1, l2);

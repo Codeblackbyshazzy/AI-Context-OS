@@ -6,7 +6,10 @@ use tauri::{AppHandle, Emitter, State};
 
 use crate::core::index::{memory_folder, scan_memories};
 use crate::core::memory::{read_memory, write_memory};
-use crate::core::types::{CreateMemoryInput, Memory, MemoryFilter, MemoryMeta, MemoryType, SaveMemoryInput};
+use crate::core::types::{
+    default_ontology_for_memory_type, CreateMemoryInput, Memory, MemoryFilter, MemoryMeta,
+    MemoryType, SaveMemoryInput,
+};
 use crate::state::AppState;
 
 fn should_regenerate_router(
@@ -344,6 +347,7 @@ pub fn duplicate_memory_file(
             requires: source.meta.requires,
             optional: source.meta.optional,
             output_format: source.meta.output_format,
+            ontology: source.meta.ontology,
         },
         l1_content: source.l1_content,
         l2_content: source.l2_content,
@@ -472,6 +476,7 @@ fn create_memory_internal(
         requires: Vec::new(),
         optional: Vec::new(),
         output_format: None,
+        ontology: Some(default_ontology_for_memory_type(&input.memory_type)),
     };
 
     let memory = Memory {
