@@ -120,9 +120,9 @@ fn main() {
             }
 
             let dirs = [
-                "00-inbox", "01-context", "02-daily", "02-daily/sessions", "03-intelligence",
-                "04-projects", "05-resources", "06-skills", "07-tasks",
-                "08-rules", "09-scratch", ".cache",
+                "00-inbox", "01-sources", "02-context", "03-daily", "03-daily/sessions",
+                "04-intelligence", "05-projects", "06-resources", "07-skills", "08-tasks",
+                "09-rules", "10-scratch", ".cache",
             ];
 
             for dir in &dirs {

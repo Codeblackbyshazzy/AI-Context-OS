@@ -9,15 +9,16 @@ pub fn scan_memories(root: &Path) -> Vec<(MemoryMeta, String)> {
     let mut results = Vec::new();
 
     let folders = [
-        "01-context",
-        "02-daily",
-        "03-intelligence",
-        "04-projects",
-        "05-resources",
-        "06-skills",
-        "07-tasks",
-        "08-rules",
-        "09-scratch",
+        "01-sources",
+        "02-context",
+        "03-daily",
+        "04-intelligence",
+        "05-projects",
+        "06-resources",
+        "07-skills",
+        "08-tasks",
+        "09-rules",
+        "10-scratch",
     ];
 
     for folder in &folders {

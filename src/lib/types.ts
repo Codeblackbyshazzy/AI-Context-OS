@@ -1,4 +1,5 @@
 export type MemoryType =
+  | "source"
   | "context"
   | "daily"
   | "intelligence"
@@ -14,6 +15,8 @@ export type MemoryOntology =
   | "entity"
   | "concept"
   | "synthesis";
+
+export type MemoryStatus = "unprocessed" | "processed";
 
 export interface MemoryMeta {
   id: string;
@@ -35,6 +38,9 @@ export interface MemoryMeta {
   optional: string[];
   output_format: string | null;
   ontology: MemoryOntology | null;
+  status: MemoryStatus | null;
+  protected: boolean;
+  derived_from: string[];
 }
 
 export interface Memory {
@@ -315,6 +321,7 @@ export interface ContextEventPayload {
 // UI helpers
 
 export const MEMORY_TYPE_COLORS: Record<MemoryType, string> = {
+  source: "#0ea5e9",      // sky
   context: "#3b82f6",     // blue
   daily: "#f59e0b",       // amber
   intelligence: "#8b5cf6", // violet
@@ -327,6 +334,7 @@ export const MEMORY_TYPE_COLORS: Record<MemoryType, string> = {
 };
 
 export const MEMORY_TYPE_LABELS: Record<MemoryType, string> = {
+  source: "Fuente",
   context: "Contexto",
   daily: "Daily",
   intelligence: "Inteligencia",

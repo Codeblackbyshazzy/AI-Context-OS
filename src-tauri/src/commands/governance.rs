@@ -39,7 +39,7 @@ pub fn get_decay_candidates(state: State<AppState>) -> Result<Vec<MemoryMeta>, S
 #[tauri::command]
 pub fn get_consolidation_suggestions(state: State<AppState>) -> Result<Vec<ConsolidationSuggestion>, String> {
     let root = state.get_root();
-    let daily_path = root.join("02-daily/daily-log.jsonl");
+    let daily_path = root.join("03-daily/daily-log.jsonl");
 
     let entries: Vec<DailyEntry> = read_jsonl(&daily_path)?;
     Ok(suggest_consolidation(&entries))
@@ -50,5 +50,5 @@ pub fn get_consolidation_suggestions(state: State<AppState>) -> Result<Vec<Conso
 pub fn get_scratch_candidates(state: State<AppState>) -> Result<Vec<String>, String> {
     let root = state.get_root();
     let config = state.config.read().unwrap();
-    Ok(check_scratch_ttl(&root.join("09-scratch"), config.scratch_ttl_days))
+    Ok(check_scratch_ttl(&root.join("10-scratch"), config.scratch_ttl_days))
 }

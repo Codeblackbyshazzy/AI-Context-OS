@@ -196,6 +196,7 @@ impl AiContextMcpServer {
         let root = self.state.root_dir.read().unwrap().clone();
 
         let memory_type = match params.memory_type.to_lowercase().as_str() {
+            "source" => MemoryType::Source,
             "context" => MemoryType::Context,
             "daily" => MemoryType::Daily,
             "intelligence" => MemoryType::Intelligence,
@@ -205,7 +206,7 @@ impl AiContextMcpServer {
             "task" => MemoryType::Task,
             "rule" => MemoryType::Rule,
             "scratch" => MemoryType::Scratch,
-            other => return format!("Unknown memory type: '{}'. Valid: context, daily, intelligence, project, resource, skill, task, rule, scratch", other),
+            other => return format!("Unknown memory type: '{}'. Valid: source, context, daily, intelligence, project, resource, skill, task, rule, scratch", other),
         };
         let ontology = default_ontology_for_memory_type(&memory_type);
 
@@ -233,6 +234,9 @@ impl AiContextMcpServer {
             optional: vec![],
             output_format: None,
             ontology: Some(ontology),
+            status: None,
+            protected: false,
+            derived_from: vec![],
         };
 
         let body = join_levels(&params.l1_content, &params.l2_content);
@@ -342,7 +346,7 @@ impl AiContextMcpServer {
     async fn log_session(&self, Parameters(params): Parameters<LogSessionParams>) -> String {
         let root = self.state.root_dir.read().unwrap().clone();
         let today = Utc::now().format("%Y-%m-%d").to_string();
-        let log_path = root.join("02-daily").join("sessions").join(format!("{}.jsonl", today));
+        let log_path = root.join("03-daily").join("sessions").join(format!("{}.jsonl", today));
 
         let entry = SessionLogEntry {
             timestamp: Utc::now().to_rfc3339(),

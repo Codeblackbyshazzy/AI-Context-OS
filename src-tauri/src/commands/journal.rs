@@ -37,7 +37,7 @@ pub fn save_journal_page(
     let tag_re = Regex::new(r"#(decision|idea|meeting|goal|blocker|insight|question)")
         .unwrap();
     let task_re = Regex::new(r"^-\s*\[\s*\]\s+(.+)$").unwrap();
-    let daily_path = root.join("02-daily/daily-log.jsonl");
+    let daily_path = root.join("03-daily/daily-log.jsonl");
     let now = Utc::now();
 
     for line in content.lines() {

@@ -133,7 +133,7 @@ pub fn suggest_consolidation(entries: &[DailyEntry]) -> Vec<ConsolidationSuggest
         suggestions.push(ConsolidationSuggestion {
             entries: decisions.iter().map(|e| (*e).clone()).collect(),
             suggested_type: MemoryType::Project,
-            suggested_folder: "04-projects".to_string(),
+            suggested_folder: "05-projects".to_string(),
             summary: format!("{} decisions that could be documented as project decisions", decisions.len()),
         });
     }
@@ -142,7 +142,7 @@ pub fn suggest_consolidation(entries: &[DailyEntry]) -> Vec<ConsolidationSuggest
         suggestions.push(ConsolidationSuggestion {
             entries: ideas.iter().map(|e| (*e).clone()).collect(),
             suggested_type: MemoryType::Intelligence,
-            suggested_folder: "03-intelligence".to_string(),
+            suggested_folder: "04-intelligence".to_string(),
             summary: format!("{} ideas that could become intelligence/research notes", ideas.len()),
         });
     }

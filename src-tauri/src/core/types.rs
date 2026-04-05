@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum MemoryType {
+    Source,
     Context,
     Daily,
     Intelligence,
@@ -18,29 +19,31 @@ pub enum MemoryType {
 impl MemoryType {
     pub fn folder_name(&self) -> &str {
         match self {
-            MemoryType::Context => "01-context",
-            MemoryType::Daily => "02-daily",
-            MemoryType::Intelligence => "03-intelligence",
-            MemoryType::Project => "04-projects",
-            MemoryType::Resource => "05-resources",
-            MemoryType::Skill => "06-skills",
-            MemoryType::Task => "07-tasks",
-            MemoryType::Rule => "08-rules",
-            MemoryType::Scratch => "09-scratch",
+            MemoryType::Source => "01-sources",
+            MemoryType::Context => "02-context",
+            MemoryType::Daily => "03-daily",
+            MemoryType::Intelligence => "04-intelligence",
+            MemoryType::Project => "05-projects",
+            MemoryType::Resource => "06-resources",
+            MemoryType::Skill => "07-skills",
+            MemoryType::Task => "08-tasks",
+            MemoryType::Rule => "09-rules",
+            MemoryType::Scratch => "10-scratch",
         }
     }
 
     pub fn from_folder(folder: &str) -> Option<Self> {
         match folder {
-            "01-context" => Some(MemoryType::Context),
-            "02-daily" => Some(MemoryType::Daily),
-            "03-intelligence" => Some(MemoryType::Intelligence),
-            "04-projects" => Some(MemoryType::Project),
-            "05-resources" => Some(MemoryType::Resource),
-            "06-skills" => Some(MemoryType::Skill),
-            "07-tasks" => Some(MemoryType::Task),
-            "08-rules" => Some(MemoryType::Rule),
-            "09-scratch" => Some(MemoryType::Scratch),
+            "01-sources" => Some(MemoryType::Source),
+            "02-context" => Some(MemoryType::Context),
+            "03-daily" => Some(MemoryType::Daily),
+            "04-intelligence" => Some(MemoryType::Intelligence),
+            "05-projects" => Some(MemoryType::Project),
+            "06-resources" => Some(MemoryType::Resource),
+            "07-skills" => Some(MemoryType::Skill),
+            "08-tasks" => Some(MemoryType::Task),
+            "09-rules" => Some(MemoryType::Rule),
+            "10-scratch" => Some(MemoryType::Scratch),
             _ => None,
         }
     }
@@ -55,9 +58,16 @@ pub enum MemoryOntology {
     Synthesis,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum MemoryStatus {
+    Unprocessed,
+    Processed,
+}
+
 pub fn default_ontology_for_memory_type(memory_type: &MemoryType) -> MemoryOntology {
     match memory_type {
-        MemoryType::Resource => MemoryOntology::Source,
+        MemoryType::Source | MemoryType::Resource => MemoryOntology::Source,
         MemoryType::Project | MemoryType::Context | MemoryType::Task => MemoryOntology::Entity,
         MemoryType::Skill | MemoryType::Rule => MemoryOntology::Concept,
         MemoryType::Daily | MemoryType::Intelligence | MemoryType::Scratch => {
@@ -105,6 +115,12 @@ pub struct MemoryMeta {
     pub output_format: Option<String>,
     #[serde(default)]
     pub ontology: Option<MemoryOntology>,
+    #[serde(default)]
+    pub status: Option<MemoryStatus>,
+    #[serde(default)]
+    pub protected: bool,
+    #[serde(default)]
+    pub derived_from: Vec<String>,
 }
 
 fn default_importance() -> f64 {

@@ -14,16 +14,17 @@ pub fn create_workspace_structure(root: &Path, active_tools: &[String]) -> Resul
     // Create all directories
     let dirs = [
         "00-inbox",
-        "01-context",
-        "02-daily",
-        "02-daily/sessions",
-        "03-intelligence",
-        "04-projects",
-        "05-resources",
-        "06-skills",
-        "07-tasks",
-        "08-rules",
-        "09-scratch",
+        "01-sources",
+        "02-context",
+        "03-daily",
+        "03-daily/sessions",
+        "04-intelligence",
+        "05-projects",
+        "06-resources",
+        "07-skills",
+        "08-tasks",
+        "09-rules",
+        "10-scratch",
         ".cache",
     ];
 
@@ -58,7 +59,7 @@ Este archivo se genera automáticamente. No editar manualmente.
 
 # RULES
 
-_No hay reglas definidas. Añade archivos en 08-rules/_
+_No hay reglas definidas. Añade archivos en 09-rules/_
 
 # Reglas de Lectura y Escritura de Memorias
 
@@ -74,6 +75,10 @@ _No hay reglas definidas. Añade archivos en 08-rules/_
 - Separa contenido con <!-- L1 --> y <!-- L2 -->
 - Incrementa version: y actualiza modified: al editar
 
+## Ingesta
+- Si trabajas con archivos de `00-inbox/`, lee primero `00-inbox/_INGEST.md` y sigue su protocolo
+- Archivos protegidos (`protected: true`) no deben editarse sin confirmación explícita del usuario
+
 # Índice de Memorias Disponibles
 
 _No hay memorias aún. Crea tu primera memoria desde la app._
@@ -83,11 +88,11 @@ _No hay memorias aún. Crea tu primera memoria desde la app._
 
     // Create JSONL files with schema lines
     create_jsonl_with_schema(
-        &root.join("02-daily/daily-log.jsonl"),
+        &root.join("03-daily/daily-log.jsonl"),
         "timestamp,type,summary,tags,source",
     )?;
     create_jsonl_with_schema(
-        &root.join("07-tasks/backlog.jsonl"),
+        &root.join("08-tasks/backlog.jsonl"),
         "timestamp,id,title,status,priority,tags",
     )?;
 
@@ -112,13 +117,46 @@ Cada skill sabe qué memorias necesita (campo requires/optional).
 <!-- L2 -->
 ## Cómo crear un skill
 
-1. Crea un archivo .md en 06-skills/
+1. Crea un archivo .md en 07-skills/
 2. Añade frontmatter con: id, type: skill, triggers, requires, optional
 3. Escribe las instrucciones detalladas en la sección L2
 4. El sistema cargará automáticamente las memorias requeridas
 "#;
-    fs::write(root.join("06-skills/_skill-instructions.md"), skill_instructions)
+    fs::write(root.join("07-skills/_skill-instructions.md"), skill_instructions)
         .map_err(|e| format!("Failed to write skill instructions: {}", e))?;
+
+    // Create inbox ingestion protocol
+    let ingest_instructions = r#"# Instrucciones de Ingesta — AI Context OS
+
+Cuando proceses archivos de 00-inbox/, sigue este protocolo:
+
+## 1. Analisis
+- Lee el archivo completo
+- Identifica: tipo de contenido, tema, idioma, relevancia
+
+## 2. Preguntas al usuario (si esta disponible)
+- A que proyecto o area pertenece esto?
+- Que nivel de importancia le asignas?
+- Hay algun tag o relacion con memorias existentes?
+Si el usuario no responde, clasifica autonomamente con tu mejor criterio.
+
+## 3. Procesamiento
+- Genera frontmatter YAML completo (id, type, l0, importance, tags, ontology, etc.)
+- Estructura el contenido con marcadores <!-- L1 --> y <!-- L2 -->
+- L1: resumen ejecutivo (2-3 lineas)
+- L2: contenido completo procesado
+
+## 4. Clasificacion y destino
+- Si es material de referencia original -> mover a 01-sources/ con protected: true
+- Si es conocimiento a integrar -> crear/actualizar memoria en la carpeta correspondiente, anadir derived_from
+- Si no tiene valor -> marcar como processed y dejar en inbox (el usuario decide si borrar)
+
+## 5. Post-proceso
+- Actualizar status: processed en el archivo original del inbox
+- Si genero nuevas memorias, asegurar que derived_from apunte al source
+"#;
+    fs::write(root.join("00-inbox/_INGEST.md"), ingest_instructions)
+        .map_err(|e| format!("Failed to write _INGEST.md: {}", e))?;
 
     Ok(config)
 }

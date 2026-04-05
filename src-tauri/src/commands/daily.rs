@@ -11,7 +11,7 @@ pub fn get_daily_entries(
     state: State<AppState>,
 ) -> Result<Vec<DailyEntry>, String> {
     let root = state.get_root();
-    let daily_path = root.join("02-daily/daily-log.jsonl");
+    let daily_path = root.join("03-daily/daily-log.jsonl");
 
     let entries: Vec<DailyEntry> = read_jsonl(&daily_path)?;
 
@@ -29,6 +29,6 @@ pub fn get_daily_entries(
 #[tauri::command]
 pub fn append_daily_entry(entry: DailyEntry, state: State<AppState>) -> Result<(), String> {
     let root = state.get_root();
-    let daily_path = root.join("02-daily/daily-log.jsonl");
+    let daily_path = root.join("03-daily/daily-log.jsonl");
     append_jsonl(&daily_path, &entry)
 }

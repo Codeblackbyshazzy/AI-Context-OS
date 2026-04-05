@@ -348,6 +348,9 @@ pub fn duplicate_memory_file(
             optional: source.meta.optional,
             output_format: source.meta.output_format,
             ontology: source.meta.ontology,
+            status: source.meta.status,
+            protected: source.meta.protected,
+            derived_from: source.meta.derived_from,
         },
         l1_content: source.l1_content,
         l2_content: source.l2_content,
@@ -478,6 +481,9 @@ fn create_memory_internal(
         optional: Vec::new(),
         output_format: None,
         ontology: Some(ontology),
+        status: None,
+        protected: false,
+        derived_from: Vec::new(),
     };
 
     let memory = Memory {
