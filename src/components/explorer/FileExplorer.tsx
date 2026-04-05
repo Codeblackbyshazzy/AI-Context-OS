@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
+  BookOpen,
   ChevronDown,
   ChevronRight,
   Clipboard,
@@ -13,6 +14,8 @@ import {
   FolderPlus,
   FolderSearch,
   GripVertical,
+  Inbox,
+  Lock,
   MoveRight,
   Pencil,
   Trash2,
@@ -182,15 +185,16 @@ function getTypeColor(node: FileNode): string | undefined {
 
 function folderToType(folder: string): MemoryType | null {
   const map: Record<string, MemoryType> = {
-    "01-context": "context",
-    "02-daily": "daily",
-    "03-intelligence": "intelligence",
-    "04-projects": "project",
-    "05-resources": "resource",
-    "06-skills": "skill",
-    "07-tasks": "task",
-    "08-rules": "rule",
-    "09-scratch": "scratch",
+    "01-sources": "source",
+    "02-context": "context",
+    "03-daily": "daily",
+    "04-intelligence": "intelligence",
+    "05-projects": "project",
+    "06-resources": "resource",
+    "07-skills": "skill",
+    "08-tasks": "task",
+    "09-rules": "rule",
+    "10-scratch": "scratch",
   };
   return map[folder] ?? null;
 }
@@ -289,7 +293,9 @@ function TreeNode({
   const hasConflict = conflictIds.has(memoryId);
   const isRawSupported = isRawViewerSupported(node.name);
   const opacity = memoryMeta ? computeDecayOpacity(memoryMeta) : 1;
-  const isProtected = isProtectedNode(node);
+  const isProtectedMemory = memoryMeta?.protected ?? false;
+  const memoryStatus = memoryMeta?.status ?? null;
+  const isProtected = isProtectedNode(node) || isProtectedMemory;
   const canDrag = !node.is_dir && !isProtected;
   const isDropTarget = dropTargetPath === node.path;
   const isDragSource = dragSourcePath === node.path;
@@ -484,6 +490,7 @@ const PROTECTED_FILE_NAMES = new Set([
 ]);
 
 const INBOX_FOLDER_NAME = "00-inbox";
+const SOURCES_FOLDER_NAME = "01-sources";
 
 function pathSegments(path: string): string[] {
   return path.replace(/\\/g, "/").split("/").filter(Boolean);
@@ -495,6 +502,14 @@ function isInboxPath(path: string): boolean {
 
 function isInboxNode(node: FileNode): boolean {
   return node.name === INBOX_FOLDER_NAME || isInboxPath(node.path);
+}
+
+function isSourcesPath(path: string): boolean {
+  return pathSegments(path).includes(SOURCES_FOLDER_NAME);
+}
+
+function isSourcesNode(node: FileNode): boolean {
+  return node.name === SOURCES_FOLDER_NAME || isSourcesPath(node.path);
 }
 
 function isProtectedNode(node: FileNode): boolean {
