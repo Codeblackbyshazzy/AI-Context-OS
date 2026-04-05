@@ -316,9 +316,9 @@ export function MemoryEditor() {
         <button
           type="button"
           onClick={handleDelete}
-          disabled={loading}
+          disabled={loading || isProtected}
           className="rounded p-1 text-[color:var(--text-2)] transition-colors hover:text-[color:var(--danger)] disabled:opacity-50"
-          title="Eliminar memoria"
+          title={isProtected ? "Archivo protegido" : "Eliminar memoria"}
         >
           <Trash2 className="h-3.5 w-3.5" />
         </button>
@@ -335,6 +335,7 @@ export function MemoryEditor() {
               onChange={(e) => {
                 handleMetaChange({ ...meta, l0: e.target.value });
               }}
+              readOnly={isProtected}
               placeholder="Sin titulo"
               className="mb-1 w-full bg-transparent text-2xl font-semibold text-[color:var(--text-0)] placeholder:text-[color:var(--text-2)]/40 focus:outline-none"
             />
