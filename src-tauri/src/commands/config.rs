@@ -130,34 +130,34 @@ Cada skill sabe qué memorias necesita (campo requires/optional).
     .map_err(|e| format!("Failed to write skill instructions: {}", e))?;
 
     // Create inbox ingestion protocol
-    let ingest_instructions = r#"# Instrucciones de Ingesta — AI Context OS
+    let ingest_instructions = r#"# Ingestion Instructions — AI Context OS
 
-Cuando proceses archivos de 00-inbox/, sigue este protocolo:
+When processing files from `00-inbox/`, follow this protocol:
 
-## 1. Analisis
-- Lee el archivo completo
-- Identifica: tipo de contenido, tema, idioma, relevancia
+## 1. Analyze
+- Read the full file
+- Identify: content type, topic, language, relevance
 
-## 2. Preguntas al usuario (si esta disponible)
-- A que proyecto o area pertenece esto?
-- Que nivel de importancia le asignas?
-- Hay algun tag o relacion con memorias existentes?
-Si el usuario no responde, clasifica autonomamente con tu mejor criterio.
+## 2. Ask The User If Available
+- Which project or area does this belong to?
+- What importance level should it have?
+- Are there tags or links to existing memories?
+If the user is not available, classify it using your best judgment.
 
-## 3. Procesamiento
-- Genera frontmatter YAML completo (id, type, l0, importance, tags, ontology, etc.)
-- Estructura el contenido con marcadores <!-- L1 --> y <!-- L2 -->
-- L1: resumen ejecutivo (2-3 lineas)
-- L2: contenido completo procesado
+## 3. Process
+- Generate complete YAML frontmatter (`id`, `type`, `l0`, `importance`, `tags`, `ontology`, etc.)
+- Structure the content with `<!-- L1 -->` and `<!-- L2 -->`
+- L1: executive summary (2-3 lines)
+- L2: fully processed content
 
-## 4. Clasificacion y destino
-- Si es material de referencia original -> mover a 01-sources/ con protected: true
-- Si es conocimiento a integrar -> crear/actualizar memoria en la carpeta correspondiente, anadir derived_from
-- Si no tiene valor -> marcar como processed y dejar en inbox (el usuario decide si borrar)
+## 4. Classify And Route
+- If it is original reference material, move it to `01-sources/` with `protected: true`
+- If it is knowledge to integrate, create or update the corresponding memory and add `derived_from`
+- If it has no lasting value, mark it as `processed` and leave it in inbox for the user to review
 
-## 5. Post-proceso
-- Actualizar status: processed en el archivo original del inbox
-- Si genero nuevas memorias, asegurar que derived_from apunte al source
+## 5. Post-Processing
+- Update the original inbox file to `status: processed`
+- If you created new memories, make sure `derived_from` points to the source
 "#;
     fs::write(root.join("00-inbox/_INGEST.md"), ingest_instructions)
         .map_err(|e| format!("Failed to write _INGEST.md: {}", e))?;

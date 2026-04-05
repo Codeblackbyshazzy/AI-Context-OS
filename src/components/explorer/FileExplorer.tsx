@@ -536,6 +536,10 @@ function isSourcesNode(node: FileNode): boolean {
   return node.name === SOURCES_FOLDER_NAME || isSourcesPath(node.path);
 }
 
+function isSpecialWorkspaceNode(node: FileNode): boolean {
+  return node.is_dir && (isInboxNode(node) || isSourcesNode(node));
+}
+
 function isProtectedNode(node: FileNode): boolean {
   if (node.is_dir && node.memory_type !== null) {
     return true;
