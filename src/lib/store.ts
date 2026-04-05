@@ -22,6 +22,7 @@ interface AppStore {
   error: string | null;
   explorerOpen: boolean;
   isCreateMemoryOpen: boolean;
+  pendingCreate: 'file' | 'folder' | null;
 
   // Actions
   initialize: () => Promise<void>;
@@ -46,6 +47,7 @@ interface AppStore {
   setExplorerOpen: (open: boolean) => void;
   toggleCreateMemory: () => void;
   setCreateMemoryOpen: (v: boolean) => void;
+  setPendingCreate: (mode: 'file' | 'folder' | null) => void;
 }
 
 export const useAppStore = create<AppStore>((set, get) => ({
@@ -60,6 +62,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   error: null,
   explorerOpen: true,
   isCreateMemoryOpen: false,
+  pendingCreate: null,
 
   initialize: async () => {
     try {
@@ -230,6 +233,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   setExplorerOpen: (open) => set({ explorerOpen: open }),
   toggleCreateMemory: () => set((s) => ({ isCreateMemoryOpen: !s.isCreateMemoryOpen })),
   setCreateMemoryOpen: (v) => set({ isCreateMemoryOpen: v }),
+  setPendingCreate: (mode) => set({ pendingCreate: mode }),
 }));
 
 const RECENT_LOCAL_WRITE_WINDOW_MS = 2_000;

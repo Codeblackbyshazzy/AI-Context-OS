@@ -424,6 +424,7 @@ function TreeNode({
             className="flex-1 rounded border border-[color:var(--accent)] bg-[color:var(--bg-0)] px-1 text-[13px] text-[color:var(--text-0)] outline-none"
             value={renameValue}
             onChange={(event) => onRenameChange(event.target.value)}
+            onFocus={(event) => event.target.select()}
             onKeyDown={(event) => {
               if (event.key === "Enter") onRenameCommit();
               if (event.key === "Escape") onRenameCancel();
@@ -672,6 +673,8 @@ export function FileExplorer() {
     selectFile,
     selectRawFile,
     setError,
+    pendingCreate,
+    setPendingCreate,
   } = useAppStore();
   const expertModeEnabled = useSettingsStore((s) => s.expertModeEnabled);
   const showSystemFiles = useSettingsStore((s) => s.showSystemFiles);
@@ -1054,6 +1057,43 @@ export function FileExplorer() {
       setError(String(error));
     }
   };
+
+  /* ────── Toolbar-triggered inline create ────── */
+  useEffect(() => {
+    if (!pendingCreate) return;
+    const mode = pendingCreate;
+    setPendingCreate(null);
+
+    // Find a target directory: selected path's directory, or first workspace folder
+    const findTargetDir = (): FileNode | null => {
+      if (selectedPath) {
+        const selectedNode = findNodeByPath(fileTree, selectedPath);
+        if (selectedNode?.is_dir && inferFolderTypeFromPath(selectedNode.path) !== null) {
+          return selectedNode;
+        }
+        const parentPath = getParentPath(selectedPath);
+        const parentNode = findNodeByPath(fileTree, parentPath);
+        if (parentNode?.is_dir && inferFolderTypeFromPath(parentNode.path) !== null) {
+          return parentNode;
+        }
+      }
+      // Fallback: first workspace folder
+      return fileTree.find((n) => n.is_dir && n.memory_type !== null) ?? null;
+    };
+
+    const target = findTargetDir();
+    if (!target) {
+      setError("No hay una carpeta de memoria disponible");
+      return;
+    }
+
+    openDirectory(target.path);
+    if (mode === "folder") {
+      void handleCreateFolder(target);
+    } else {
+      void handleCreateNote(target);
+    }
+  }, [pendingCreate]);
 
   const currentNode = ctxMenu?.node ?? null;
   const currentNodeIsProtected = currentNode ? isProtectedNode(currentNode) : false;
