@@ -109,7 +109,7 @@ export function FrontmatterForm({ meta, onChange, readonly = false }: Frontmatte
         />
       </Field>
 
-      <Field label="Type">
+      <Field label="Tipo">
         <select
           value={meta.memory_type}
           onChange={(e) => update({ memory_type: e.target.value as MemoryType })}
@@ -166,7 +166,7 @@ export function FrontmatterForm({ meta, onChange, readonly = false }: Frontmatte
           disabled={readonly}
           className="accent-[color:var(--accent)]"
         />
-        Always load
+        Cargar siempre
       </label>
 
       <label className="flex items-center gap-2 text-xs text-[color:var(--text-1)]">
@@ -183,7 +183,7 @@ export function FrontmatterForm({ meta, onChange, readonly = false }: Frontmatte
 
       {/* Scores */}
       <Slider
-        label="Importance"
+        label="Importancia"
         value={meta.importance}
         min={0}
         max={1}
@@ -192,7 +192,7 @@ export function FrontmatterForm({ meta, onChange, readonly = false }: Frontmatte
         onChange={(v) => update({ importance: v })}
       />
       <Slider
-        label="Confidence"
+        label="Confianza"
         value={meta.confidence}
         min={0}
         max={1}
@@ -201,7 +201,7 @@ export function FrontmatterForm({ meta, onChange, readonly = false }: Frontmatte
         onChange={(v) => update({ confidence: v })}
       />
       <Slider
-        label="Decay Rate"
+        label="Decaimiento"
         value={meta.decay_rate}
         min={0.95}
         max={0.9999}
@@ -214,27 +214,27 @@ export function FrontmatterForm({ meta, onChange, readonly = false }: Frontmatte
       <div className="border-t border-[var(--border)]" />
 
       {/* Content */}
-      <Field label="L0 Summary">
+      <Field label="Resumen L0">
         <input
           type="text"
           value={meta.l0}
           onChange={(e) => update({ l0: e.target.value })}
           disabled={readonly}
-          placeholder="One-line summary..."
+          placeholder="Resumen en una linea..."
           className="w-full rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-2 py-1.5 text-xs text-[color:var(--text-0)] placeholder:text-[color:var(--text-2)]"
         />
       </Field>
 
       <ChipEditor
-        label="Tags"
+        label="Etiquetas"
         values={meta.tags}
-        placeholder="Add tag..."
+        placeholder="Anadir etiqueta..."
         disabled={readonly}
         onAdd={(value) => update({ tags: addUnique(meta.tags, value, false) })}
         onRemove={(value) => update({ tags: meta.tags.filter((tag) => tag !== value) })}
       />
       <ChipEditor
-        label="Related"
+        label="Relacionado"
         values={meta.related}
         placeholder="memory-id..."
         disabled={readonly}
@@ -255,35 +255,35 @@ export function FrontmatterForm({ meta, onChange, readonly = false }: Frontmatte
         <>
           <div className="border-t border-[var(--border)]" />
           <ChipEditor
-            label="Triggers"
+            label="Disparadores"
             values={meta.triggers}
-            placeholder="trigger phrase..."
+            placeholder="frase activadora..."
             disabled={readonly}
             onAdd={(value) => update({ triggers: addUnique(meta.triggers, value, false) })}
             onRemove={(value) => update({ triggers: meta.triggers.filter((item) => item !== value) })}
           />
-          <Field label="Output Format">
+          <Field label="Formato de salida">
             <input
               type="text"
               value={meta.output_format ?? ""}
               onChange={(e) => update({ output_format: e.target.value.trim() || null })}
               disabled={readonly}
-              placeholder="markdown / json / text..."
+              placeholder="markdown / json / texto..."
               className="w-full rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-2 py-1.5 text-xs text-[color:var(--text-0)] placeholder:text-[color:var(--text-2)]"
             />
           </Field>
           <ChipEditor
-            label="Requires"
+            label="Requiere"
             values={meta.requires}
-            placeholder="required memory-id..."
+            placeholder="memory-id requerida..."
             disabled={readonly}
             onAdd={(value) => update({ requires: addUnique(meta.requires, value) })}
             onRemove={(value) => update({ requires: meta.requires.filter((item) => item !== value) })}
           />
           <ChipEditor
-            label="Optional"
+            label="Opcional"
             values={meta.optional}
-            placeholder="optional memory-id..."
+            placeholder="memory-id opcional..."
             disabled={readonly}
             onAdd={(value) => update({ optional: addUnique(meta.optional, value) })}
             onRemove={(value) => update({ optional: meta.optional.filter((item) => item !== value) })}
