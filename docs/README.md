@@ -9,8 +9,8 @@ It is designed for two audiences at the same time:
 
 ## Recommended reading order
 
-1. [Architecture And Operating Model](/Users/alexdc/Documents/GitHub/AI-Context-OS/documentation/architecture-and-operating-model.md)
-2. [Current State, Implemented Changes, And Roadmap](/Users/alexdc/Documents/GitHub/AI-Context-OS/documentation/current-state-and-roadmap.md)
+1. [Architecture And Operating Model](/Users/alexdc/Documents/GitHub/AI-Context-OS/docs/architecture-and-operating-model.md)
+2. [Current State, Implemented Changes, And Roadmap](/Users/alexdc/Documents/GitHub/AI-Context-OS/docs/current-state-and-roadmap.md)
 
 ## Scope of this folder
 

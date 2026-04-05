@@ -205,7 +205,7 @@ External AI tools through MCP should remain first-class even if local models are
 If an AI agent needs to review the system in the future, the intended reading order is:
 
 1. root README
-2. this `documentation/` folder
+2. this `docs/` folder
 3. `AGENT.md`
 4. `AGENTS.md`
 5. `REVISION-TECNICA-ALINEACION-2026-03-29.md`

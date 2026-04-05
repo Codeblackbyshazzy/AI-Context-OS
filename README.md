@@ -4,7 +4,7 @@ Translations:
 - [ES](/Users/alexdc/Documents/GitHub/AI-Context-OS/README.es.md)
 
 Extended system docs:
-- [Documentation Index](/Users/alexdc/Documents/GitHub/AI-Context-OS/documentation/README.md)
+- [Documentation Index](/Users/alexdc/Documents/GitHub/AI-Context-OS/docs/README.md)
 
 AI Context OS is a desktop app (`Tauri v2 + React + TypeScript + Rust`) that turns a local folder into a universal, tool-agnostic memory layer for AI agents.
 
