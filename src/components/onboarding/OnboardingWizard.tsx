@@ -129,7 +129,7 @@ export function OnboardingWizard({ onComplete }: Props) {
                     Ubicación del workspace
                   </h2>
                   <p className="mt-1 text-xs text-[color:var(--text-2)]">
-                    Se creará una carpeta con 10 subdirectorios para tu memoria de IA.
+                    Se creará una carpeta con `inbox/`, `sources/` y 9 subdirectorios numerados para tu memoria de IA.
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
