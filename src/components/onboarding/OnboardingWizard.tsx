@@ -142,7 +142,7 @@ export function OnboardingWizard({ onComplete }: Props) {
                   />
                 </div>
                 <p className="font-mono text-[11px] text-[color:var(--text-2)]">
-                  01-context/ · 02-daily/ · 03-intelligence/ · 04-projects/ · 05-resources/ · 06-skills/ · 07-tasks/ · 08-rules/ · 09-scratch/
+                  00-inbox/ · 01-context/ · 02-daily/ · 03-intelligence/ · 04-projects/ · 05-resources/ · 06-skills/ · 07-tasks/ · 08-rules/ · 09-scratch/
                 </p>
               </div>
             )}

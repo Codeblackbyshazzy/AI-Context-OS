@@ -165,6 +165,7 @@ fn write_memory_file(
     requires: &[&str],
 ) -> Result<(), String> {
     let now = Utc::now();
+    let ontology = default_ontology_for_memory_type(&mem_type);
     let meta = MemoryMeta {
         id: id.to_string(),
         memory_type: mem_type,
@@ -184,7 +185,7 @@ fn write_memory_file(
         requires: requires.iter().map(|s| s.to_string()).collect(),
         optional: vec![],
         output_format: None,
-        ontology: Some(default_ontology_for_memory_type(&mem_type)),
+        ontology: Some(ontology),
     };
 
     let body = format!("<!-- L1 -->\n{}\n\n<!-- L2 -->\n{}", l1, l2);

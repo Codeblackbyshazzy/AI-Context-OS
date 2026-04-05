@@ -207,6 +207,7 @@ impl AiContextMcpServer {
             "scratch" => MemoryType::Scratch,
             other => return format!("Unknown memory type: '{}'. Valid: context, daily, intelligence, project, resource, skill, task, rule, scratch", other),
         };
+        let ontology = default_ontology_for_memory_type(&memory_type);
 
         let folder = memory_type.folder_name();
         let file_path = root.join(folder).join(format!("{}.md", params.id));
@@ -231,7 +232,7 @@ impl AiContextMcpServer {
             requires: vec![],
             optional: vec![],
             output_format: None,
-            ontology: Some(default_ontology_for_memory_type(&memory_type)),
+            ontology: Some(ontology),
         };
 
         let body = join_levels(&params.l1_content, &params.l2_content);

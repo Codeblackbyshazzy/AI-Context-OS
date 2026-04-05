@@ -13,6 +13,7 @@ use crate::state::AppState;
 pub fn create_workspace_structure(root: &Path, active_tools: &[String]) -> Result<Config, String> {
     // Create all directories
     let dirs = [
+        "00-inbox",
         "01-context",
         "02-daily",
         "02-daily/sessions",

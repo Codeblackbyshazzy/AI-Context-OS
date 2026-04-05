@@ -457,6 +457,7 @@ fn create_memory_internal(
     }
 
     let now = Utc::now();
+    let ontology = default_ontology_for_memory_type(&input.memory_type);
     let meta = MemoryMeta {
         id: trimmed_id.to_string(),
         memory_type: input.memory_type,
@@ -476,7 +477,7 @@ fn create_memory_internal(
         requires: Vec::new(),
         optional: Vec::new(),
         output_format: None,
-        ontology: Some(default_ontology_for_memory_type(&input.memory_type)),
+        ontology: Some(ontology),
     };
 
     let memory = Memory {

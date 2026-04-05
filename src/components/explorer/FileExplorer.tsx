@@ -467,7 +467,12 @@ function TreeNode({
 
 function isRawViewerSupported(name: string): boolean {
   const lowerName = name.toLowerCase();
-  return lowerName.endsWith(".jsonl") || lowerName.endsWith(".yaml") || lowerName.endsWith(".yml");
+  return (
+    lowerName.endsWith(".md") ||
+    lowerName.endsWith(".jsonl") ||
+    lowerName.endsWith(".yaml") ||
+    lowerName.endsWith(".yml")
+  );
 }
 
 const PROTECTED_FILE_NAMES = new Set([
@@ -478,6 +483,20 @@ const PROTECTED_FILE_NAMES = new Set([
   ".windsurfrules",
 ]);
 
+const INBOX_FOLDER_NAME = "00-inbox";
+
+function pathSegments(path: string): string[] {
+  return path.replace(/\\/g, "/").split("/").filter(Boolean);
+}
+
+function isInboxPath(path: string): boolean {
+  return pathSegments(path).includes(INBOX_FOLDER_NAME);
+}
+
+function isInboxNode(node: FileNode): boolean {
+  return node.name === INBOX_FOLDER_NAME || isInboxPath(node.path);
+}
+
 function isProtectedNode(node: FileNode): boolean {
   if (node.is_dir && node.memory_type !== null) {
     return true;
@@ -487,6 +506,10 @@ function isProtectedNode(node: FileNode): boolean {
 
 function stripMdExtension(name: string): string {
   return name.replace(/\.md$/i, "");
+}
+
+function isManagedMemoryFile(node: FileNode, memoryIds: Set<string>): boolean {
+  return !node.is_dir && isMarkdownFile(node.name) && memoryIds.has(stripMdExtension(node.name));
 }
 
 function getParentPath(path: string): string {
@@ -525,6 +548,7 @@ function pathMatchesTarget(targetPath: string | null, candidatePath: string): bo
 
 function isAdvancedOnlyFile(node: FileNode): boolean {
   if (node.is_dir) return false;
+  if (isInboxPath(node.path)) return false;
   if (PROTECTED_FILE_NAMES.has(node.name)) return true;
   if (!isMarkdownFile(node.name)) return true;
   if (node.name.startsWith("_")) return true;
@@ -545,7 +569,10 @@ function filterExplorerTree(
   for (const node of nodes) {
     if (node.is_dir) {
       const filteredChildren = filterExplorerTree(node.children, showSystemFiles);
-      const shouldShowDirectory = node.memory_type !== null || filteredChildren.nodes.length > 0;
+      const shouldShowDirectory =
+        node.memory_type !== null ||
+        node.name === INBOX_FOLDER_NAME ||
+        filteredChildren.nodes.length > 0;
 
       hiddenCount += filteredChildren.hiddenCount;
 
@@ -610,6 +637,7 @@ export function FileExplorer() {
     () => filterExplorerTree(fileTree, false).hiddenCount,
     [fileTree],
   );
+  const memoryIds = useMemo(() => new Set(memories.map((memory) => memory.id)), [memories]);
 
   useEffect(() => {
     void loadFileTree();
@@ -817,7 +845,10 @@ export function FileExplorer() {
     }
 
     try {
-      if (isMarkdownFile(renamingTarget.name)) {
+      const renamingNode = findNodeByPath(fileTree, renamingTarget.path);
+      const isManagedMemory = renamingNode ? isManagedMemoryFile(renamingNode, memoryIds) : false;
+
+      if (isManagedMemory) {
         const newId = normalizeMemoryId(rawValue);
         if (!newId) {
           setError("El nombre de la memoria no es valido");
@@ -832,7 +863,7 @@ export function FileExplorer() {
         await refreshTreeAndMemories();
         await selectFile(renamed.meta.id);
       } else {
-        const nextName = rawValue;
+        const nextName = isMarkdownFile(renamingTarget.name) ? `${rawValue}.md` : rawValue;
         if (nextName === renamingTarget.name) {
           cancelRename();
           return;
@@ -878,7 +909,7 @@ export function FileExplorer() {
     if (node.is_dir) return;
 
     try {
-      if (isMarkdownFile(node.name)) {
+      if (isManagedMemoryFile(node, memoryIds)) {
         const baseId = `${stripMdExtension(node.name)}-copy`;
         const nextId = uniqueName(
           normalizeMemoryId(baseId) || "copy",
@@ -964,13 +995,13 @@ export function FileExplorer() {
 
   const currentNode = ctxMenu?.node ?? null;
   const currentNodeIsProtected = currentNode ? isProtectedNode(currentNode) : false;
-  const currentNodeIsMarkdown = currentNode ? !currentNode.is_dir && isMarkdownFile(currentNode.name) : false;
+  const currentNodeIsManagedMemory = currentNode ? isManagedMemoryFile(currentNode, memoryIds) : false;
   const currentFolderSupportsNotes = currentNode?.is_dir
     ? inferFolderTypeFromPath(currentNode.path) !== null
     : false;
 
   const handleMoveMemory = async (node: FileNode) => {
-    if (!currentNodeIsMarkdown) return;
+    if (!currentNodeIsManagedMemory) return;
 
     const destination = await open({
       directory: true,
@@ -1031,7 +1062,7 @@ export function FileExplorer() {
 
     try {
       openDirectory(target.path);
-      if (isMarkdownFile(sourceNode.name)) {
+      if (isManagedMemoryFile(sourceNode, memoryIds)) {
         // moveMemoryFile already regenerates the router internally,
         // so only refresh tree + memories to avoid double work.
         const moved = await moveMemoryFile(sourceNode.path, target.path);
@@ -1169,7 +1200,7 @@ export function FileExplorer() {
               label: "Nueva nota",
               icon: FilePlus,
               onSelect: () => handleCreateNote(currentNode),
-              disabled: !currentFolderSupportsNotes,
+              disabled: !currentFolderSupportsNotes || isInboxNode(currentNode),
             },
             {
               label: "Nueva carpeta",
@@ -1211,7 +1242,7 @@ export function FileExplorer() {
               onSelect: () => handleDuplicate(currentNode),
               disabled: currentNodeIsProtected,
             },
-            ...(currentNodeIsMarkdown
+            ...(currentNodeIsManagedMemory
               ? [
                   {
                     label: "Mover archivo a...",

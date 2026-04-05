@@ -120,7 +120,7 @@ fn main() {
             }
 
             let dirs = [
-                "01-context", "02-daily", "02-daily/sessions", "03-intelligence",
+                "00-inbox", "01-context", "02-daily", "02-daily/sessions", "03-intelligence",
                 "04-projects", "05-resources", "06-skills", "07-tasks",
                 "08-rules", "09-scratch", ".cache",
             ];
