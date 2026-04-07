@@ -4,6 +4,7 @@ import type {
   CreateMemoryInput,
   DailyEntry,
   FileNode,
+  GodNode,
   GraphData,
   JournalDateInfo,
   JournalPage,
@@ -74,6 +75,7 @@ export const simulateContext = (query: string, tokenBudget: number) =>
 
 // Graph
 export const getGraphData = () => invoke<GraphData>("get_graph_data");
+export const getGodNodes = () => invoke<GodNode[]>("get_god_nodes");
 
 // Governance
 export const getConflicts = () => invoke<Conflict[]>("get_conflicts");
