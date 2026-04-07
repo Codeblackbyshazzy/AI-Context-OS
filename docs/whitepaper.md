@@ -102,13 +102,15 @@ When an AI tool calls `get_context` with a query (e.g., "implement error handlin
 |--------|-----------------|
 | Semantic | Keyword overlap with query |
 | BM25 | Term frequency / inverse document frequency |
-| Graph | Link connectivity to other high-scoring memories |
+| Graph | Link connectivity + community membership |
 | Recency | How recently the memory was modified |
 | Importance | Engineer-assigned weight (0.0–1.0) |
 | Access frequency | How often this memory has been used recently |
 
 5. Ranks memories by composite score
 6. Greedily loads memories within the token budget, choosing L1 or L2 based on remaining budget and score
+
+**Community detection:** Before scoring, the engine runs a Label Propagation Algorithm (LPA) over an enriched graph — explicit `related`/`requires`/`optional` links plus implicit edges between memories sharing ≥2 tags. This assigns each memory to a topical cluster. During scoring, a memory in the same community as any top-5 match gets a +0.08 graph proximity bonus. This activates the graph signal even when engineers haven't written explicit cross-references.
 
 The entire pipeline runs in Rust and completes in single-digit milliseconds for typical workspaces (< 500 memories).
 
@@ -217,6 +219,8 @@ Left unmanaged, any memory system accumulates stale information. AI Context OS i
 **Conflicts**: Memories with high semantic overlap but inconsistent content — potential contradictions in your knowledge base.
 
 **Consolidation suggestions**: Clusters of related memories that could be merged into a single, more comprehensive entry.
+
+**God nodes**: Memories with high graph degree (many explicit links) but low engineer-assigned importance. This mismatch — the graph says it's central, the engineer hasn't reflected that — surfaces in a dedicated tab. Resolving it means bumping the importance score so the scoring engine reflects the structural reality of your knowledge base.
 
 **Scratch cleanup**: Files in `09-scratch/` older than their TTL — temporary outputs that should be archived or deleted.
 
