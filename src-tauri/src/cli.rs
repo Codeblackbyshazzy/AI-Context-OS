@@ -9,6 +9,7 @@ use rmcp::ServiceExt as _;
 use std::sync::Arc;
 
 use core::compat::{render_claude_adapter, render_cursor_adapter, render_windsurf_adapter};
+use core::graph::get_community_map_for_scoring;
 use core::index::scan_memories;
 use core::memory::read_memory;
 use core::router::{generate_index_yaml, generate_router_content};
@@ -164,10 +165,11 @@ fn main() {
             }
 
             let now = Utc::now();
+            let community_map = get_community_map_for_scoring(&memories);
             let mut scored: Vec<(f64, &Memory)> = memories
                 .iter()
                 .map(|m| {
-                    let sb = compute_score(&query, m, &memories, &[], now);
+                    let sb = compute_score(&query, m, &memories, &[], &community_map, now);
                     (sb.final_score, m)
                 })
                 .collect();
@@ -189,10 +191,11 @@ fn main() {
             }
 
             let now = Utc::now();
+            let community_map = get_community_map_for_scoring(&memories);
             let mut scored: Vec<(f64, &Memory, u32)> = memories
                 .iter()
                 .map(|m| {
-                    let sb = compute_score(&query, m, &memories, &[], now);
+                    let sb = compute_score(&query, m, &memories, &[], &community_map, now);
                     let tokens = core::levels::estimate_tokens(&m.l2_content);
                     (sb.final_score, m, tokens)
                 })

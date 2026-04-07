@@ -102,13 +102,15 @@ When an AI tool calls `get_context` with a query (e.g., "implement error handlin
 |--------|-----------------|
 | Semantic | Keyword overlap with query |
 | BM25 | Term frequency / inverse document frequency |
-| Graph | Link connectivity to other high-scoring memories |
+| Graph | Link connectivity + community membership |
 | Recency | How recently the memory was modified |
 | Importance | Engineer-assigned weight (0.0–1.0) |
 | Access frequency | How often this memory has been used recently |
 
 5. Ranks memories by composite score
 6. Greedily loads memories within the token budget, choosing L1 or L2 based on remaining budget and score
+
+**Community detection:** Before scoring, the engine leverages structural graph algorithms (like Leiden or LPA) over an enriched graph — explicit `related`/`requires`/`optional` links plus implicit edges between memories sharing ≥2 tags. Unlike K-means over embeddings, these detect communities purely by edge density and modularity without needing predefined 'K' clusters. This accurately assigns each memory to a topical cluster. During scoring, a memory in the same community as any top-5 match gets a +0.08 graph proximity bonus. This activates the graph signal even when engineers haven't written explicit cross-references.
 
 The entire pipeline runs in Rust and completes in single-digit milliseconds for typical workspaces (< 500 memories).
 
@@ -218,6 +220,8 @@ Left unmanaged, any memory system accumulates stale information. AI Context OS i
 
 **Consolidation suggestions**: Clusters of related memories that could be merged into a single, more comprehensive entry.
 
+**God nodes**: Memories with high graph degree (many explicit links) but low engineer-assigned importance. This mismatch — the graph says it's central, the engineer hasn't reflected that — surfaces in a dedicated tab. Resolving it means bumping the importance score so the scoring engine reflects the structural reality of your knowledge base.
+
 **Scratch cleanup**: Files in `09-scratch/` older than their TTL — temporary outputs that should be archived or deleted.
 
 **Health score**: A 0-100 composite metric visible in the app header at all times:
@@ -228,7 +232,7 @@ Left unmanaged, any memory system accumulates stale information. AI Context OS i
 | Efficiency | 25% | Token budget utilization (ideal: 50-80%) |
 | Freshness | 20% | % of memories modified recently |
 | Balance | 15% | Distribution across memory types |
-| Cleanliness | 15% | % of memories not flagged by governance |
+| Cleanliness | 15% | % of memories not flagged by governance (includes god node mismatches) |
 
 ---
 
@@ -334,7 +338,9 @@ AI Context OS is in active development. Core features are stable and in daily us
 - ✅ Simulation view (preview context for any query)
 - ✅ Journal (daily outliner, Logseq-style)
 - ✅ Tasks (YAML-frontmatter tasks with state/priority)
-- ✅ Graph visualization (memory connectivity)
+- ✅ Graph visualization (memory connectivity) with community coloring
+- ✅ Community detection (LPA + tag co-occurrence) feeding graph proximity score
+- ✅ God nodes governance tab (importance mismatch detection)
 - ✅ Backup/restore
 
 On the roadmap:

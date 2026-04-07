@@ -5,6 +5,7 @@ import {
   ArrowUpFromLine,
   BarChart3,
   Trash2,
+  Star,
 } from "lucide-react";
 import { clsx } from "clsx";
 import {
@@ -12,13 +13,14 @@ import {
   getDecayCandidates,
   getConsolidationSuggestions,
   getScratchCandidates,
+  getGodNodes,
   deleteMemory,
 } from "../lib/tauri";
 import { useAppStore } from "../lib/store";
-import type { Conflict, ConsolidationSuggestion, MemoryMeta } from "../lib/types";
+import type { Conflict, ConsolidationSuggestion, GodNode, MemoryMeta } from "../lib/types";
 import { MEMORY_TYPE_COLORS, MEMORY_TYPE_LABELS } from "../lib/types";
 
-type Tab = "stats" | "conflicts" | "decay" | "consolidation" | "scratch";
+type Tab = "stats" | "conflicts" | "decay" | "consolidation" | "scratch" | "god_nodes";
 
 export function GovernanceView() {
   const [activeTab, setActiveTab] = useState<Tab>("stats");
@@ -26,6 +28,7 @@ export function GovernanceView() {
   const [decayCandidates, setDecayCandidates] = useState<MemoryMeta[]>([]);
   const [consolidation, setConsolidation] = useState<ConsolidationSuggestion[]>([]);
   const [scratchFiles, setScratchFiles] = useState<string[]>([]);
+  const [godNodes, setGodNodes] = useState<GodNode[]>([]);
   const { memories } = useAppStore();
 
   useEffect(() => {
@@ -33,6 +36,7 @@ export function GovernanceView() {
     getDecayCandidates().then(setDecayCandidates).catch(console.error);
     getConsolidationSuggestions().then(setConsolidation).catch(console.error);
     getScratchCandidates().then(setScratchFiles).catch(console.error);
+    getGodNodes().then(setGodNodes).catch(console.error);
   }, []);
 
   const tabs: { id: Tab; icon: typeof BarChart3; label: string }[] = [
@@ -41,6 +45,7 @@ export function GovernanceView() {
     { id: "decay", icon: Clock, label: `Decay ${decayCandidates.length}` },
     { id: "consolidation", icon: ArrowUpFromLine, label: `Consolidation ${consolidation.length}` },
     { id: "scratch", icon: Trash2, label: `Scratch TTL ${scratchFiles.length}` },
+    { id: "god_nodes", icon: Star, label: `God Nodes ${godNodes.length}` },
   ];
 
   const typeGroups = memories.reduce(
@@ -193,6 +198,57 @@ export function GovernanceView() {
             ))}
             {consolidation.length === 0 && (
               <Empty text="No consolidation suggestions" />
+            )}
+          </div>
+        )}
+
+        {activeTab === "god_nodes" && (
+          <div className="space-y-2">
+            <p className="mb-3 text-[11px] text-[color:var(--text-2)]">
+              Memories whose graph connectivity (degree) significantly exceeds their
+              assigned importance. Consider increasing their importance score.
+            </p>
+            {godNodes.map((gn) => {
+              const mismatch = gn.mismatch_score;
+              const color = MEMORY_TYPE_COLORS[gn.memory_type];
+              return (
+                <div
+                  key={gn.memory_id}
+                  className="rounded-md border border-[var(--border)] bg-[color:var(--bg-0)] px-3 py-2.5"
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <span
+                      className="h-2 w-2 shrink-0 rounded-full"
+                      style={{ backgroundColor: color }}
+                    />
+                    <span className="text-xs font-medium text-[color:var(--text-0)]">
+                      {gn.memory_id}
+                    </span>
+                    <span className="ml-auto flex items-center gap-2 text-[10px] font-mono">
+                      <span className="text-[color:var(--text-2)]">
+                        degree {gn.degree}
+                      </span>
+                      <span className="text-[color:var(--text-2)]">
+                        imp {gn.importance.toFixed(2)}
+                      </span>
+                      <span
+                        className={clsx(
+                          "rounded px-1.5 py-0.5 font-medium",
+                          mismatch > 0.4
+                            ? "bg-[color:var(--accent)]/15 text-[color:var(--accent)]"
+                            : "bg-[color:var(--bg-3)] text-[color:var(--text-2)]",
+                        )}
+                      >
+                        {mismatch > 0 ? "+" : ""}{mismatch.toFixed(2)}
+                      </span>
+                    </span>
+                  </div>
+                  <p className="truncate text-[11px] text-[color:var(--text-2)]">{gn.l0}</p>
+                </div>
+              );
+            })}
+            {godNodes.length === 0 && (
+              <Empty text="No god nodes detected — importance scores are well-calibrated" />
             )}
           </div>
         )}

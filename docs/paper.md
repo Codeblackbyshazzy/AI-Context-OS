@@ -261,7 +261,19 @@ The current intent detection is lexical (keyword-based triggers). Future work wi
 
 Additionally, the query undergoes expansion before scoring: a set of synonym mappings enriches the query with related terms, improving lexical recall. "Bug" expands to "bug error fix exception failure"; "deploy" expands to "deploy release publish CI CD"; etc.
 
-### 4.6 The Router: Attention-Positioned Context Delivery
+### 4.6 Community Detection and the Graph Proximity Signal
+
+A key limitation of pure explicit-link graph scoring is that it only activates when the engineer has manually added `related` fields between memories. In practice, engineers often maintain consistent tagging discipline but inconsistently write cross-references. A memory about Rust error handling may share three tags with a memory about API design without the engineer having linked them.
+
+AI Context OS addresses this through a community detection pass (using algorithms like Leiden or advanced Label Propagation) that runs over an enriched graph. This graph includes both explicit links (the `related`, `requires`, and `optional` frontmatter fields) and implicit edges derived from tag co-occurrence: two memories sharing two or more tags are connected by an implicit edge.
+
+Unlike traditional K-means clustering—which requires specifying the number of clusters over abstract spatial vectors—graph-native algorithms like Leiden detect communities naturally based on edge density and modularity optimization. This partitions the graph into topical communities of varying sizes, structurally grouping memories that are semantically related.
+
+The community membership is used in two ways. First, the graph proximity signal includes a community bonus: if a memory belongs to the same topical community as any of the top-scored memories for a given query, it receives a +0.08 boost to its graph proximity score. This surfaces memories that belong to the same knowledge cluster as highly relevant memories, even without an explicit link. Second, community assignments are transmitted to the visualization layer and can be used to color nodes by cluster rather than by memory type, making the topical structure of the knowledge base visually apparent based on true structural connectivity.
+
+These community detection algorithms run efficiently in Rust (leveraging libraries like `petgraph` or `leiden-rs`) as background maintenance jobs, updating the cluster map of the workspace gracefully.
+
+### 4.7 The Router: Attention-Positioned Context Delivery
 
 The output of the scoring engine is a ranked, token-budgeted selection of memories at appropriate tiers. This selection must be formatted for delivery to the AI tool. The router layer handles this formatting.
 
@@ -279,7 +291,7 @@ The router generates a neutral intermediate representation (`claude.md`, `_index
 
 This adapter-first architecture means that adding support for a new AI tool requires only a new adapter function, without touching the core router logic.
 
-### 4.7 MCP as the Agent Interface Layer
+### 4.8 MCP as the Agent Interface Layer
 
 The Model Context Protocol (MCP) is an open standard for exposing tools and resources to AI agents. AI Context OS implements an MCP server that exposes four tools to connected AI agents:
 
@@ -313,6 +325,8 @@ AI Context OS implements a governance layer that monitors the memory corpus and 
 **Conflict detection**: Memories that contain contradictory information, detected through a combination of tag overlap and semantic similarity. Two memories with high semantic similarity but marked as different types, or with high token overlap and different importance scores, are flagged as potential conflicts.
 
 **Consolidation suggestions**: Clusters of memories with high topical overlap that might be merged into a single, more comprehensive memory. This addresses the accumulation of redundant information across multiple files.
+
+**God nodes**: A structural analysis of the memory graph identifies nodes with high degree centrality — memories that many other memories link to. These are compared against the engineer-assigned importance score. A memory with high degree centrality but low importance score represents a calibration mismatch: the graph structure indicates the memory is central to the knowledge base, but the engineer has not recognized this in their explicit importance assignment. These candidates are surfaced in the governance view for importance recalibration, helping the scoring engine better reflect structural reality.
 
 **Scratch TTL**: The `09-scratch/` directory is a temporary workspace for volatile content (large tool outputs, exploratory notes, intermediate computations). Files here automatically become candidates for cleanup after a configurable TTL, preventing the accumulation of debris.
 

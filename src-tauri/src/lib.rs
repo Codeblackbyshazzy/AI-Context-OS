@@ -140,6 +140,7 @@ pub fn run() {
             commands::scoring::simulate_context,
             // Graph
             commands::graph::get_graph_data,
+            commands::graph::get_god_nodes,
             // Governance
             commands::governance::get_conflicts,
             commands::governance::get_decay_candidates,

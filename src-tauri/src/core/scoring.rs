@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use chrono::{DateTime, Utc};
 
 use crate::core::search::{bm25_score, build_doc_freq, l0_keyword_score, tag_match_score};
@@ -96,11 +98,13 @@ fn expand_query(query: &str) -> String {
 
 /// Compute the hybrid score for a memory given a query.
 /// Uses dynamic intent-based weights and query expansion for better recall.
+/// `community_map` maps memory_id → community_id for community-proximity boosting.
 pub fn compute_score(
     query: &str,
     memory: &Memory,
     all_memories: &[Memory],
     selected_ids: &[String],
+    community_map: &HashMap<String, u32>,
     now: DateTime<Utc>,
 ) -> ScoreBreakdown {
     let weights = detect_intent_weights(query);
@@ -112,7 +116,7 @@ pub fn compute_score(
     let importance = memory.meta.importance;
     let access_frequency =
         access_frequency_score(memory.meta.access_count, max_access_count(all_memories));
-    let graph_proximity = graph_proximity_score(memory, all_memories, selected_ids);
+    let graph_proximity = graph_proximity_score(memory, all_memories, selected_ids, community_map);
 
     let final_score = weights.semantic * semantic
         + weights.bm25 * bm25
@@ -242,11 +246,19 @@ fn max_access_count(memories: &[Memory]) -> u32 {
         .unwrap_or(1)
 }
 
-/// Graph proximity with two-level spreading activation.
+/// Graph proximity with two-level spreading activation plus community membership boost.
+///
 /// L1 (direct connection in selected_ids): +0.10 per match.
 /// L2 (connection-of-connection in selected_ids): +0.03 per match.
+/// Community bonus: +0.08 if memory shares a community with any selected memory.
+///
 /// Result is capped at 1.0.
-fn graph_proximity_score(memory: &Memory, all_memories: &[Memory], selected_ids: &[String]) -> f64 {
+fn graph_proximity_score(
+    memory: &Memory,
+    all_memories: &[Memory],
+    selected_ids: &[String],
+    community_map: &HashMap<String, u32>,
+) -> f64 {
     if selected_ids.is_empty() {
         return 0.0;
     }
@@ -261,7 +273,6 @@ fn graph_proximity_score(memory: &Memory, all_memories: &[Memory], selected_ids:
     let l1_score = l1_ids.len() as f64 * 0.10;
 
     // Level 2: IDs referenced by L1 memories that also appear in selected_ids
-    // (excluding IDs already counted in L1 to avoid double-counting)
     let l2_count = all_memories
         .iter()
         .filter(|m| l1_ids.contains(&&m.meta.id))
@@ -270,7 +281,22 @@ fn graph_proximity_score(memory: &Memory, all_memories: &[Memory], selected_ids:
         .count();
     let l2_score = l2_count as f64 * 0.03;
 
-    (l1_score + l2_score).min(1.0)
+    // Community bonus: +0.08 if this memory is in the same topical cluster
+    // as any of the top-scored selected memories (covers implicit tag-based proximity)
+    let community_bonus = match community_map.get(&memory.meta.id) {
+        Some(&mem_community) => {
+            let shares_community = selected_ids.iter().any(|sid| {
+                community_map
+                    .get(sid)
+                    .map(|&c| c == mem_community)
+                    .unwrap_or(false)
+            });
+            if shares_community { 0.08 } else { 0.0 }
+        }
+        None => 0.0,
+    };
+
+    (l1_score + l2_score + community_bonus).min(1.0)
 }
 
 #[cfg(test)]

@@ -86,6 +86,16 @@ export interface GraphNode {
   memory_type: MemoryType;
   importance: number;
   decay_score: number;
+  community: number | null;
+}
+
+export interface GodNode {
+  memory_id: string;
+  l0: string;
+  memory_type: MemoryType;
+  degree: number;
+  importance: number;
+  mismatch_score: number;
 }
 
 export interface GraphEdge {

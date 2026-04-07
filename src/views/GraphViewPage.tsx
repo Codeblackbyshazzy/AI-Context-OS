@@ -18,6 +18,7 @@ import {
   PanelRightClose,
   PanelRightOpen,
   RefreshCw,
+  Layers,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { useNavigate } from "react-router-dom";
@@ -37,7 +38,7 @@ const elk = new ELK({ workerUrl: elkWorkerUrl });
 interface FlowNode {
   id: string;
   position: { x: number; y: number };
-  data: { node: GNode };
+  data: { node: GNode; colorByCommunity: boolean };
   type?: string;
 }
 
@@ -51,9 +52,27 @@ interface FlowEdge {
   animated?: boolean;
 }
 
-function MemoryNodeComponent({ data }: { data: { node: GNode } }) {
+// Stable palette for up to 12 communities; cycles for larger counts
+const COMMUNITY_PALETTE = [
+  "#6366f1", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6",
+  "#0ea5e9", "#22c55e", "#f43f5e", "#a16207", "#0891b2",
+  "#7c3aed", "#059669",
+];
+
+function communityColor(community: number | null): string {
+  if (community === null) return "#64748b";
+  return COMMUNITY_PALETTE[community % COMMUNITY_PALETTE.length];
+}
+
+function MemoryNodeComponent({
+  data,
+}: {
+  data: { node: GNode; colorByCommunity: boolean };
+}) {
   const gn = data.node;
-  const color = MEMORY_TYPE_COLORS[gn.memory_type] ?? "#64748b";
+  const color = data.colorByCommunity
+    ? communityColor(gn.community)
+    : (MEMORY_TYPE_COLORS[gn.memory_type] ?? "#64748b");
   return (
     <div
       className="min-w-[180px] rounded border border-[var(--border)] bg-[color:var(--bg-1)] px-2.5 py-2"
@@ -136,6 +155,7 @@ export function GraphViewPage() {
   const [minImportance, setMinImportance] = useState(0);
   const [selectedNode, setSelectedNode] = useState<GNode | null>(null);
   const [showInspector, setShowInspector] = useState(true);
+  const [colorByCommunity, setColorByCommunity] = useState(false);
   const [flowInstance, setFlowInstance] = useState<
     ReactFlowInstance<FlowNode, FlowEdge> | null
   >(null);
@@ -199,7 +219,7 @@ export function GraphViewPage() {
         id: node.id,
         type: "memory",
         position: positions[node.id] ?? { x: 0, y: 0 },
-        data: { node },
+        data: { node, colorByCommunity },
       }));
 
       const newEdges: FlowEdge[] = filteredData.edges.map((edge, i) => ({
@@ -219,7 +239,7 @@ export function GraphViewPage() {
     };
 
     void doLayout();
-  }, [filteredData, layoutSeed, setNodes, setEdges, flowInstance]);
+  }, [filteredData, layoutSeed, colorByCommunity, setNodes, setEdges, flowInstance]);
 
   const onConnect = useCallback(
     async (connection: Connection) => {
@@ -337,6 +357,19 @@ export function GraphViewPage() {
 
           <button
             type="button"
+            onClick={() => setColorByCommunity((prev) => !prev)}
+            className={clsx(
+              "rounded p-1 transition-colors",
+              colorByCommunity
+                ? "text-[color:var(--accent)] bg-[color:var(--accent)]/10"
+                : "text-[color:var(--text-2)] hover:text-[color:var(--text-1)]",
+            )}
+            title={colorByCommunity ? "Color by memory type" : "Color by community"}
+          >
+            <Layers className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
             onClick={() => setLayoutSeed((prev) => prev + 1)}
             className="rounded p-1 text-[color:var(--text-2)] hover:text-[color:var(--text-1)]"
             title="Re-layout"
@@ -412,9 +445,9 @@ export function GraphViewPage() {
                     <NodeMetric label="Importance" value={selectedNode.importance.toFixed(2)} />
                     <NodeMetric label="Decay" value={selectedNode.decay_score.toFixed(2)} />
                     <NodeMetric
-                      label="Color"
-                      value={selectedNode.memory_type}
-                      swatchColor={MEMORY_TYPE_COLORS[selectedNode.memory_type]}
+                      label="Community"
+                      value={selectedNode.community !== null ? `#${selectedNode.community}` : "—"}
+                      swatchColor={selectedNode.community !== null ? communityColor(selectedNode.community) : undefined}
                     />
                   </div>
                   <button
