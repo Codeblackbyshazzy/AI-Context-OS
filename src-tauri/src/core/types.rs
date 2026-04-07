@@ -191,6 +191,18 @@ pub struct GraphNode {
     pub memory_type: MemoryType,
     pub importance: f64,
     pub decay_score: f64,
+    pub community: Option<u32>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GodNode {
+    pub memory_id: String,
+    pub l0: String,
+    pub memory_type: MemoryType,
+    pub degree: usize,
+    pub importance: f64,
+    /// positive = graph considers it more important than the engineer does
+    pub mismatch_score: f64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
