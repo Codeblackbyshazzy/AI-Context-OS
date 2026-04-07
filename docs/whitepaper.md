@@ -232,7 +232,7 @@ Left unmanaged, any memory system accumulates stale information. AI Context OS i
 | Efficiency | 25% | Token budget utilization (ideal: 50-80%) |
 | Freshness | 20% | % of memories modified recently |
 | Balance | 15% | Distribution across memory types |
-| Cleanliness | 15% | % of memories not flagged by governance |
+| Cleanliness | 15% | % of memories not flagged by governance (includes god node mismatches) |
 
 ---
 
@@ -338,7 +338,9 @@ AI Context OS is in active development. Core features are stable and in daily us
 - ✅ Simulation view (preview context for any query)
 - ✅ Journal (daily outliner, Logseq-style)
 - ✅ Tasks (YAML-frontmatter tasks with state/priority)
-- ✅ Graph visualization (memory connectivity)
+- ✅ Graph visualization (memory connectivity) with community coloring
+- ✅ Community detection (LPA + tag co-occurrence) feeding graph proximity score
+- ✅ God nodes governance tab (importance mismatch detection)
 - ✅ Backup/restore
 
 On the roadmap:
