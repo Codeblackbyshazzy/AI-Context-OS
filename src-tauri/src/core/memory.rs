@@ -3,15 +3,17 @@ use std::path::Path;
 
 use crate::core::frontmatter::{parse_frontmatter, serialize_frontmatter};
 use crate::core::levels::{join_levels, split_levels};
+use crate::core::paths::enrich_memory_meta;
 use crate::core::types::Memory;
 
 /// Read a Memory from a .md file on disk.
-pub fn read_memory(path: &Path) -> Result<Memory, String> {
+pub fn read_memory(root: &Path, path: &Path) -> Result<Memory, String> {
     let raw = fs::read_to_string(path)
         .map_err(|e| format!("Failed to read {}: {}", path.display(), e))?;
 
-    let (meta, body) = parse_frontmatter(&raw)
+    let (mut meta, body) = parse_frontmatter(&raw)
         .map_err(|e| format!("Failed to parse frontmatter in {}: {}", path.display(), e))?;
+    enrich_memory_meta(&mut meta, path, root);
 
     let (l1, l2) = split_levels(&body);
 

@@ -9,14 +9,16 @@ use crate::core::levels::estimate_tokens;
 use crate::core::memory::read_memory;
 use crate::core::router::generate_router_content;
 use crate::core::scoring::compute_score;
-use crate::core::types::{Config, LoadLevel, Memory, MemoryType, ScoreBreakdown, ScoredMemory};
+use crate::core::types::{Config, LoadLevel, Memory, ScoreBreakdown, ScoredMemory, SystemRole};
 
 /// A memory that was loaded with its actual content.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct LoadedMemory {
     pub memory_id: String,
     pub l0: String,
-    pub memory_type: MemoryType,
+    pub ontology: crate::core::types::MemoryOntology,
+    pub folder_category: Option<String>,
+    pub system_role: Option<SystemRole>,
     pub load_level: LoadLevel,
     pub content: String,
     pub token_estimate: u32,
@@ -29,7 +31,9 @@ pub struct LoadedMemory {
 pub struct UnloadedMemory {
     pub memory_id: String,
     pub l0: String,
-    pub memory_type: MemoryType,
+    pub ontology: crate::core::types::MemoryOntology,
+    pub folder_category: Option<String>,
+    pub system_role: Option<SystemRole>,
     pub score: f64,
     pub reason: String,
 }
@@ -62,7 +66,7 @@ pub fn execute_context_query(
 
     let mut memories: Vec<Memory> = Vec::new();
     for (_meta, path) in &all_entries {
-        if let Ok(mem) = read_memory(std::path::Path::new(path)) {
+        if let Ok(mem) = read_memory(root, std::path::Path::new(path)) {
             memories.push(mem);
         }
     }
@@ -126,7 +130,7 @@ pub fn execute_context_query(
     let mut boost_ids: HashSet<String> = HashSet::new();
     for (idx, score) in scored.iter().take(5) {
         let mem = &memories[*idx];
-        if mem.meta.memory_type != MemoryType::Skill || score.final_score <= 0.15 {
+        if mem.meta.system_role != Some(SystemRole::Skill) || score.final_score <= 0.15 {
             continue;
         }
 
@@ -182,7 +186,9 @@ pub fn execute_context_query(
                 unloaded.push(UnloadedMemory {
                     memory_id: mem.meta.id.clone(),
                     l0: mem.meta.l0.clone(),
-                    memory_type: mem.meta.memory_type.clone(),
+                    ontology: mem.meta.ontology.clone(),
+                    folder_category: mem.meta.folder_category.clone(),
+                    system_role: mem.meta.system_role.clone(),
                     score: score.final_score,
                     reason: "budget_exhausted".to_string(),
                 });
@@ -205,7 +211,9 @@ pub fn execute_context_query(
             unloaded.push(UnloadedMemory {
                 memory_id: mem.meta.id.clone(),
                 l0: mem.meta.l0.clone(),
-                memory_type: mem.meta.memory_type.clone(),
+                ontology: mem.meta.ontology.clone(),
+                folder_category: mem.meta.folder_category.clone(),
+                system_role: mem.meta.system_role.clone(),
                 score: score.final_score,
                 reason: "below_threshold".to_string(),
             });
@@ -213,7 +221,9 @@ pub fn execute_context_query(
             loaded.push(LoadedMemory {
                 memory_id: mem.meta.id.clone(),
                 l0: mem.meta.l0.clone(),
-                memory_type: mem.meta.memory_type.clone(),
+                ontology: mem.meta.ontology.clone(),
+                folder_category: mem.meta.folder_category.clone(),
+                system_role: mem.meta.system_role.clone(),
                 load_level: level.clone(),
                 content,
                 token_estimate: tokens,
@@ -225,7 +235,9 @@ pub fn execute_context_query(
         scored_results.push(ScoredMemory {
             memory_id: mem.meta.id.clone(),
             l0: mem.meta.l0.clone(),
-            memory_type: mem.meta.memory_type.clone(),
+            ontology: mem.meta.ontology.clone(),
+            folder_category: mem.meta.folder_category.clone(),
+            system_role: mem.meta.system_role.clone(),
             load_level: level,
             score,
             token_estimate: tokens,

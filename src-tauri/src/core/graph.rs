@@ -5,7 +5,7 @@ use petgraph::graph::{Graph, NodeIndex};
 use petgraph::Undirected;
 
 use crate::core::decay::decay_score;
-use crate::core::types::{GodNode, GraphData, GraphEdge, GraphNode, Memory, MemoryType};
+use crate::core::types::{GodNode, GraphData, GraphEdge, GraphNode, Memory};
 
 /// Build an undirected graph from explicit memory relationships (related/requires/optional).
 pub fn build_graph(memories: &[Memory]) -> Graph<String, String, Undirected> {
@@ -204,7 +204,9 @@ pub fn compute_god_nodes(memories: &[Memory]) -> Vec<GodNode> {
             god_nodes.push(GodNode {
                 memory_id: id.to_string(),
                 l0: memory.meta.l0.clone(),
-                memory_type: memory.meta.memory_type.clone(),
+                ontology: memory.meta.ontology.clone(),
+                folder_category: memory.meta.folder_category.clone(),
+                system_role: memory.meta.system_role.clone(),
                 degree,
                 importance: memory.meta.importance,
                 mismatch_score,
@@ -243,7 +245,9 @@ pub fn to_graph_data(memories: &[Memory], _decay_threshold: f64) -> GraphData {
             nodes.push(GraphNode {
                 id: id.to_string(),
                 label: memory.meta.l0.clone(),
-                memory_type: memory.meta.memory_type.clone(),
+                ontology: memory.meta.ontology.clone(),
+                folder_category: memory.meta.folder_category.clone(),
+                system_role: memory.meta.system_role.clone(),
                 importance: memory.meta.importance,
                 decay_score: decay_score(
                     memory.meta.decay_rate,

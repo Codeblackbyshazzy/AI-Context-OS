@@ -1,26 +1,12 @@
-export type MemoryType =
-  | "source"
-  | "context"
-  | "daily"
-  | "intelligence"
-  | "project"
-  | "resource"
-  | "skill"
-  | "task"
-  | "rule"
-  | "scratch";
+export type MemoryOntology = "source" | "entity" | "concept" | "synthesis";
 
-export type MemoryOntology =
-  | "source"
-  | "entity"
-  | "concept"
-  | "synthesis";
+export type SystemRole = "rule" | "skill";
 
 export type MemoryStatus = "unprocessed" | "processed";
 
 export interface MemoryMeta {
   id: string;
-  memory_type: MemoryType;
+  ontology: MemoryOntology;
   l0: string;
   importance: number;
   always_load: boolean;
@@ -37,10 +23,11 @@ export interface MemoryMeta {
   requires: string[];
   optional: string[];
   output_format: string | null;
-  ontology: MemoryOntology | null;
   status: MemoryStatus | null;
   protected: boolean;
   derived_from: string[];
+  folder_category: string | null;
+  system_role: SystemRole | null;
 }
 
 export interface Memory {
@@ -74,7 +61,9 @@ export interface ScoreBreakdown {
 export interface ScoredMemory {
   memory_id: string;
   l0: string;
-  memory_type: MemoryType;
+  ontology: MemoryOntology;
+  folder_category: string | null;
+  system_role: SystemRole | null;
   load_level: LoadLevel;
   score: ScoreBreakdown;
   token_estimate: number;
@@ -83,7 +72,9 @@ export interface ScoredMemory {
 export interface GraphNode {
   id: string;
   label: string;
-  memory_type: MemoryType;
+  ontology: MemoryOntology;
+  folder_category: string | null;
+  system_role: SystemRole | null;
   importance: number;
   decay_score: number;
   community: number | null;
@@ -92,7 +83,9 @@ export interface GraphNode {
 export interface GodNode {
   memory_id: string;
   l0: string;
-  memory_type: MemoryType;
+  ontology: MemoryOntology;
+  folder_category: string | null;
+  system_role: SystemRole | null;
   degree: number;
   importance: number;
   mismatch_score: number;
@@ -114,7 +107,6 @@ export interface FileNode {
   path: string;
   is_dir: boolean;
   children: FileNode[];
-  memory_type: MemoryType | null;
 }
 
 export interface Config {
@@ -142,11 +134,9 @@ export interface Conflict {
 
 export interface ConsolidationSuggestion {
   entries: DailyEntry[];
-  suggested_type: MemoryType;
+  suggested_ontology: MemoryOntology;
   summary: string;
 }
-
-// ─── Journal types ───
 
 export interface JournalBlock {
   id: string;
@@ -169,8 +159,6 @@ export interface JournalDateInfo {
   block_count: number;
   has_tasks: boolean;
 }
-
-// ─── Task types ───
 
 export type TaskState = "todo" | "in_progress" | "done" | "cancelled";
 export type TaskPriority = "a" | "b" | "c";
@@ -217,7 +205,7 @@ export const TASK_PRIORITY_LABELS: Record<TaskPriority, string> = {
 
 export interface CreateMemoryInput {
   id: string;
-  memory_type: MemoryType;
+  ontology: MemoryOntology;
   l0: string;
   importance: number;
   tags: string[];
@@ -233,12 +221,10 @@ export interface SaveMemoryInput {
 }
 
 export interface MemoryFilter {
-  memory_type?: MemoryType;
+  ontology?: MemoryOntology;
   tags?: string[];
   min_importance?: number;
 }
-
-// ─── Observability types ───
 
 export interface ContextRequestRecord {
   id: number;
@@ -327,37 +313,21 @@ export interface ContextEventPayload {
   timestamp: string;
 }
 
-// UI helpers
-
-export const MEMORY_TYPE_COLORS: Record<MemoryType, string> = {
-  source: "#0ea5e9",      // sky
-  context: "#3b82f6",     // blue
-  daily: "#f59e0b",       // amber
-  intelligence: "#8b5cf6", // violet
-  project: "#10b981",     // emerald
-  resource: "#6366f1",    // indigo
-  skill: "#22c55e",       // green
-  task: "#ef4444",        // red
-  rule: "#f43f5e",        // rose
-  scratch: "#71717a",     // zinc
-};
-
-export const MEMORY_TYPE_LABELS: Record<MemoryType, string> = {
-  source: "Source",
-  context: "Context",
-  daily: "Daily",
-  intelligence: "Intelligence",
-  project: "Project",
-  resource: "Resource",
-  skill: "Skill",
-  task: "Task",
-  rule: "Rule",
-  scratch: "Scratch",
+export const MEMORY_ONTOLOGY_COLORS: Record<MemoryOntology, string> = {
+  source: "#0ea5e9",
+  entity: "#10b981",
+  concept: "#8b5cf6",
+  synthesis: "#f59e0b",
 };
 
 export const MEMORY_ONTOLOGY_LABELS: Record<MemoryOntology, string> = {
-  source: "Source",
-  entity: "Entity",
-  concept: "Concept",
-  synthesis: "Synthesis",
+  source: "Fuente",
+  entity: "Entidad",
+  concept: "Concepto",
+  synthesis: "Sintesis",
+};
+
+export const SYSTEM_ROLE_LABELS: Record<SystemRole, string> = {
+  rule: "Regla",
+  skill: "Skill",
 };
