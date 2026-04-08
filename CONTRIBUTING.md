@@ -29,7 +29,6 @@ Because the core project is under the FSL, we want to clarify how plugins work r
 
 - **Creating a plugin does not make it a derivative work of the core system.** You are free to build plugins that interact with the application.
 - **Community Plugins:** We highly encourage the community to build and release plugins under the **Apache License 2.0** (or similar permissive open-source licenses). This helps the ecosystem grow and ensures other engineers can benefit from your work.
-- **Official Plugins:** Please note that official templates, plugins, and extensions created internally by the core maintainers (Mafia Labs Founder) are not restricted by this Apache 2.0 community guideline, and may be released under the FSL, commercial licenses, or open-source licenses depending on the specific add-on.
 
 ## How to Contribute Code
 
