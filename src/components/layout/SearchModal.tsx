@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, X } from "lucide-react";
 import { useAppStore } from "../../lib/store";
-import { MEMORY_TYPE_COLORS, MEMORY_TYPE_LABELS } from "../../lib/types";
+import { MEMORY_ONTOLOGY_COLORS, MEMORY_ONTOLOGY_LABELS } from "../../lib/types";
 
 export function SearchModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const navigate = useNavigate();
@@ -94,12 +94,12 @@ export function SearchModal({ open, onClose }: { open: boolean; onClose: () => v
             >
               <span
                 className="h-2 w-2 shrink-0 rounded-full"
-                style={{ backgroundColor: MEMORY_TYPE_COLORS[m.memory_type] }}
+                style={{ backgroundColor: MEMORY_ONTOLOGY_COLORS[m.ontology] }}
               />
               <span className="flex-1 truncate text-xs font-medium">{m.id}</span>
               <span className="max-w-[180px] truncate text-[10px] text-[color:var(--text-2)]">{m.l0}</span>
               <span className="shrink-0 text-[10px] text-[color:var(--text-2)]">
-                {MEMORY_TYPE_LABELS[m.memory_type]}
+                {MEMORY_ONTOLOGY_LABELS[m.ontology]}
               </span>
             </button>
           ))}

@@ -1,6 +1,6 @@
 import { useState } from "react";
-import type { MemoryMeta, MemoryOntology, MemoryType } from "../../lib/types";
-import { MEMORY_ONTOLOGY_LABELS, MEMORY_TYPE_LABELS } from "../../lib/types";
+import type { MemoryMeta, MemoryOntology } from "../../lib/types";
+import { MEMORY_ONTOLOGY_LABELS } from "../../lib/types";
 
 interface FrontmatterFormProps {
   meta: MemoryMeta;
@@ -93,7 +93,7 @@ export function FrontmatterForm({ meta, onChange, readonly = false }: Frontmatte
     return [...list, value];
   };
 
-  const isSkill = meta.memory_type === "skill";
+  const isSkill = meta.system_role === "skill";
 
   return (
     <div className="space-y-3 p-3">
@@ -107,21 +107,6 @@ export function FrontmatterForm({ meta, onChange, readonly = false }: Frontmatte
           className="w-full rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-2 py-1.5 text-xs text-[color:var(--text-0)] placeholder:text-[color:var(--text-2)]"
           placeholder="memory-id"
         />
-      </Field>
-
-      <Field label="Tipo">
-        <select
-          value={meta.memory_type}
-          onChange={(e) => update({ memory_type: e.target.value as MemoryType })}
-          disabled={readonly}
-          className="w-full rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-2 py-1.5 text-xs text-[color:var(--text-1)]"
-        >
-          {(Object.keys(MEMORY_TYPE_LABELS) as MemoryType[]).map((t) => (
-            <option key={t} value={t}>
-              {MEMORY_TYPE_LABELS[t]}
-            </option>
-          ))}
-        </select>
       </Field>
 
       {meta.status && (
@@ -140,16 +125,11 @@ export function FrontmatterForm({ meta, onChange, readonly = false }: Frontmatte
 
       <Field label="Ontologia">
         <select
-          value={meta.ontology ?? ""}
-          onChange={(e) =>
-            update({
-              ontology: e.target.value ? (e.target.value as MemoryOntology) : null,
-            })
-          }
+          value={meta.ontology}
+          onChange={(e) => update({ ontology: e.target.value as MemoryOntology })}
           disabled={readonly}
           className="w-full rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-2 py-1.5 text-xs text-[color:var(--text-1)]"
         >
-          <option value="">Sin definir</option>
           {(Object.keys(MEMORY_ONTOLOGY_LABELS) as MemoryOntology[]).map((ontology) => (
             <option key={ontology} value={ontology}>
               {MEMORY_ONTOLOGY_LABELS[ontology]}

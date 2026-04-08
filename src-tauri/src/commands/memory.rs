@@ -114,6 +114,7 @@ pub fn list_memories(
 /// Auto-increments access_count and updates last_access on every read.
 #[tauri::command]
 pub fn get_memory(id: String, state: State<AppState>) -> Result<Memory, String> {
+    let root = state.get_root();
     let index = state.memory_index.read().unwrap();
 
     let (_meta, path) = index

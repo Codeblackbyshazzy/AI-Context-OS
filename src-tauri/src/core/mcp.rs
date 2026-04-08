@@ -15,9 +15,8 @@ use crate::core::jsonl::append_jsonl;
 use crate::core::levels::join_levels;
 use crate::core::memory::read_memory;
 use crate::core::observability::{classify_task, ObservabilityDb};
-use crate::core::types::{
-    default_ontology_for_memory_type, Config, LoadLevel, MemoryMeta, MemoryType,
-};
+use crate::core::paths::enrich_memory_meta;
+use crate::core::types::{Config, LoadLevel, MemoryMeta, MemoryOntology, SystemRole};
 
 /// Shared state accessible by the MCP server tools.
 pub struct McpSharedState {
@@ -47,8 +46,8 @@ fn default_budget() -> u32 {
 pub struct SaveMemoryParams {
     /// Unique memory ID (e.g. "mi-memoria-nueva")
     pub id: String,
-    /// Memory type: context, daily, intelligence, project, resource, skill, task, rule, scratch
-    pub memory_type: String,
+    /// Memory ontology: source, entity, concept, synthesis
+    pub ontology: String,
     /// One-line summary (L0)
     pub l0: String,
     /// Importance from 0.0 to 1.0
@@ -195,28 +194,26 @@ impl AiContextMcpServer {
     async fn save_memory(&self, Parameters(params): Parameters<SaveMemoryParams>) -> String {
         let root = self.state.root_dir.read().unwrap().clone();
 
-        let memory_type = match params.memory_type.to_lowercase().as_str() {
-            "source" => MemoryType::Source,
-            "context" => MemoryType::Context,
-            "daily" => MemoryType::Daily,
-            "intelligence" => MemoryType::Intelligence,
-            "project" => MemoryType::Project,
-            "resource" => MemoryType::Resource,
-            "skill" => MemoryType::Skill,
-            "task" => MemoryType::Task,
-            "rule" => MemoryType::Rule,
-            "scratch" => MemoryType::Scratch,
-            other => return format!("Unknown memory type: '{}'. Valid: source, context, daily, intelligence, project, resource, skill, task, rule, scratch", other),
+        let ontology = match params.ontology.to_lowercase().as_str() {
+            "source" => MemoryOntology::Source,
+            "entity" => MemoryOntology::Entity,
+            "concept" => MemoryOntology::Concept,
+            "synthesis" => MemoryOntology::Synthesis,
+            other => {
+                return format!(
+                    "Unknown ontology: '{}'. Valid: source, entity, concept, synthesis",
+                    other
+                )
+            }
         };
-        let ontology = default_ontology_for_memory_type(&memory_type);
 
         let paths = crate::core::paths::SystemPaths::new(&root);
         let file_path = paths.inbox_dir().join(format!("{}.md", params.id));
 
         let now = Utc::now();
-        let meta = MemoryMeta {
+        let mut meta = MemoryMeta {
             id: params.id.clone(),
-            memory_type,
+            ontology,
             l0: params.l0,
             importance: params.importance.clamp(0.0, 1.0),
             always_load: false,
@@ -233,11 +230,13 @@ impl AiContextMcpServer {
             requires: vec![],
             optional: vec![],
             output_format: None,
-            ontology: Some(ontology),
             status: None,
             protected: false,
             derived_from: vec![],
+            folder_category: None,
+            system_role: None,
         };
+        enrich_memory_meta(&mut meta, &file_path, &root);
 
         let body = join_levels(&params.l1_content, &params.l2_content);
         match serialize_frontmatter(&meta, &body) {
@@ -271,7 +270,7 @@ impl AiContextMcpServer {
         // Find the skill
         let skill_entry = all_entries
             .iter()
-            .find(|(meta, _)| meta.id == params.skill_id);
+            .find(|(meta, _)| meta.id == params.skill_id && meta.system_role == Some(SystemRole::Skill));
 
         let (skill_meta, skill_path) = match skill_entry {
             Some(entry) => entry,
@@ -279,7 +278,7 @@ impl AiContextMcpServer {
         };
 
         // Load skill content
-        match read_memory(std::path::Path::new(skill_path)) {
+        match read_memory(&root, std::path::Path::new(skill_path)) {
             Ok(mem) => {
                 output.push_str(&format!("# SKILL: {} ({})\n\n", mem.meta.l0, mem.meta.id));
                 if !mem.l1_content.is_empty() {
@@ -299,7 +298,7 @@ impl AiContextMcpServer {
                         if let Some((_, dep_path)) =
                             all_entries.iter().find(|(m, _)| m.id == *req_id)
                         {
-                            if let Ok(dep) = read_memory(std::path::Path::new(dep_path)) {
+                            if let Ok(dep) = read_memory(&root, std::path::Path::new(dep_path)) {
                                 output.push_str(&format!("## {} ({})\n", dep.meta.l0, dep.meta.id));
                                 if !dep.l1_content.is_empty() {
                                     output.push_str(&dep.l1_content);
@@ -327,7 +326,7 @@ impl AiContextMcpServer {
                         if let Some((_, dep_path)) =
                             all_entries.iter().find(|(m, _)| m.id == *opt_id)
                         {
-                            if let Ok(dep) = read_memory(std::path::Path::new(dep_path)) {
+                            if let Ok(dep) = read_memory(&root, std::path::Path::new(dep_path)) {
                                 output.push_str(&format!("## {} ({})\n", dep.meta.l0, dep.meta.id));
                                 if !dep.l1_content.is_empty() {
                                     output.push_str(&dep.l1_content);

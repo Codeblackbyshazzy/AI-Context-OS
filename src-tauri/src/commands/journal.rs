@@ -103,6 +103,7 @@ pub fn save_journal_page(
     }
 
     if !found_tags.is_empty() {
+        let root = state.get_root();
         let index = state.memory_index.read().unwrap();
         for (mem_id, (meta, file_path)) in index.iter() {
             let id_lower = mem_id.to_lowercase();
@@ -123,7 +124,7 @@ pub fn save_journal_page(
                 // Add the journal date as a tag to this memory if not already present
                 let date_tag = date.clone();
                 if !meta.tags.contains(&date_tag) {
-                    if let Ok(mut mem) = memory::read_memory(std::path::Path::new(file_path)) {
+                    if let Ok(mut mem) = memory::read_memory(&root, std::path::Path::new(file_path)) {
                         if !mem.meta.tags.contains(&date_tag) {
                             mem.meta.tags.push(date_tag);
                             mem.meta.modified = now;
