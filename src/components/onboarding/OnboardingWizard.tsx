@@ -17,27 +17,27 @@ import { runOnboarding, type OnboardingProfile } from "../../lib/tauri";
 const TEMPLATES = [
   {
     id: "developer",
-    label: "Desarrollador",
+    label: "Developer",
     icon: Code,
-    desc: "Code review, debugging, arquitectura. Convenciones y stack.",
+    desc: "Code review, debugging, architecture. Conventions & stack.",
   },
   {
     id: "creator",
-    label: "Creador",
+    label: "Creator",
     icon: Pen,
-    desc: "Escritura, LinkedIn, newsletters, repurposing. Marca y voz.",
+    desc: "Writing, LinkedIn, newsletters, repurposing. Brand & voice.",
   },
   {
     id: "entrepreneur",
-    label: "Emprendedor",
+    label: "Entrepreneur",
     icon: Briefcase,
-    desc: "Análisis estratégico, actas, priorización. Restricciones.",
+    desc: "Strategic analysis, minutes, prioritization. Constraints.",
   },
   {
     id: "custom",
-    label: "Personalizado",
+    label: "Custom",
     icon: Sparkles,
-    desc: "Workspace vacío. Configúralo a tu manera.",
+    desc: "Empty workspace. Configure it your way.",
   },
 ];
 
@@ -56,7 +56,7 @@ export function OnboardingWizard({ onComplete }: Props) {
   const [template, setTemplate] = useState("developer");
   const [rootDir, setRootDir] = useState("~/AI-Context-OS");
 
-  const steps = ["Ubicación", "Perfil", "Template", "Confirmar"];
+  const steps = ["Location", "Profile", "Template", "Confirm"];
 
   const canNext = () => {
     if (step === 0) return rootDir.trim().length > 0;
@@ -126,10 +126,10 @@ export function OnboardingWizard({ onComplete }: Props) {
               <div className="space-y-4">
                 <div>
                   <h2 className="text-sm font-medium text-[color:var(--text-0)]">
-                    Ubicación del workspace
+                    Workspace location
                   </h2>
                   <p className="mt-1 text-xs text-[color:var(--text-2)]">
-                    Se creará una carpeta con `inbox/`, `sources/` y 9 subdirectorios numerados para tu memoria de IA.
+                    A folder will be created with `inbox/`, `sources/` and 9 numbered subdirectories for your AI memory.
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -150,45 +150,44 @@ export function OnboardingWizard({ onComplete }: Props) {
             {step === 1 && (
               <div className="space-y-4">
                 <div>
-                  <h2 className="text-sm font-medium text-[color:var(--text-0)]">Tu perfil</h2>
+                  <h2 className="text-sm font-medium text-[color:var(--text-0)]">Your profile</h2>
                   <p className="mt-1 text-xs text-[color:var(--text-2)]">
-                    Se guardará como memoria de contexto para tus IAs.
+                    It will be saved as context memory for your AIs.
                   </p>
                 </div>
                 <div className="space-y-3">
                   <div>
-                    <label className="mb-1 block text-xs text-[color:var(--text-2)]">Nombre</label>
+                    <label className="mb-1 block text-xs text-[color:var(--text-2)]">Name</label>
                     <div className="flex items-center gap-2">
                       <User className="h-4 w-4 shrink-0 text-[color:var(--text-2)]" />
                       <input
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         className="flex-1 rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-3 py-2 text-sm text-[color:var(--text-0)] placeholder:text-[color:var(--text-2)]"
-                        placeholder="Tu nombre"
+                        placeholder="Your name"
                       />
                     </div>
                   </div>
                   <div>
                     <label className="mb-1 block text-xs text-[color:var(--text-2)]">
-                      Rol / Profesión
+                      Role / Profession
                     </label>
                     <input
                       value={role}
                       onChange={(e) => setRole(e.target.value)}
                       className="w-full rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-3 py-2 text-sm text-[color:var(--text-0)] placeholder:text-[color:var(--text-2)]"
-                      placeholder="ej. Full-stack developer, CEO startup..."
+                      placeholder="e.g. Full-stack developer, startup CEO..."
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-xs text-[color:var(--text-2)]">Idioma</label>
+                    <label className="mb-1 block text-xs text-[color:var(--text-2)]">Language</label>
                     <select
                       value={language}
                       onChange={(e) => setLanguage(e.target.value)}
                       className="w-full rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-3 py-2 text-sm text-[color:var(--text-0)]"
                     >
-                      <option value="es">Español</option>
                       <option value="en">English</option>
-                      <option value="pt">Português</option>
+                      <option value="es">Spanish</option>
                     </select>
                   </div>
                 </div>
@@ -200,7 +199,7 @@ export function OnboardingWizard({ onComplete }: Props) {
                 <div>
                   <h2 className="text-sm font-medium text-[color:var(--text-0)]">Template</h2>
                   <p className="mt-1 text-xs text-[color:var(--text-2)]">
-                    Skills y reglas prediseñadas. Personalizables después.
+                    Pre-designed skills and rules. Customizable later.
                   </p>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
@@ -237,16 +236,15 @@ export function OnboardingWizard({ onComplete }: Props) {
 
             {step === 3 && (
               <div className="space-y-4">
-                <h2 className="text-sm font-medium text-[color:var(--text-0)]">Resumen</h2>
+                <h2 className="text-sm font-medium text-[color:var(--text-0)]">Summary</h2>
                 <div className="space-y-2 rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] p-3 text-xs">
-                  <Row label="Nombre" value={name} />
-                  <Row label="Rol" value={role} />
+                  <Row label="Name" value={name} />
+                  <Row label="Role" value={role} />
                   <Row label="Template" value={template} />
-                  <Row label="Ubicación" value={rootDir} mono />
+                  <Row label="Location" value={rootDir} mono />
                 </div>
                 <p className="text-xs text-[color:var(--text-2)]">
-                  Se creará el workspace con memorias iniciales y archivos de integración
-                  auto-generados.
+                  The workspace will be created with initial memories and auto-generated integration files.
                 </p>
                 {error && (
                   <p className="rounded-md bg-[color:var(--danger)]/10 px-3 py-2 text-xs text-[color:var(--danger)]">
@@ -265,7 +263,7 @@ export function OnboardingWizard({ onComplete }: Props) {
               className="flex items-center gap-1 text-xs text-[color:var(--text-2)] hover:text-[color:var(--text-0)] disabled:invisible"
             >
               <ChevronLeft className="h-3.5 w-3.5" />
-              Atrás
+              Back
             </button>
 
             {step < 3 ? (
@@ -274,7 +272,7 @@ export function OnboardingWizard({ onComplete }: Props) {
                 disabled={!canNext()}
                 className="flex items-center gap-1 rounded-md bg-[color:var(--accent)] px-4 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-30"
               >
-                Siguiente
+                Next
                 <ChevronRight className="h-3.5 w-3.5" />
               </button>
             ) : (
@@ -286,10 +284,10 @@ export function OnboardingWizard({ onComplete }: Props) {
                 {loading ? (
                   <>
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    Creando...
+                    Creating...
                   </>
                 ) : (
-                  "Crear Workspace"
+                  "Create Workspace"
                 )}
               </button>
             )}

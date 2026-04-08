@@ -201,7 +201,7 @@ export function MemoryEditor() {
   const handleDelete = useCallback(async () => {
     if (!meta) return;
     const ok = window.confirm(
-      `Eliminar memoria "${meta.id}"?\n\nEsto borrara el archivo de forma permanente.`,
+      `Delete memory "${meta.id}"?\n\nThis will delete the file permanently.`,
     );
     if (!ok) return;
     await deleteMemory(meta.id);
@@ -257,11 +257,11 @@ export function MemoryEditor() {
   const historyEntries = useMemo(() => {
     if (!meta) return [] as Array<{ label: string; value: string }>;
     return [
-      { label: "Creado", value: formatTimestamp(meta.created) },
-      { label: "Modificado", value: formatTimestamp(meta.modified) },
-      { label: "Ultimo acceso", value: formatTimestamp(meta.last_access) },
+      { label: "Created", value: formatTimestamp(meta.created) },
+      { label: "Modified", value: formatTimestamp(meta.modified) },
+      { label: "Last access", value: formatTimestamp(meta.last_access) },
       { label: "Version", value: `v${meta.version}` },
-      { label: "Accesos", value: String(meta.access_count) },
+      { label: "Access count", value: String(meta.access_count) },
     ];
   }, [meta]);
   const isProtected = meta?.protected ?? false;
@@ -272,7 +272,7 @@ export function MemoryEditor() {
       try {
         await selectFile(id);
       } catch (e) {
-        setError(`No se pudo abrir memoria ${id}: ${String(e)}`);
+        setError(`Could not open memory ${id}: ${String(e)}`);
       }
     },
     [selectFile, setError],
@@ -292,9 +292,9 @@ export function MemoryEditor() {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-2 text-center text-[color:var(--text-2)]">
         <FileText className="h-8 w-8 text-[color:var(--text-2)]" />
-        <p className="text-sm text-[color:var(--text-1)]">Selecciona un archivo para editar</p>
+        <p className="text-sm text-[color:var(--text-1)]">Select a file to edit</p>
         <p className="max-w-sm text-xs">
-          Usa el explorador lateral para abrir una nota o archivo.
+          Use the sidebar explorer to open a note or file.
         </p>
       </div>
     );
@@ -314,7 +314,7 @@ export function MemoryEditor() {
           type="button"
           onClick={() => setShowInspector((prev) => !prev)}
           className="rounded p-1 text-[color:var(--text-2)] transition-colors hover:text-[color:var(--text-1)]"
-          title={showInspector ? "Ocultar inspector" : "Mostrar inspector"}
+          title={showInspector ? "Hide inspector" : "Show inspector"}
         >
           {showInspector ? <PanelRightClose className="h-3.5 w-3.5" /> : <PanelRightOpen className="h-3.5 w-3.5" />}
         </button>
@@ -323,7 +323,7 @@ export function MemoryEditor() {
           onClick={handleDelete}
           disabled={loading || isProtected}
           className="rounded p-1 text-[color:var(--text-2)] transition-colors hover:text-[color:var(--danger)] disabled:opacity-50"
-          title={isProtected ? "Archivo protegido" : "Eliminar memoria"}
+          title={isProtected ? "Protected file" : "Delete memory"}
         >
           <Trash2 className="h-3.5 w-3.5" />
         </button>
@@ -341,15 +341,15 @@ export function MemoryEditor() {
                 handleMetaChange({ ...meta, l0: e.target.value });
               }}
               readOnly={isProtected}
-              placeholder="Sin titulo"
+              placeholder="Untitled"
               className="mb-1 w-full bg-transparent text-2xl font-semibold text-[color:var(--text-0)] placeholder:text-[color:var(--text-2)]/40 focus:outline-none"
             />
             <p className="mb-6 font-mono text-[11px] text-[color:var(--text-2)]">
               {meta.memory_type}
-              {meta.importance >= 0.7 ? " · alta" : meta.importance >= 0.4 ? "" : " · baja"}
-              {meta.always_load && " · fijada"}
+              {meta.importance >= 0.7 ? " · high" : meta.importance >= 0.4 ? "" : " · low"}
+              {meta.always_load && " · pinned"}
               {meta.tags.length > 0 && ` · ${meta.tags.join(", ")}`}
-              {" · "}contenido L2 · v{meta.version}
+              {" · "}L2 content · v{meta.version}
             </p>
 
             {/* L2 — Main content */}
@@ -364,7 +364,7 @@ export function MemoryEditor() {
               }}
               onBlur={() => void handleSave()}
               className="min-h-[400px]"
-              placeholder="Escribe aqui..."
+              placeholder="Type here..."
               editable={!isProtected}
             />
 
@@ -381,7 +381,7 @@ export function MemoryEditor() {
                     l1Open && "rotate-90",
                   )}
                 />
-                L1 · Resumen ampliado
+                L1 · Extended summary
               </button>
               {l1Open && (
                 <div className="mt-2">
@@ -396,7 +396,7 @@ export function MemoryEditor() {
                     }}
                     onBlur={() => void handleSave()}
                     className="min-h-[120px]"
-                    placeholder="Resumen L1 (150-300 tokens)..."
+                    placeholder="L1 summary (150-300 tokens)..."
                     editable={!isProtected}
                   />
                 </div>
@@ -416,17 +416,17 @@ export function MemoryEditor() {
             <div className="flex items-center gap-1 border-b border-[var(--border)] px-2 py-1.5">
               <InspectorTabButton
                 active={inspectorTab === "properties"}
-                label="Propiedades"
+                label="Properties"
                 onClick={() => setInspectorTab("properties")}
               />
               <InspectorTabButton
                 active={inspectorTab === "links"}
-                label="Enlaces"
+                label="Links"
                 onClick={() => setInspectorTab("links")}
               />
               <InspectorTabButton
                 active={inspectorTab === "history"}
-                label="Historial"
+                label="History"
                 onClick={() => setInspectorTab("history")}
               />
             </div>
@@ -489,14 +489,14 @@ function LinksPanel({
 }) {
   return (
     <div className="space-y-3 p-3">
-      <LinkGroup title="Salientes" links={outgoing} onOpenMemory={onOpenMemory} />
+      <LinkGroup title="Outgoing" links={outgoing} onOpenMemory={onOpenMemory} />
       <div className="space-y-2">
         <p className="text-[10px] uppercase tracking-[0.12em] text-[color:var(--text-2)]">
-          Entrantes
+          Incoming
         </p>
         {incoming.length === 0 && (
           <p className="rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-2.5 py-2 text-xs text-[color:var(--text-2)]">
-            Sin backlinks.
+            No backlinks.
           </p>
         )}
         {incoming.map((item) => (
@@ -542,7 +542,7 @@ function LinkGroup({
       <p className="text-[10px] uppercase tracking-[0.12em] text-[color:var(--text-2)]">{title}</p>
       {links.length === 0 && (
         <p className="rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-2.5 py-2 text-xs text-[color:var(--text-2)]">
-          Sin enlaces.
+          No links.
         </p>
       )}
       {links.map((item) => (
@@ -580,7 +580,7 @@ function HistoryPanel({
     <div className="space-y-2 p-3">
       {dirty && (
         <div className="rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-2.5 py-2 text-xs text-[color:var(--text-1)]">
-          Hay cambios pendientes de sincronizar.
+          There are pending changes to synchronize.
         </div>
       )}
       {history.map((entry) => (
@@ -600,19 +600,19 @@ function HistoryPanel({
 
 function formatTimestamp(value: string): string {
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "No disponible";
+  if (Number.isNaN(date.getTime())) return "Not available";
   return date.toLocaleString();
 }
 
 function SaveStateBadge({ status }: { status: SaveStatus }) {
   const label =
     status === "saving"
-      ? "Guardando..."
+      ? "Saving..."
       : status === "error"
-        ? "Error al guardar"
+        ? "Save error"
         : status === "dirty"
-          ? "Pendiente"
-          : "Guardado";
+          ? "Pending"
+          : "Saved";
 
   return (
     <span
@@ -771,23 +771,23 @@ function RawFileEditor({
 
       <div className="min-h-0 flex-1 overflow-y-auto p-3">
         <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-[color:var(--text-2)]">
-          <span>{lineCount} lineas</span>
+          <span>{lineCount} lines</span>
           {file.kind === "jsonl" && (
             <>
               <span>·</span>
-              <span>{records.length} registros</span>
+              <span>{records.length} records</span>
               <span>·</span>
-              <span>{parsedCount} validos</span>
+              <span>{parsedCount} valid</span>
               {errorCount > 0 && (
                 <>
                   <span>·</span>
-                  <span>{errorCount} errores</span>
+                  <span>{errorCount} errors</span>
                 </>
               )}
             </>
           )}
           <span>·</span>
-          <span>{dirty ? "pendiente" : "sincronizado"}</span>
+          <span>{dirty ? "pending" : "synced"}</span>
         </div>
 
         <RawSyntaxEditor

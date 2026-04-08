@@ -74,7 +74,7 @@ export function SearchModal({ open, onClose }: { open: boolean; onClose: () => v
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Buscar memorias por id, descripción o tags..."
+            placeholder="Search memories by id, description or tags..."
             className="flex-1 bg-transparent text-sm text-[color:var(--text-0)] placeholder:text-[color:var(--text-2)] outline-none"
           />
           <button onClick={onClose} className="text-[color:var(--text-2)] hover:text-[color:var(--text-1)]">
@@ -104,11 +104,11 @@ export function SearchModal({ open, onClose }: { open: boolean; onClose: () => v
             </button>
           ))}
           {results.length === 0 && (
-            <p className="px-3 py-6 text-center text-xs text-[color:var(--text-2)]">Sin resultados</p>
+            <p className="px-3 py-6 text-center text-xs text-[color:var(--text-2)]">No results</p>
           )}
         </div>
         <div className="border-t border-[var(--border)] px-3 py-1.5 text-[10px] text-[color:var(--text-2)]">
-          ↑↓ navegar · Enter abrir · Esc cerrar
+          ↑↓ navigate · Enter to open · Esc to close
         </div>
       </div>
     </div>
