@@ -9,8 +9,8 @@ It is designed for two audiences at the same time:
 
 ## Recommended reading order
 
-1. [Architecture And Operating Model](/Users/alexdc/Documents/GitHub/AI-Context-OS/docs/architecture-and-operating-model.md)
-2. [Current State, Implemented Changes, And Roadmap](/Users/alexdc/Documents/GitHub/AI-Context-OS/docs/current-state-and-roadmap.md)
+1. [Architecture And Operating Model](./architecture-and-operating-model.md)
+2. [Current State, Implemented Changes, And Roadmap](./current-state-and-roadmap.md)
 
 ## Scope of this folder
 
@@ -29,11 +29,11 @@ These docs intentionally go deeper than the root README:
 
 ## Source documents that informed this folder
 
-- [README.md](/Users/alexdc/Documents/GitHub/AI-Context-OS/README.md)
-- [README.es.md](/Users/alexdc/Documents/GitHub/AI-Context-OS/README.es.md)
-- [AGENT.md](/Users/alexdc/Documents/GitHub/AI-Context-OS/AGENT.md)
-- [AGENTS.md](/Users/alexdc/Documents/GitHub/AI-Context-OS/AGENTS.md)
-- [REVISION-TECNICA-ALINEACION-2026-03-29.md](/Users/alexdc/Documents/GitHub/AI-Context-OS/REVISION-TECNICA-ALINEACION-2026-03-29.md)
+- [README.md](../README.md)
+- [README.es.md](../README.es.md)
+- [AGENT.md](../AGENT.md)
+- [AGENTS.md](../AGENTS.md)
+- [REVISION-TECNICA-ALINEACION-2026-03-29.md](../REVISION-TECNICA-ALINEACION-2026-03-29.md)
 - files under `roadmap/`
 
 ## Maintenance rule
