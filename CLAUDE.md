@@ -1,6 +1,6 @@
 # AI Context OS
 
-Tauri v2 desktop app. Files ARE the database: ~/AI-Context-OS/ con `inbox/`, `sources/` y 9 carpetas numeradas (`01-context/` a `09-scratch/`), archivos .md con YAML frontmatter + marcadores <!-- L1 --> / <!-- L2 -->.
+Tauri v2 desktop app. Files ARE the database: ~/AI-Context-OS/ with `inbox/`, `sources/`, and `.ai/` (system infra). **Zero Gravity architecture**: memory type comes from YAML frontmatter `type` field, NOT from folder location. Users can organize files in any folder structure. System data lives under `.ai/` (rules, journal, tasks, scratch, config.yaml, index.yaml). Markdown files use `<!-- L1 -->` / `<!-- L2 -->` content level markers.
 
 ## Gotchas
 
@@ -10,9 +10,12 @@ Tauri v2 desktop app. Files ARE the database: ~/AI-Context-OS/ con `inbox/`, `so
 - **Todos los useState ANTES de cualquier return condicional** — violar esto causa pantalla negra
 - **titleBarStyle: "Overlay"** — traffic lights de macOS se solapan; top bar tiene spacer de 72px con data-tauri-drag-region
 - **TipTap sin toolbar** — formato markdown solo por atajos de teclado, diseño intencional
-- **Journal: 02-daily/YYYY-MM-DD.md** (outliner bullets estilo Logseq). El daily-log.jsonl es SOLO para eventos de sistema
-- **Tasks: 07-tasks/task-{id}.md** con frontmatter YAML (state/priority)
-- **Ingesta:** `inbox/` es staging, `sources/` guarda fuentes aceptadas. `protected: true` bloquea edición salvo desbloqueo explícito.
+- **Journal: .ai/journal/YYYY-MM-DD.md** (outliner bullets Logseq-style). The daily-log.jsonl is ONLY for system events
+- **Tasks: .ai/tasks/task-{id}.md** with YAML frontmatter (state/priority)
+- **Rules: .ai/rules/** — AI behavior directives, always loaded at top of prompt
+- **Scratch: .ai/scratch/** — temporary AI outputs with TTL
+- **Ingestion:** `inbox/` is staging, `sources/` stores accepted references. `protected: true` blocks editing without explicit unlock.
+- **System paths centralized in `core/paths.rs`** (`SystemPaths` struct) — never hardcode `.ai/` paths inline
 - **UI text en inglés** (labels, placeholders, empty states) — inglés es el idioma base de la app; el español u otros idiomas se añaden vía i18n encima
 - **CSS variables para todo el theming** (--bg-0..3, --text-0..2, --accent, --border), nunca colores hardcoded
 
