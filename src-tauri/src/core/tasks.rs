@@ -72,7 +72,7 @@ pub fn list_tasks(root: &Path, filter: &Option<TaskFilter>) -> Result<Vec<TaskIt
     Ok(tasks)
 }
 
-/// Read a single task from a Markdown file in 07-tasks/.
+/// Read a single task from a Markdown file in .ai/tasks/.
 fn read_task_file(path: &Path) -> Result<TaskItem, String> {
     let raw = fs::read_to_string(path).map_err(|e| format!("Failed to read task: {}", e))?;
 

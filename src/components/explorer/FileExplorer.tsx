@@ -524,15 +524,16 @@ function isRawViewerSupported(name: string): boolean {
 }
 
 const PROTECTED_FILE_NAMES = new Set([
-  "_config.yaml",
-  "_index.yaml",
+  "config.yaml",
+  "index.yaml",
   "claude.md",
   ".cursorrules",
   ".windsurfrules",
 ]);
 
-const INBOX_FOLDER_NAMES = new Set(["inbox", "00-inbox"]);
-const SOURCES_FOLDER_NAMES = new Set(["sources", "01-sources"]);
+const INBOX_FOLDER_NAMES = new Set(["inbox"]);
+const SOURCES_FOLDER_NAMES = new Set(["sources"]);
+const AI_SYSTEM_DIR = ".ai";
 
 function pathSegments(path: string): string[] {
   return path.replace(/\\/g, "/").split("/").filter(Boolean);
@@ -555,11 +556,12 @@ function isSourcesNode(node: FileNode): boolean {
 }
 
 function isSpecialWorkspaceNode(node: FileNode): boolean {
-  return node.is_dir && (isInboxNode(node) || isSourcesNode(node));
+  return node.is_dir && (isInboxNode(node) || isSourcesNode(node) || node.name === AI_SYSTEM_DIR);
 }
 
 function isProtectedNode(node: FileNode): boolean {
-  if (node.is_dir && node.memory_type !== null) {
+  // Zero Gravity: only system files and special dirs are protected, not user folders
+  if (node.is_dir && (isInboxNode(node) || isSourcesNode(node) || node.name === AI_SYSTEM_DIR)) {
     return true;
   }
   return PROTECTED_FILE_NAMES.has(node.name);
@@ -1110,8 +1112,9 @@ export function FileExplorer() {
   const currentNode = ctxMenu?.node ?? null;
   const currentNodeIsProtected = currentNode ? isProtectedNode(currentNode) : false;
   const currentNodeIsManagedMemory = currentNode ? isManagedMemoryFile(currentNode, memoryIds) : false;
+  // Zero Gravity: all directories support note creation (except inbox)
   const currentFolderSupportsNotes = currentNode?.is_dir
-    ? inferFolderTypeFromPath(currentNode.path) !== null
+    ? !isInboxNode(currentNode)
     : false;
 
   const handleMoveMemory = async (node: FileNode) => {
@@ -1501,8 +1504,9 @@ function canDropOnDirectory(draggedItem: DraggedItem | null, target: FileNode): 
   const currentParent = getParentPath(draggedItem.path);
   if (currentParent === target.path) return false;
 
+  // Zero Gravity: markdown files can be dropped on any directory
   if (draggedItem.isMarkdown) {
-    return inferFolderTypeFromPath(target.path) !== null;
+    return true;
   }
 
   return true;

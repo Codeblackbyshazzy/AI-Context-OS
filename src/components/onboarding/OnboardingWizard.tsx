@@ -129,7 +129,7 @@ export function OnboardingWizard({ onComplete }: Props) {
                     Workspace location
                   </h2>
                   <p className="mt-1 text-xs text-[color:var(--text-2)]">
-                    A folder will be created with `inbox/`, `sources/` and 9 numbered subdirectories for your AI memory.
+                    A workspace folder will be created with system infrastructure and starter directories for your AI memory.
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -142,7 +142,7 @@ export function OnboardingWizard({ onComplete }: Props) {
                   />
                 </div>
                 <p className="font-mono text-[11px] text-[color:var(--text-2)]">
-                  inbox/ · sources/ · 01-context/ · 02-daily/ · 03-intelligence/ · 04-projects/ · 05-resources/ · 06-skills/ · 07-tasks/ · 08-rules/ · 09-scratch/
+                  inbox/ · sources/ · .ai/ (rules, journal, tasks, scratch)
                 </p>
               </div>
             )}
