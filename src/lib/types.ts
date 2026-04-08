@@ -143,7 +143,6 @@ export interface Conflict {
 export interface ConsolidationSuggestion {
   entries: DailyEntry[];
   suggested_type: MemoryType;
-  suggested_folder: string;
   summary: string;
 }
 

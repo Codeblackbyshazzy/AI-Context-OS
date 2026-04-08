@@ -191,9 +191,6 @@ export function GovernanceView() {
             {consolidation.map((s, i) => (
               <div key={i} className="rounded-md border border-[var(--border)] bg-[color:var(--bg-0)] p-3">
                 <p className="mb-1 text-xs text-[color:var(--text-1)]">{s.summary}</p>
-                <span className="font-mono text-[10px] text-[color:var(--text-2)]">
-                  → {s.suggested_folder}
-                </span>
               </div>
             ))}
             {consolidation.length === 0 && (

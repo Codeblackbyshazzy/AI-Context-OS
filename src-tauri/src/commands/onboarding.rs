@@ -57,9 +57,10 @@ pub fn run_onboarding(
     fs::write(root.join("claude.md"), &claude_md)
         .map_err(|e| format!("Failed to write claude.md: {}", e))?;
 
+    let paths = crate::core::paths::SystemPaths::new(&root);
     let index_yaml = crate::core::router::generate_index_yaml(&metas);
-    fs::write(root.join("_index.yaml"), &index_yaml)
-        .map_err(|e| format!("Failed to write _index.yaml: {}", e))?;
+    fs::write(paths.index_yaml(), &index_yaml)
+        .map_err(|e| format!("Failed to write index.yaml: {}", e))?;
 
     let cursorrules = crate::core::compat::render_cursor_adapter(&neutral);
     fs::write(root.join(".cursorrules"), &cursorrules).ok();
