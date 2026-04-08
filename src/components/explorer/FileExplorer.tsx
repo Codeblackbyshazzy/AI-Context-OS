@@ -633,12 +633,12 @@ function filterExplorerTree(
   for (const node of nodes) {
     if (node.is_dir) {
       const filteredChildren = filterExplorerTree(node.children, showSystemFiles, false);
+      // Zero Gravity: all directories are shown (user controls their structure)
       const shouldShowDirectory =
-        node.memory_type !== null ||
-        isSpecialWorkspaceNode(node) ||
-        inferFolderTypeFromPath(node.path) !== null ||
         isRootLevel ||
-        filteredChildren.nodes.length > 0;
+        isSpecialWorkspaceNode(node) ||
+        filteredChildren.nodes.length > 0 ||
+        node.memory_type !== null;
 
       hiddenCount += filteredChildren.hiddenCount;
 
@@ -1027,11 +1027,9 @@ export function FileExplorer() {
   const handleCreateNote = async (node: FileNode) => {
     if (!node.is_dir) return;
 
-    const memoryType = inferFolderTypeFromPath(node.path);
-    if (!memoryType) {
-      setError("Notes can only be created inside memory folders");
-      return;
-    }
+    // Zero Gravity: notes can be created in any directory.
+    // Default type is "context" — user can change it from the editor.
+    const memoryType: MemoryType = node.memory_type ?? "context";
 
     try {
       const nextId = uniqueName("untitled", new Set(memories.map((memory) => memory.id)));
@@ -1091,11 +1089,13 @@ export function FileExplorer() {
       const findTargetDir = (): FileNode | null => {
         if (selectedPath) {
           const sel = findNodeByPath(fileTree, selectedPath);
-          if (sel?.is_dir && inferFolderTypeFromPath(sel.path) !== null) return sel;
+          if (sel?.is_dir) return sel;
           const parent = findNodeByPath(fileTree, getParentPath(selectedPath));
-          if (parent?.is_dir && inferFolderTypeFromPath(parent.path) !== null) return parent;
+          if (parent?.is_dir) return parent;
         }
-        return fileTree.find((n) => n.is_dir && n.memory_type !== null) ?? null;
+        // Zero Gravity: any directory works, prefer inbox as default
+        return fileTree.find((n) => n.is_dir && n.name === "inbox")
+          ?? fileTree.find((n) => n.is_dir) ?? null;
       };
       const targetDir = findTargetDir();
       if (!targetDir) {
