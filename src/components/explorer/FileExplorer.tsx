@@ -220,40 +220,6 @@ function getTypeColor(node: FileNode): string | undefined {
   return getStringColor(stringToHash);
 }
 
-function folderToType(folder: string): MemoryType | null {
-  const map: Record<string, MemoryType> = {
-    sources: "source",
-    "01-sources": "source",
-    "01-context": "context",
-    "02-context": "context",
-    "02-daily": "daily",
-    "03-daily": "daily",
-    "03-intelligence": "intelligence",
-    "04-intelligence": "intelligence",
-    "04-projects": "project",
-    "05-projects": "project",
-    "05-resources": "resource",
-    "06-resources": "resource",
-    "06-skills": "skill",
-    "07-skills": "skill",
-    "07-tasks": "task",
-    "08-tasks": "task",
-    "08-rules": "rule",
-    "09-rules": "rule",
-    "09-scratch": "scratch",
-    "10-scratch": "scratch",
-  };
-  return map[folder] ?? null;
-}
-
-function inferFolderTypeFromPath(path: string): MemoryType | null {
-  const parts = path.split("/");
-  for (const part of parts) {
-    const folderType = folderToType(part);
-    if (folderType) return folderType;
-  }
-  return null;
-}
 
 function isMarkdownFile(name: string): boolean {
   return name.toLowerCase().endsWith(".md");
