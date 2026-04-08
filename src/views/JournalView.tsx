@@ -31,10 +31,10 @@ function formatDateLabel(dateStr: string): string {
   yesterday.setDate(yesterday.getDate() - 1);
   const yesterdayStr = yesterday.toISOString().slice(0, 10);
 
-  if (dateStr === todayStr) return "Hoy";
-  if (dateStr === yesterdayStr) return "Ayer";
+  if (dateStr === todayStr) return "Today";
+  if (dateStr === yesterdayStr) return "Yesterday";
 
-  return d.toLocaleDateString("es-ES", {
+  return d.toLocaleDateString("en-US", {
     weekday: "long",
     year: "numeric",
     month: "long",
@@ -44,7 +44,7 @@ function formatDateLabel(dateStr: string): string {
 
 function formatDateShort(dateStr: string): string {
   const d = new Date(dateStr + "T12:00:00");
-  return d.toLocaleDateString("es-ES", {
+  return d.toLocaleDateString("en-US", {
     weekday: "short",
     month: "short",
     day: "numeric",
@@ -394,7 +394,7 @@ function LinkedReferences({ date, memories }: { date: string; memories: MemoryMe
   return (
     <div className="mt-3">
       <p className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-[color:var(--text-2)]">
-        Referencias vinculadas ({refs.length})
+        Linked references ({refs.length})
       </p>
       <div className="space-y-1">
         {refs.map((m) => (
@@ -480,7 +480,7 @@ export function JournalView() {
           onClick={goToToday}
           className="rounded-md bg-[color:var(--accent-muted)] px-2.5 py-1 text-[11px] font-medium text-[color:var(--accent)] hover:bg-[color:var(--accent)]/20"
         >
-          Hoy
+          Today
         </button>
 
         <div className="flex items-center gap-0.5">
@@ -544,7 +544,7 @@ export function JournalView() {
           </div>
 
           <span className="font-mono text-[10px] text-[color:var(--text-2)]">
-            {allDates.length} días
+            {allDates.length} days
           </span>
         </div>
       </div>
@@ -567,7 +567,7 @@ export function JournalView() {
               onClick={() => setLoadCount((prev) => prev + 7)}
               className="text-[11px] text-[color:var(--text-2)] hover:text-[color:var(--text-1)]"
             >
-              Cargar más días...
+              Load more days...
             </button>
           </div>
         </div>

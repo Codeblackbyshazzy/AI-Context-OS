@@ -156,7 +156,7 @@ export function GovernanceView() {
                 }}
                 className="mb-2 rounded-md bg-[color:var(--danger)]/10 px-3 py-1.5 text-xs font-medium text-[color:var(--danger)] hover:bg-[color:var(--danger)]/20"
               >
-                Archivar todos ({decayCandidates.length})
+                Archive all ({decayCandidates.length})
               </button>
             )}
             {decayCandidates.map((m) => (
@@ -176,7 +176,7 @@ export function GovernanceView() {
                   }}
                   className="shrink-0 rounded px-1.5 py-0.5 text-[10px] text-[color:var(--danger)] hover:bg-[color:var(--danger)]/20"
                 >
-                  Archivar
+                  Archive
                 </button>
               </div>
             ))}
@@ -268,7 +268,7 @@ export function GovernanceView() {
                 }}
                 className="mb-2 rounded-md bg-[color:var(--warning)]/10 px-3 py-1.5 text-xs font-medium text-[color:var(--warning)] hover:bg-[color:var(--warning)]/20"
               >
-                Limpiar todos ({scratchFiles.length})
+                Clear all ({scratchFiles.length})
               </button>
             )}
             {scratchFiles.map((file) => {
@@ -288,13 +288,13 @@ export function GovernanceView() {
                     }}
                     className="shrink-0 rounded px-1.5 py-0.5 text-[10px] text-[color:var(--warning)] hover:bg-[color:var(--warning)]/20"
                   >
-                    Eliminar
+                    Delete
                   </button>
                 </div>
               );
             })}
             {scratchFiles.length === 0 && (
-              <Empty text="No hay archivos scratch expirados" />
+              <Empty text="No expired scratch files" />
             )}
           </div>
         )}
