@@ -40,6 +40,14 @@ pub fn list_memories(
     let root = state.get_root();
     let all = scan_memories(&root);
 
+    // Update the in-memory index from this scan (single scan, reused below)
+    let mut index = state.memory_index.write().unwrap();
+    index.clear();
+    for (meta, path) in &all {
+        index.insert(meta.id.clone(), (meta.clone(), path.clone()));
+    }
+    drop(index);
+
     let metas: Vec<MemoryMeta> = all
         .into_iter()
         .map(|(meta, _path)| meta)
@@ -64,14 +72,6 @@ pub fn list_memories(
             true
         })
         .collect();
-
-    // Update the in-memory index
-    let mut index = state.memory_index.write().unwrap();
-    index.clear();
-    let all_again = scan_memories(&root);
-    for (meta, path) in all_again {
-        index.insert(meta.id.clone(), (meta, path));
-    }
 
     Ok(metas)
 }
