@@ -61,10 +61,10 @@ function relativeDate(dateStr: string): string {
   const now = new Date();
   const diff = now.getTime() - d.getTime();
   const days = Math.floor(diff / 86400000);
-  if (days === 0) return "hoy";
-  if (days === 1) return "ayer";
-  if (days < 7) return `hace ${days}d`;
-  return d.toLocaleDateString("es-ES", { month: "short", day: "numeric" });
+  if (days === 0) return "today";
+  if (days === 1) return "yesterday";
+  if (days < 7) return `${days}d ago`;
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 // ─── New task form ───
@@ -108,7 +108,7 @@ function NewTaskForm({ onCreated }: { onCreated: () => void }) {
         onKeyDown={(e) => {
           if (e.key === "Enter") create();
         }}
-        placeholder="Nueva tarea..."
+        placeholder="New task..."
         className="flex-1 bg-transparent text-xs text-[color:var(--text-0)] placeholder:text-[color:var(--text-2)] focus:outline-none"
       />
       <select
@@ -116,10 +116,10 @@ function NewTaskForm({ onCreated }: { onCreated: () => void }) {
         onChange={(e) => setPriority(e.target.value as TaskPriority | "")}
         className="rounded border border-[var(--border)] bg-[color:var(--bg-2)] px-1.5 py-0.5 text-[10px] text-[color:var(--text-1)]"
       >
-        <option value="">Sin prioridad</option>
-        <option value="a">A · Alta</option>
-        <option value="b">B · Media</option>
-        <option value="c">C · Baja</option>
+        <option value="">No priority</option>
+        <option value="a">A · High</option>
+        <option value="b">B · Medium</option>
+        <option value="c">C · Low</option>
       </select>
       <button
         type="button"
@@ -127,7 +127,7 @@ function NewTaskForm({ onCreated }: { onCreated: () => void }) {
         disabled={creating || !title.trim()}
         className="rounded-md bg-[color:var(--accent)] px-2.5 py-1 text-[10px] font-medium text-white disabled:opacity-40"
       >
-        Crear
+        Create
       </button>
     </div>
   );
@@ -279,7 +279,7 @@ function TaskCard({
                 const now = new Date();
                 const diffDays = Math.ceil((dueDate.getTime() - now.getTime()) / 86400000);
                 const color = diffDays < 0 ? "var(--danger)" : diffDays <= 1 ? "var(--warning)" : "var(--text-2)";
-                const label = diffDays < 0 ? `Vencida ${-diffDays}d` : diffDays === 0 ? "Hoy" : diffDays === 1 ? "Mañana" : task.due;
+                const label = diffDays < 0 ? `Overdue ${-diffDays}d` : diffDays === 0 ? "Today" : diffDays === 1 ? "Tomorrow" : task.due;
                 return (
                   <span className="flex items-center gap-0.5 text-[10px] font-medium" style={{ color }}>
                     <Calendar className="h-2.5 w-2.5" />
@@ -322,7 +322,7 @@ function TaskCard({
           type="button"
           onClick={onDelete}
           className="shrink-0 rounded p-1 text-[color:var(--text-2)] opacity-0 transition-opacity group-hover:opacity-100 hover:text-[color:var(--danger)]"
-          title="Eliminar"
+          title="Delete"
         >
           <Trash2 className="h-3.5 w-3.5" />
         </button>
@@ -334,7 +334,7 @@ function TaskCard({
           {/* Controls row */}
           <div className="mb-3 flex flex-wrap items-center gap-2">
             <label className="flex items-center gap-1.5">
-              <span className="text-[10px] text-[color:var(--text-2)]">Estado</span>
+              <span className="text-[10px] text-[color:var(--text-2)]">Status</span>
               <select
                 value={editState}
                 onChange={(e) => {
@@ -350,7 +350,7 @@ function TaskCard({
             </label>
 
             <label className="flex items-center gap-1.5">
-              <span className="text-[10px] text-[color:var(--text-2)]">Prioridad</span>
+              <span className="text-[10px] text-[color:var(--text-2)]">Priority</span>
               <select
                 value={editPriority}
                 onChange={(e) => {
@@ -360,14 +360,14 @@ function TaskCard({
                 className="rounded border border-[var(--border)] bg-[color:var(--bg-2)] px-1.5 py-0.5 text-[11px] text-[color:var(--text-1)]"
               >
                 <option value="">—</option>
-                <option value="a">A · Alta</option>
-                <option value="b">B · Media</option>
-                <option value="c">C · Baja</option>
+                <option value="a">A · High</option>
+                <option value="b">B · Medium</option>
+                <option value="c">C · Low</option>
               </select>
             </label>
 
             <label className="flex items-center gap-1.5">
-              <span className="text-[10px] text-[color:var(--text-2)]">Vence</span>
+              <span className="text-[10px] text-[color:var(--text-2)]">Due</span>
               <input
                 type="date"
                 value={editDue}
@@ -393,7 +393,7 @@ function TaskCard({
 
           {/* Notes editor */}
           <div className="space-y-1.5">
-            <span className="text-[10px] text-[color:var(--text-2)]">Notas</span>
+            <span className="text-[10px] text-[color:var(--text-2)]">Notes</span>
             <textarea
               ref={notesRef}
               value={editNotes}
@@ -404,11 +404,11 @@ function TaskCard({
               }}
               onInput={autoResize}
               rows={3}
-              placeholder="Añadir notas, contexto, bullets..."
+              placeholder="Add notes, context, bullets..."
               className="w-full resize-none rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-2.5 py-2 font-mono text-[12px] leading-relaxed text-[color:var(--text-0)] placeholder:text-[color:var(--text-2)] focus:border-[var(--border-active)] focus:outline-none"
             />
             <p className="text-[10px] text-[color:var(--text-2)] opacity-60">
-              Usa bullets (- ), listas, o texto libre para ampliar contexto.
+              Use bullets (- ), lists, or free text to expand context.
             </p>
           </div>
 
@@ -426,17 +426,17 @@ function TaskCard({
               )}
             >
               <Save className="h-3 w-3" />
-              {saving ? "Guardando..." : "Guardar"}
+              {saving ? "Saving..." : "Save"}
             </button>
             {dirty && (
-              <span className="text-[10px] text-[color:var(--warning)]">Sin guardar</span>
+              <span className="text-[10px] text-[color:var(--warning)]">Unsaved</span>
             )}
             <button
               type="button"
               onClick={() => setExpanded(false)}
               className="ml-auto text-[11px] text-[color:var(--text-2)] hover:text-[color:var(--text-1)]"
             >
-              Cerrar
+              Close
             </button>
           </div>
         </div>
@@ -516,7 +516,7 @@ export function TaskView() {
             onChange={(e) => setStateFilter(e.target.value as TaskState | "all")}
             className="rounded border border-[var(--border)] bg-[color:var(--bg-2)] px-2 py-1 text-[11px] text-[color:var(--text-1)]"
           >
-            <option value="all">Todos los estados</option>
+            <option value="all">All statuses</option>
             {(["todo", "in_progress", "done", "cancelled"] as TaskState[]).map((s) => (
               <option key={s} value={s}>{TASK_STATE_LABELS[s]}</option>
             ))}
@@ -528,7 +528,7 @@ export function TaskView() {
             onChange={(e) => setPriorityFilter(e.target.value as TaskPriority | "all")}
             className="rounded border border-[var(--border)] bg-[color:var(--bg-2)] px-2 py-1 text-[11px] text-[color:var(--text-1)]"
           >
-            <option value="all">Todas prioridades</option>
+            <option value="all">All priorities</option>
             {(["a", "b", "c"] as TaskPriority[]).map((p) => (
               <option key={p} value={p}>{TASK_PRIORITY_LABELS[p]}</option>
             ))}
@@ -558,8 +558,8 @@ export function TaskView() {
               <CheckCircle2 className="mx-auto mb-3 h-8 w-8 text-[color:var(--text-2)]" />
               <p className="text-xs text-[color:var(--text-2)]">
                 {stateFilter === "all" && priorityFilter === "all"
-                  ? "No hay tareas. Crea una nueva arriba."
-                  : "No hay tareas con este filtro."}
+                  ? "No tasks. Create a new one above."
+                  : "No tasks with this filter."}
               </p>
             </div>
           )}

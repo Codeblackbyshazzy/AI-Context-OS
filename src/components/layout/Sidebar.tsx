@@ -20,8 +20,8 @@ const navItems = [
   { to: "/graph", icon: Network, label: "Graph" },
   { to: "/simulation", icon: FlaskConical, label: "Simulation" },
   { to: "/governance", icon: Shield, label: "Governance" },
-  { to: "/observability", icon: Activity, label: "Observabilidad" },
-  { to: "/connectors", icon: Plug, label: "Conectores" },
+  { to: "/observability", icon: Activity, label: "Observability" },
+  { to: "/connectors", icon: Plug, label: "Connectors" },
 ];
 
 export function Sidebar() {
