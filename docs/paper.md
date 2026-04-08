@@ -1,7 +1,7 @@
 # Files as Memory: A Filesystem-Native Architecture for Persistent AI Agent Context
 
 **Alex DC** · MAFIA LABS
-*April 2026*
+*Mar 2026*
 
 ---
 
