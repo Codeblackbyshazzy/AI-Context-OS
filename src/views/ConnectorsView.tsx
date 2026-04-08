@@ -21,86 +21,86 @@ const CONNECTORS: ConnectorDef[] = [
     id: "claude-desktop",
     name: "Claude Desktop",
     tier: "Local Native",
-    description: "App nativa (recomendada). Sesión Cowork con acceso automático al contexto y MCP.",
+    description: "Native app (recommended). Cowork session with automatic access to context and MCP.",
     icon: "C",
     capabilities: [
-      "Cowork: la forma óptima de trabajar con tus archivos",
-      "MCP stdio automático (get_context, save_memory, get_skill, log_session)",
-      "Lectura automática de claude.md"
+      "Cowork: the optimal way to work with your files",
+      "Automatic stdio MCP (get_context, save_memory, get_skill, log_session)",
+      "Automatic reading of claude.md"
     ],
   },
   {
     id: "claude-code",
     name: "Claude Code",
     tier: "Local Native",
-    description: "Integración desde CLI: MCP nativo con 4 herramientas + contexto automático.",
+    description: "CLI integration: Native MCP with 4 tools + automatic context.",
     icon: ">_",
     capabilities: [
-      "MCP stdio en la terminal",
-      "Lectura automática de claude.md al abrir el workspace",
+      "stdio MCP in the terminal",
+      "Automatic reading of claude.md when opening the workspace",
     ],
   },
   {
     id: "cursor",
     name: "Cursor",
     tier: "Local Native",
-    description: "MCP vía HTTP (requiere app abierta) + .cursorrules estático siempre disponible.",
+    description: "HTTP MCP (requires open app) + static .cursorrules always available.",
     icon: "↗",
     capabilities: [
-      "MCP HTTP en puerto 3847 (mismas 4 herramientas, requiere app corriendo)",
-      ".cursorrules auto-generado con reglas y contexto base",
+      "HTTP MCP on port 3847 (same 4 tools, requires app running)",
+      "Auto-generated .cursorrules with rules and base context",
     ],
   },
   {
     id: "windsurf",
     name: "Windsurf",
     tier: "Local Native",
-    description: "MCP vía HTTP (requiere app abierta) + .windsurfrules estático siempre disponible.",
+    description: "HTTP MCP (requires open app) + static .windsurfrules always available.",
     icon: "W",
     capabilities: [
-      "MCP HTTP en puerto 3847 (requiere app corriendo)",
-      ".windsurfrules auto-generado con reglas y contexto base",
+      "HTTP MCP on port 3847 (requires app running)",
+      "Auto-generated .windsurfrules with rules and base context",
     ],
   },
   {
     id: "chatgpt",
     name: "ChatGPT / Codex",
     tier: "Local Native",
-    description: "Integración completa vía Codex CLI con soporte MCP nativo. También handoff manual para ChatGPT web.",
+    description: "Full integration via Codex CLI with native MCP support. Also manual handoff for ChatGPT web.",
     icon: "G",
     capabilities: [
-      "MCP stdio vía Codex CLI (get_context, save_memory, get_skill, log_session)",
-      "Codex trabaja directamente en la carpeta raíz con acceso a archivos",
-      "Handoff manual para ChatGPT web (copiar/pegar contexto)",
+      "stdio MCP via Codex CLI (get_context, save_memory, get_skill, log_session)",
+      "Codex works directly in the root folder with file access",
+      "Manual handoff for ChatGPT web (copy/paste context)",
     ],
   },
   {
     id: "gemini",
     name: "Gemini Web",
     tier: "Bridge",
-    description: "Sin integración nativa. Transferencia manual del contexto óptimo.",
+    description: "No native integration. Manual transfer of optimal context.",
     icon: "♊",
     capabilities: [
-      "Copiar contexto optimizado al portapapeles",
-      "Generar handoff.md con resumen estructurado",
+      "Copy optimized context to clipboard",
+      "Generate handoff.md with structured summary",
     ],
   },
   {
     id: "copilot",
     name: "GitHub Copilot",
     tier: "Bridge",
-    description: "Sin MCP nativo. Usa .cursorrules como contexto estático si el editor lo soporta.",
+    description: "No native MCP. Uses .cursorrules as static context if the editor supports it.",
     icon: "⊙",
     capabilities: [
-      "Contexto estático vía .cursorrules (en editores compatibles)",
-      "Copiar contexto optimizado al portapapeles",
+      "Static context via .cursorrules (in compatible editors)",
+      "Copy optimized context to clipboard",
     ],
   },
 ];
 
 const TIER_COLORS: Record<IntegrationTier, { bg: string; text: string; label: string }> = {
-  "Local Native": { bg: "var(--bg-2)", text: "var(--success)", label: "Nativo local" },
-  "Bridge": { bg: "var(--bg-2)", text: "var(--warning)", label: "Puente manual" },
+  "Local Native": { bg: "var(--bg-2)", text: "var(--success)", label: "Local Native" },
+  "Bridge": { bg: "var(--bg-2)", text: "var(--warning)", label: "Manual Bridge" },
 };
 
 export function ConnectorsView() {
@@ -130,21 +130,21 @@ export function ConnectorsView() {
     setBridgeError(null);
     try {
       const budget = action === "handoff" ? 6000 : 4000;
-      const memories = await simulateContext("contexto general del proyecto", budget);
-      const connectorName = active?.name ?? "la herramienta seleccionada";
+      const memories = await simulateContext("general project context", budget);
+      const connectorName = active?.name ?? "the selected tool";
 
       let text: string;
       if (action === "handoff") {
         text = [
-          `# Handoff para ${connectorName}`,
+          `# Handoff for ${connectorName}`,
           "",
-          `Fecha: ${new Date().toLocaleString("es-ES")}`,
+          `Date: ${new Date().toLocaleString("en-US")}`,
           "",
-          "## Instrucciones",
-          "Este documento contiene el contexto activo de mi workspace de memorias.",
-          `Úsalo como referencia para continuar el trabajo en ${connectorName}.`,
+          "## Instructions",
+          "This document contains the active context of my memory workspace.",
+          `Use it as a reference to continue the work in ${connectorName}.`,
           "",
-          "## Memorias activas",
+          "## Active memories",
           "",
           ...memories.map((m) => `### [${m.memory_id}] (${m.memory_type})\n${m.l0}`),
         ].join("\n");
@@ -155,18 +155,18 @@ export function ConnectorsView() {
       await navigator.clipboard.writeText(text);
       if (action === "handoff") {
         if (!info) {
-          throw new Error("No se pudo resolver la ubicación del workspace");
+          throw new Error("Could not resolve workspace location");
         }
         const handoffPath = `${info.workspace_root}/09-scratch/handoff.md`;
         await writeFile(handoffPath, text);
-        setBridgeFeedback(`Archivo guardado en 09-scratch/handoff.md y copiado al portapapeles.`);
+        setBridgeFeedback(`File saved to 09-scratch/handoff.md and copied to clipboard.`);
       } else {
-        setBridgeFeedback("Contexto copiado al portapapeles.");
+        setBridgeFeedback("Context copied to clipboard.");
       }
       setBridgeText(text);
       setBridgeStatus("done");
     } catch {
-      setBridgeError("No se pudo preparar la transferencia de contexto.");
+      setBridgeError("Could not prepare context transfer.");
       setBridgeStatus("idle");
     }
   };
@@ -174,10 +174,10 @@ export function ConnectorsView() {
   return (
     <div className="view-container h-full overflow-y-auto" style={{ padding: 24 }}>
       <h1 style={{ fontSize: 20, fontWeight: 700, marginBottom: 4, color: "var(--text-0)" }}>
-        Conectores
+        Connectors
       </h1>
       <p style={{ fontSize: 13, color: "var(--text-2)", marginBottom: 20 }}>
-        Integra AI Context OS con tus herramientas de IA.
+        Integrate AI Context OS with your AI tools.
       </p>
 
       {/* MCP server status */}
@@ -205,7 +205,7 @@ export function ConnectorsView() {
             }}
           />
           <span style={{ color: "var(--text-1)" }}>
-            MCP HTTP: {info.is_http_running ? "activo" : "inactivo"} en{" "}
+            MCP HTTP: {info.is_http_running ? "active" : "inactive"} at{" "}
             <code style={{ color: "var(--accent)" }}>{info.http_url}</code>
           </span>
         </div>
@@ -323,7 +323,7 @@ export function ConnectorsView() {
               {/* Capabilities */}
               <div style={{ marginBottom: 20 }}>
                 <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-2)", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.04em" }}>
-                  Capacidades
+                  Capabilities
                 </div>
                 {active.capabilities.map((cap) => (
                   <div key={cap} style={{ display: "flex", alignItems: "flex-start", gap: 6, fontSize: 12, color: "var(--text-1)", marginBottom: 4 }}>
@@ -338,18 +338,18 @@ export function ConnectorsView() {
               {active.id === "claude-desktop" && info && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                   <div>
-                    <SectionLabel>⭐ Opción 1 — Cowork (recomendado)</SectionLabel>
+                    <SectionLabel>⭐ Option 1 — Cowork (recommended)</SectionLabel>
                     <p style={{ fontSize: 12, color: "var(--text-2)", marginBottom: 8 }}>
-                      Es la forma óptima y más fácil de usar nuestro sistema. Solo requiere abrir 
-                      el proyecto con la app desktop de Claude y usar la pestaña <b>Cowork</b>. 
-                      Claude accederá de forma nativa a todo el contexto y archivos locales.
+                      It's the optimal and easiest way to use our system. Just open
+                      the project with the Claude desktop app and use the <b>Cowork</b> tab.
+                      Claude will natively access all context and local files.
                     </p>
                   </div>
 
                   <div>
-                    <SectionLabel>Opción 2 — Servidor MCP (stdio)</SectionLabel>
+                    <SectionLabel>Option 2 — MCP server (stdio)</SectionLabel>
                     <p style={{ fontSize: 12, color: "var(--text-2)", marginBottom: 8 }}>
-                      Para acceder a tu base de conocimientos desde cualquier conversación, agrega AI Context OS a <code style={{ color: "var(--accent)" }}>claude_desktop_config.json</code>:
+                      To access your knowledge base from any conversation, add AI Context OS to <code style={{ color: "var(--accent)" }}>claude_desktop_config.json</code>:
                     </p>
                     {(() => {
                       const config = JSON.stringify(
@@ -374,7 +374,7 @@ export function ConnectorsView() {
                     })()}
                   </div>
                   <InfoBox>
-                    <strong>Cowork + MCP:</strong> Recomendamos usar Cowork como base. Si añades la configuración MCP, tendrás a tu disposición herramientas avanzadas como búsquedas o grafos globales.
+                    <strong>Cowork + MCP:</strong> We recommend using Cowork as the base. If you add MCP configuration, you will have advanced tools like global searches or graphs at your disposal.
                   </InfoBox>
                 </div>
               )}
@@ -383,9 +383,9 @@ export function ConnectorsView() {
                 <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                   {/* Option 1: Terminal */}
                   <div>
-                    <SectionLabel>Opción 1 — CLI local (recomendado)</SectionLabel>
+                    <SectionLabel>Option 1 — Local CLI (recommended)</SectionLabel>
                     <p style={{ fontSize: 12, color: "var(--text-2)", marginBottom: 8 }}>
-                      Abre tu terminal en la carpeta origen e inicializa sesion con:
+                      Open your terminal in the source folder and initialize the session with:
                     </p>
                     <SnippetCard
                       snippet={`claude "${info.workspace_root}"`}
@@ -396,9 +396,9 @@ export function ConnectorsView() {
 
                   {/* Option 2: MCP add */}
                   <div>
-                    <SectionLabel>Opción 2 — Registrar servidor global</SectionLabel>
+                    <SectionLabel>Option 2 — Register global server</SectionLabel>
                     <p style={{ fontSize: 12, color: "var(--text-2)", marginBottom: 8 }}>
-                      Registra AI Context OS como servidor MCP permanente para invocarlo desde otras sesiones.
+                      Register AI Context OS as a permanent MCP server to invoke it from other sessions.
                     </p>
                     <SnippetCard
                       snippet={`claude mcp add ai-context-os -- "${info.binary_path}" mcp-server --root "${info.workspace_root}"`}
@@ -411,7 +411,7 @@ export function ConnectorsView() {
                   </div>
 
                   <InfoBox>
-                    Se cargarán las herramientas para manejar las memorias automáticamente en CLI.
+                    Tools for managing memories will be loaded automatically in CLI.
                   </InfoBox>
                 </div>
               )}
@@ -419,9 +419,9 @@ export function ConnectorsView() {
               {active.id === "cursor" && info && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                   <div>
-                    <SectionLabel>Opción 1 — MCP HTTP (dinámico, requiere app abierta)</SectionLabel>
+                    <SectionLabel>Option 1 — HTTP MCP (dynamic, requires open app)</SectionLabel>
                     <p style={{ fontSize: 12, color: "var(--text-2)", marginBottom: 8 }}>
-                      Agrega a <code style={{ color: "var(--accent)" }}>.cursor/mcp.json</code> en tu proyecto:
+                      Add to <code style={{ color: "var(--accent)" }}>.cursor/mcp.json</code> in your project:
                     </p>
                     {(() => {
                       const config = JSON.stringify(
@@ -439,16 +439,16 @@ export function ConnectorsView() {
                     })()}
                   </div>
                   <div>
-                    <SectionLabel>Opción 2 — .cursorrules (estático, siempre disponible)</SectionLabel>
+                    <SectionLabel>Option 2 — .cursorrules (static, always available)</SectionLabel>
                     <p style={{ fontSize: 12, color: "var(--text-2)", marginBottom: 8 }}>
-                      El archivo <code style={{ color: "var(--accent)" }}>.cursorrules</code> se
-                      auto-genera en la raíz del workspace con reglas y contexto base.
-                      Cursor lo lee automáticamente sin configuración.
+                      The <code style={{ color: "var(--accent)" }}>.cursorrules</code> file is
+                      auto-generated at the root of the workspace with rules and base context.
+                      Cursor reads it automatically without configuration.
                     </p>
                   </div>
                   <InfoBox>
-                    <strong>MCP vs .cursorrules:</strong> MCP da acceso dinámico a scoring, memorias y herramientas.
-                    .cursorrules es estático pero no requiere que la app esté corriendo.
+                    <strong>MCP vs .cursorrules:</strong> MCP gives dynamic access to scoring, memories, and tools.
+                    .cursorrules is static but does not require the app to be running.
                   </InfoBox>
                 </div>
               )}
@@ -456,9 +456,9 @@ export function ConnectorsView() {
               {active.id === "windsurf" && info && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                   <div>
-                    <SectionLabel>Opción 1 — MCP HTTP (dinámico, requiere app abierta)</SectionLabel>
+                    <SectionLabel>Option 1 — HTTP MCP (dynamic, requires open app)</SectionLabel>
                     <p style={{ fontSize: 12, color: "var(--text-2)", marginBottom: 8 }}>
-                      Configura en los ajustes MCP de Windsurf:
+                      Configure in Windsurf's MCP settings:
                     </p>
                     {(() => {
                       const config = JSON.stringify(
@@ -476,10 +476,10 @@ export function ConnectorsView() {
                     })()}
                   </div>
                   <div>
-                    <SectionLabel>Opción 2 — .windsurfrules (estático, siempre disponible)</SectionLabel>
+                    <SectionLabel>Option 2 — .windsurfrules (static, always available)</SectionLabel>
                     <p style={{ fontSize: 12, color: "var(--text-2)" }}>
-                      El archivo <code style={{ color: "var(--accent)" }}>.windsurfrules</code> se
-                      auto-genera en la raíz del workspace. Windsurf lo lee sin configuración adicional.
+                      The <code style={{ color: "var(--accent)" }}>.windsurfrules</code> file is
+                      auto-generated at the root of the workspace. Windsurf reads it without additional configuration.
                     </p>
                   </div>
                 </div>
@@ -488,13 +488,13 @@ export function ConnectorsView() {
               {active.id === "chatgpt" && info && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                   <div>
-                    <SectionLabel>Opción 1 — Codex CLI (recomendado)</SectionLabel>
+                    <SectionLabel>Option 1 — Codex CLI (recommended)</SectionLabel>
                     <p style={{ fontSize: 12, color: "var(--text-2)", marginBottom: 8 }}>
                       <a href="https://github.com/openai/codex" target="_blank" rel="noreferrer"
                         style={{ color: "var(--accent)", textDecoration: "underline" }}>
                         Codex CLI
                       </a>{" "}
-                      soporta servidores MCP nativos. Configura en{" "}
+                      supports native MCP servers. Configure in{" "}
                       <code style={{ color: "var(--accent)" }}>~/.codex/config.yaml</code>:
                     </p>
                     {(() => {
@@ -509,14 +509,14 @@ export function ConnectorsView() {
                     })()}
                   </div>
                   <InfoBox>
-                    <strong>Codex CLI</strong> ejecuta modelos de OpenAI con acceso MCP directo.
-                    Es la mejor vía para usar AI Context OS con el ecosistema ChatGPT/OpenAI.
+                    <strong>Codex CLI</strong> runs OpenAI models with direct MCP access.
+                    It's the best way to use AI Context OS with the ChatGPT/OpenAI ecosystem.
                   </InfoBox>
 
                   <div>
-                    <SectionLabel>Opción 2 — ChatGPT web (handoff manual)</SectionLabel>
+                    <SectionLabel>Option 2 — ChatGPT web (manual handoff)</SectionLabel>
                     <p style={{ fontSize: 12, color: "var(--text-2)", marginBottom: 8 }}>
-                      Para ChatGPT web sin Codex, transfiere el contexto manualmente.
+                      For ChatGPT web without Codex, transfer the context manually.
                     </p>
                   </div>
                   <BridgePanel
@@ -543,7 +543,7 @@ export function ConnectorsView() {
 
               {!info && active.tier === "Local Native" && (
                 <div style={{ fontSize: 13, color: "var(--text-2)" }}>
-                  Cargando información de conexión...
+                  Loading connection info...
                 </div>
               )}
             </div>
@@ -583,8 +583,8 @@ function BridgePanel({
           color: "var(--text-2)",
         }}
       >
-        <strong style={{ color: "var(--text-1)" }}>Transferencia manual</strong> — Prepara el
-        contexto para copiarlo o guardarlo como archivo cuando no hay integración nativa.
+        <strong style={{ color: "var(--text-1)" }}>Manual Transfer</strong> — Prepares the
+        context to copy it or save it as a file when there is no native integration.
       </div>
 
       {connectorId === "copilot" && (
@@ -597,21 +597,21 @@ function BridgePanel({
             color: "var(--text-2)",
           }}
         >
-          Copilot lee <code style={{ color: "var(--accent)" }}>.cursorrules</code> en algunos
-          editores. Si tu editor lo soporta, el contexto base estará disponible automáticamente.
+          Copilot reads <code style={{ color: "var(--accent)" }}>.cursorrules</code> in some
+          editors. If your editor supports it, the base context will be available automatically.
         </div>
       )}
 
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         <ActionButton
           icon={<Copy size={13} />}
-          label="Copiar contexto óptimo"
+          label="Copy optimal context"
           loading={status === "loading"}
           onClick={() => onAction("copy")}
         />
         <ActionButton
           icon={<FileText size={13} />}
-          label="Generar handoff.md"
+          label="Generate handoff.md"
           loading={status === "loading"}
           onClick={() => onAction("handoff")}
         />
@@ -627,7 +627,7 @@ function BridgePanel({
 
       {status === "done" && resultText && (
         <div>
-          <div style={{ fontSize: 11, color: "var(--accent)", marginBottom: 4 }}>Vista previa</div>
+          <div style={{ fontSize: 11, color: "var(--accent)", marginBottom: 4 }}>Preview</div>
           <pre
             style={{
               padding: 10,
@@ -708,7 +708,7 @@ function SnippetCard({
           zIndex: 1,
         }}
       >
-        {copied ? <><Check size={11} /> Copiado</> : <><Copy size={11} /> Copiar</>}
+        {copied ? <><Check size={11} /> Copied</> : <><Copy size={11} /> Copy</>}
       </button>
       <pre
         style={{
@@ -762,7 +762,7 @@ function ActionButton({
       }}
     >
       {icon}
-      {loading ? "Generando..." : label}
+      {loading ? "Generating..." : label}
     </button>
   );
 }
