@@ -32,10 +32,11 @@ fn regenerate_router_files(
     fs::write(root.join(".windsurfrules"), &windsurfrules)
         .map_err(|e| format!("Failed to write .windsurfrules: {}", e))?;
 
-    // Generate _index.yaml (independent of adapters)
+    // Generate index.yaml (independent of adapters)
+    let paths = crate::core::paths::SystemPaths::new(root);
     let index_yaml = generate_index_yaml(&metas);
-    fs::write(root.join("_index.yaml"), &index_yaml)
-        .map_err(|e| format!("Failed to write _index.yaml: {}", e))?;
+    fs::write(paths.index_yaml(), &index_yaml)
+        .map_err(|e| format!("Failed to write index.yaml: {}", e))?;
 
     Ok((claude_md, all))
 }
@@ -60,7 +61,7 @@ pub fn regenerate_router_internal(
     Ok(claude_md)
 }
 
-/// Regenerate claude.md, _index.yaml, .cursorrules, .windsurfrules.
+/// Regenerate claude.md, .ai/index.yaml, .cursorrules, .windsurfrules.
 #[tauri::command]
 pub fn regenerate_router(app: AppHandle, state: State<AppState>) -> Result<String, String> {
     regenerate_router_internal(&app, &state)

@@ -1,14 +1,15 @@
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use chrono::Utc;
 use tauri::{AppHandle, Emitter, State};
 
-use crate::core::index::{memory_folder, scan_memories};
+use crate::core::index::scan_memories;
 use crate::core::memory::{read_memory, write_memory};
+use crate::core::paths::SystemPaths;
 use crate::core::types::{
     default_ontology_for_memory_type, CreateMemoryInput, Memory, MemoryFilter, MemoryMeta,
-    MemoryType, SaveMemoryInput,
+    SaveMemoryInput,
 };
 use crate::state::AppState;
 
@@ -31,6 +32,42 @@ fn should_regenerate_router(
         || old_meta.optional != new_meta.optional
 }
 
+fn normalize_existing_dir(path: &Path) -> Result<PathBuf, String> {
+    std::fs::canonicalize(path)
+        .map_err(|e| format!("Failed to resolve directory {}: {}", path.display(), e))
+}
+
+fn validate_memory_directory(root: &Path, dir: &Path) -> Result<PathBuf, String> {
+    if !dir.exists() {
+        return Err(format!("Destination does not exist: {}", dir.display()));
+    }
+    if !dir.is_dir() {
+        return Err(format!("Destination is not a directory: {}", dir.display()));
+    }
+
+    let normalized_root = normalize_existing_dir(root)?;
+    let normalized_dir = normalize_existing_dir(dir)?;
+    if !normalized_dir.starts_with(&normalized_root) {
+        return Err("Destination must stay inside the workspace".to_string());
+    }
+
+    let paths = SystemPaths::new(&normalized_root);
+    if normalized_dir == paths.sources_dir() {
+        return Err("Cannot store memories inside sources/".to_string());
+    }
+    if normalized_dir == paths.ai_dir() {
+        return Err("Cannot store memories in the .ai/ system directory".to_string());
+    }
+    if normalized_dir.starts_with(paths.tasks_dir())
+        || normalized_dir.starts_with(paths.journal_dir())
+        || normalized_dir.starts_with(paths.scratch_dir())
+    {
+        return Err("Cannot store memories in system-managed .ai/ subdirectories".to_string());
+    }
+
+    Ok(normalized_dir)
+}
+
 /// List all memory metadata (L0 level).
 #[tauri::command]
 pub fn list_memories(
@@ -39,6 +76,14 @@ pub fn list_memories(
 ) -> Result<Vec<MemoryMeta>, String> {
     let root = state.get_root();
     let all = scan_memories(&root);
+
+    // Update the in-memory index from this scan (single scan, reused below)
+    let mut index = state.memory_index.write().unwrap();
+    index.clear();
+    for (meta, path) in &all {
+        index.insert(meta.id.clone(), (meta.clone(), path.clone()));
+    }
+    drop(index);
 
     let metas: Vec<MemoryMeta> = all
         .into_iter()
@@ -64,14 +109,6 @@ pub fn list_memories(
             true
         })
         .collect();
-
-    // Update the in-memory index
-    let mut index = state.memory_index.write().unwrap();
-    index.clear();
-    let all_again = scan_memories(&root);
-    for (meta, path) in all_again {
-        index.insert(meta.id.clone(), (meta, path));
-    }
 
     Ok(metas)
 }
@@ -107,7 +144,7 @@ pub fn get_memory(id: String, state: State<AppState>) -> Result<Memory, String> 
     Ok(memory)
 }
 
-/// Create a new memory file.
+/// Create a new memory file. Defaults to inbox/ as landing zone.
 #[tauri::command]
 pub fn create_memory(
     input: CreateMemoryInput,
@@ -115,8 +152,8 @@ pub fn create_memory(
     state: State<AppState>,
 ) -> Result<Memory, String> {
     let root = state.get_root();
-    let folder = memory_folder(&root, &input.memory_type);
-    create_memory_internal(input, folder, app, state)
+    let paths = crate::core::paths::SystemPaths::new(&root);
+    create_memory_internal(input, paths.inbox_dir(), app, state)
 }
 
 /// Create a new memory file inside a specific directory.
@@ -127,7 +164,9 @@ pub fn create_memory_at_path(
     app: AppHandle,
     state: State<AppState>,
 ) -> Result<Memory, String> {
-    create_memory_internal(input, PathBuf::from(parent_dir), app, state)
+    let root = state.get_root();
+    let parent_dir = validate_memory_directory(&root, Path::new(&parent_dir))?;
+    create_memory_internal(input, parent_dir, app, state)
 }
 
 /// Save/update an existing memory.
@@ -144,8 +183,6 @@ pub fn save_memory(
         .ok_or_else(|| format!("Memory not found: {}", input.id))?;
     let old_meta = old_meta.clone();
     let old_file_path = PathBuf::from(path.clone());
-    let old_memory_type = old_meta.memory_type.clone();
-
     if input.meta.id.trim().is_empty() {
         return Err("Memory id cannot be empty".to_string());
     }
@@ -159,14 +196,12 @@ pub fn save_memory(
     meta.version += 1;
     meta.id = meta.id.trim().to_string();
 
-    let target_parent = if meta.memory_type == old_memory_type {
-        old_file_path
-            .parent()
-            .map(PathBuf::from)
-            .unwrap_or_else(|| memory_folder(&root, &meta.memory_type))
-    } else {
-        memory_folder(&root, &meta.memory_type)
-    };
+    // Zero Gravity: file stays in its current location regardless of type change.
+    // Only the frontmatter type field changes.
+    let target_parent = old_file_path
+        .parent()
+        .map(PathBuf::from)
+        .unwrap_or_else(|| root.clone());
     let target_file_path = target_parent.join(format!("{}.md", meta.id));
     if target_file_path.exists() && target_file_path != old_file_path {
         return Err(format!(
@@ -384,7 +419,8 @@ pub fn duplicate_memory_file(
     Ok(memory)
 }
 
-/// Move a memory file into another workspace folder, updating its type when needed.
+/// Move a memory file into another workspace folder.
+/// Zero Gravity: the memory type is preserved — only the physical location changes.
 #[tauri::command]
 pub fn move_memory_file(
     path: String,
@@ -398,21 +434,8 @@ pub fn move_memory_file(
     }
 
     let destination_dir = PathBuf::from(&destination_dir);
-    if !destination_dir.exists() {
-        return Err(format!(
-            "Destination does not exist: {}",
-            destination_dir.display()
-        ));
-    }
-    if !destination_dir.is_dir() {
-        return Err(format!(
-            "Destination is not a directory: {}",
-            destination_dir.display()
-        ));
-    }
-
     let root = state.get_root();
-    let destination_type = memory_type_for_directory(&root, &destination_dir)?;
+    let destination_dir = validate_memory_directory(&root, &destination_dir)?;
 
     let mut memory = read_memory(&source_path)?;
     let target_path = destination_dir.join(format!("{}.md", memory.meta.id));
@@ -427,7 +450,7 @@ pub fn move_memory_file(
     }
 
     let old_id = memory.meta.id.clone();
-    memory.meta.memory_type = destination_type;
+    // Type is preserved — Zero Gravity decouples location from semantics
     memory.meta.modified = Utc::now();
     memory.meta.version += 1;
     memory.file_path = target_path.to_string_lossy().to_string();
@@ -530,28 +553,4 @@ fn create_memory_internal(
     crate::commands::router::regenerate_router_internal(&app, &state)?;
 
     Ok(memory)
-}
-
-fn memory_type_for_directory(
-    root: &std::path::Path,
-    dir: &std::path::Path,
-) -> Result<MemoryType, String> {
-    let relative = dir.strip_prefix(root).map_err(|_| {
-        format!(
-            "Destination must stay inside the workspace: {}",
-            dir.display()
-        )
-    })?;
-    let folder = relative
-        .components()
-        .next()
-        .and_then(|component| component.as_os_str().to_str())
-        .ok_or_else(|| format!("Failed to infer memory type from {}", dir.display()))?;
-
-    MemoryType::from_folder(folder).ok_or_else(|| {
-        format!(
-            "Destination must be inside a memory folder: {}",
-            dir.display()
-        )
-    })
 }

@@ -210,50 +210,12 @@ function getTypeColor(node: FileNode): string | undefined {
   if (node.memory_type) {
     return MEMORY_TYPE_COLORS[node.memory_type];
   }
-  const folderType = inferFolderTypeFromPath(node.path);
-  if (folderType) {
-    return MEMORY_TYPE_COLORS[folderType];
-  }
-  
-  // Si no está mapeado a un tipo de memoria, generamos un color consistente
+
+  // Zero Gravity: no folder-based type inference — use hash color for untyped nodes
   const stringToHash = node.is_dir ? node.name : (node.path.split("/").slice(-2, -1)[0] || node.name);
   return getStringColor(stringToHash);
 }
 
-function folderToType(folder: string): MemoryType | null {
-  const map: Record<string, MemoryType> = {
-    sources: "source",
-    "01-sources": "source",
-    "01-context": "context",
-    "02-context": "context",
-    "02-daily": "daily",
-    "03-daily": "daily",
-    "03-intelligence": "intelligence",
-    "04-intelligence": "intelligence",
-    "04-projects": "project",
-    "05-projects": "project",
-    "05-resources": "resource",
-    "06-resources": "resource",
-    "06-skills": "skill",
-    "07-skills": "skill",
-    "07-tasks": "task",
-    "08-tasks": "task",
-    "08-rules": "rule",
-    "09-rules": "rule",
-    "09-scratch": "scratch",
-    "10-scratch": "scratch",
-  };
-  return map[folder] ?? null;
-}
-
-function inferFolderTypeFromPath(path: string): MemoryType | null {
-  const parts = path.split("/");
-  for (const part of parts) {
-    const folderType = folderToType(part);
-    if (folderType) return folderType;
-  }
-  return null;
-}
 
 function isMarkdownFile(name: string): boolean {
   return name.toLowerCase().endsWith(".md");
@@ -562,15 +524,16 @@ function isRawViewerSupported(name: string): boolean {
 }
 
 const PROTECTED_FILE_NAMES = new Set([
-  "_config.yaml",
-  "_index.yaml",
+  "config.yaml",
+  "index.yaml",
   "claude.md",
   ".cursorrules",
   ".windsurfrules",
 ]);
 
-const INBOX_FOLDER_NAMES = new Set(["inbox", "00-inbox"]);
-const SOURCES_FOLDER_NAMES = new Set(["sources", "01-sources"]);
+const INBOX_FOLDER_NAMES = new Set(["inbox"]);
+const SOURCES_FOLDER_NAMES = new Set(["sources"]);
+const AI_SYSTEM_DIR = ".ai";
 
 function pathSegments(path: string): string[] {
   return path.replace(/\\/g, "/").split("/").filter(Boolean);
@@ -593,14 +556,19 @@ function isSourcesNode(node: FileNode): boolean {
 }
 
 function isSpecialWorkspaceNode(node: FileNode): boolean {
-  return node.is_dir && (isInboxNode(node) || isSourcesNode(node));
+  return node.is_dir && (isInboxNode(node) || isSourcesNode(node) || node.name === AI_SYSTEM_DIR);
 }
 
 function isProtectedNode(node: FileNode): boolean {
-  if (node.is_dir && node.memory_type !== null) {
+  // Zero Gravity: only system files and special dirs are protected, not user folders
+  if (node.is_dir && (isInboxNode(node) || isSourcesNode(node) || node.name === AI_SYSTEM_DIR)) {
     return true;
   }
   return PROTECTED_FILE_NAMES.has(node.name);
+}
+
+function isAiRootNode(node: FileNode): boolean {
+  return node.is_dir && node.name === AI_SYSTEM_DIR;
 }
 
 function stripMdExtension(name: string): string {
@@ -648,10 +616,18 @@ function pathMatchesTarget(targetPath: string | null, candidatePath: string): bo
 function isAdvancedOnlyFile(node: FileNode): boolean {
   if (node.is_dir) return false;
   if (isInboxPath(node.path)) return false;
+  if (isSourcesPath(node.path)) return false;
   if (PROTECTED_FILE_NAMES.has(node.name)) return true;
   if (!isMarkdownFile(node.name)) return true;
   if (node.name.startsWith("_")) return true;
-  return inferFolderTypeFromPath(node.path) === null;
+  // Zero Gravity: all .md files are visible by default regardless of folder
+  return false;
+}
+
+function canStoreMemoryInDirectory(node: FileNode): boolean {
+  if (!node.is_dir) return false;
+  if (isSourcesNode(node) || isAiRootNode(node)) return false;
+  return !isAiSystemSubdir(node);
 }
 
 function filterExplorerTree(
@@ -669,11 +645,10 @@ function filterExplorerTree(
   for (const node of nodes) {
     if (node.is_dir) {
       const filteredChildren = filterExplorerTree(node.children, showSystemFiles, false);
+      // Zero Gravity: show directory if it's at root level, is a special node, or has visible children
       const shouldShowDirectory =
-        node.memory_type !== null ||
-        isSpecialWorkspaceNode(node) ||
-        inferFolderTypeFromPath(node.path) !== null ||
         isRootLevel ||
+        isSpecialWorkspaceNode(node) ||
         filteredChildren.nodes.length > 0;
 
       hiddenCount += filteredChildren.hiddenCount;
@@ -1062,12 +1037,14 @@ export function FileExplorer() {
 
   const handleCreateNote = async (node: FileNode) => {
     if (!node.is_dir) return;
-
-    const memoryType = inferFolderTypeFromPath(node.path);
-    if (!memoryType) {
-      setError("Notes can only be created inside memory folders");
+    if (!canStoreMemoryInDirectory(node)) {
+      setError("This folder is reserved for system or protected content");
       return;
     }
+
+    // Zero Gravity: notes can be created in any directory.
+    // Default type is "context" — user can change it from the editor.
+    const memoryType: MemoryType = node.memory_type ?? "context";
 
     try {
       const nextId = uniqueName("untitled", new Set(memories.map((memory) => memory.id)));
@@ -1127,11 +1104,14 @@ export function FileExplorer() {
       const findTargetDir = (): FileNode | null => {
         if (selectedPath) {
           const sel = findNodeByPath(fileTree, selectedPath);
-          if (sel?.is_dir && inferFolderTypeFromPath(sel.path) !== null) return sel;
+          if (sel?.is_dir && canStoreMemoryInDirectory(sel)) return sel;
           const parent = findNodeByPath(fileTree, getParentPath(selectedPath));
-          if (parent?.is_dir && inferFolderTypeFromPath(parent.path) !== null) return parent;
+          if (parent?.is_dir && canStoreMemoryInDirectory(parent)) return parent;
         }
-        return fileTree.find((n) => n.is_dir && n.memory_type !== null) ?? null;
+        // Zero Gravity: any directory works, prefer inbox as default
+        return fileTree.find((n) => n.is_dir && n.name === "inbox")
+          ?? fileTree.find((n) => n.is_dir && canStoreMemoryInDirectory(n))
+          ?? null;
       };
       const targetDir = findTargetDir();
       if (!targetDir) {
@@ -1146,8 +1126,9 @@ export function FileExplorer() {
   const currentNode = ctxMenu?.node ?? null;
   const currentNodeIsProtected = currentNode ? isProtectedNode(currentNode) : false;
   const currentNodeIsManagedMemory = currentNode ? isManagedMemoryFile(currentNode, memoryIds) : false;
+  // Zero Gravity still keeps protected/system folders off-limits for user memories.
   const currentFolderSupportsNotes = currentNode?.is_dir
-    ? inferFolderTypeFromPath(currentNode.path) !== null
+    ? canStoreMemoryInDirectory(currentNode)
     : false;
 
   const handleMoveMemory = async (node: FileNode) => {
@@ -1530,15 +1511,28 @@ export function FileExplorer() {
   );
 }
 
+// .ai/ subdirectories that are system-managed and should not receive dropped files
+const AI_SYSTEM_SUBDIRS = new Set(["tasks", "scratch", "journal"]);
+
+function isAiSystemSubdir(node: FileNode): boolean {
+  const segments = pathSegments(node.path);
+  const aiIdx = segments.lastIndexOf(AI_SYSTEM_DIR);
+  if (aiIdx === -1) return false;
+  const subdir = segments[aiIdx + 1];
+  return subdir !== undefined && AI_SYSTEM_SUBDIRS.has(subdir);
+}
+
 function canDropOnDirectory(draggedItem: DraggedItem | null, target: FileNode): boolean {
   if (!draggedItem || !target.is_dir) return false;
   if (draggedItem.isProtected) return false;
+  // Block drops into .ai/ system-managed subdirs
+  if (isAiSystemSubdir(target)) return false;
 
   const currentParent = getParentPath(draggedItem.path);
   if (currentParent === target.path) return false;
 
   if (draggedItem.isMarkdown) {
-    return inferFolderTypeFromPath(target.path) !== null;
+    return canStoreMemoryInDirectory(target);
   }
 
   return true;

@@ -78,7 +78,13 @@ fn get_root(root_opt: &Option<String>) -> PathBuf {
 }
 
 fn load_config(root: &PathBuf) -> Config {
-    let config_path = root.join("_config.yaml");
+    let paths = core::paths::SystemPaths::new(root);
+    // Try .ai/config.yaml first (new path), fall back to legacy _config.yaml
+    let config_path = if paths.config_yaml().exists() {
+        paths.config_yaml()
+    } else {
+        root.join("_config.yaml")
+    };
     if config_path.exists() {
         let content = std::fs::read_to_string(&config_path).unwrap_or_default();
         serde_yaml::from_str(&content).unwrap_or_else(|_| Config {
@@ -118,24 +124,14 @@ fn main() {
                 return;
             }
 
-            let dirs = [
-                "inbox",
-                "sources",
-                "01-context",
-                "02-daily",
-                "02-daily/sessions",
-                "03-intelligence",
-                "04-projects",
-                "05-resources",
-                "06-skills",
-                "07-tasks",
-                "08-rules",
-                "09-scratch",
-                ".cache",
-            ];
-
-            for dir in &dirs {
-                std::fs::create_dir_all(root.join(dir)).unwrap();
+            match core::paths::SystemPaths::new(&root).system_dirs().iter().try_for_each(|dir| {
+                std::fs::create_dir_all(dir).map_err(|e| format!("Failed to create {}: {}", dir.display(), e))
+            }) {
+                Ok(_) => {}
+                Err(e) => {
+                    eprintln!("Error creating workspace: {}", e);
+                    return;
+                }
             }
 
             let config = Config {
@@ -145,14 +141,15 @@ fn main() {
                 scratch_ttl_days: 7,
                 active_tools: vec!["claude".to_string()],
             };
+            let paths = core::paths::SystemPaths::new(&root);
             let yaml = serde_yaml::to_string(&config).unwrap();
-            std::fs::write(root.join("_config.yaml"), yaml).unwrap();
+            std::fs::write(paths.config_yaml(), yaml).unwrap();
             std::fs::write(
-                root.join("claude.md"),
+                paths.claude_md(),
                 "# AI Context OS — Router\n\nInitialized.\n",
             )
             .unwrap();
-            std::fs::write(root.join("_index.yaml"), "memories: []\n").unwrap();
+            std::fs::write(paths.index_yaml(), "memories: []\n").unwrap();
 
             println!("Workspace initialized at {}", root.display());
         }
@@ -234,7 +231,8 @@ fn main() {
             std::fs::write(root.join("claude.md"), &claude_md).unwrap();
 
             let index_yaml = generate_index_yaml(&metas);
-            std::fs::write(root.join("_index.yaml"), &index_yaml).unwrap();
+            let paths = core::paths::SystemPaths::new(&root);
+            std::fs::write(paths.index_yaml(), &index_yaml).unwrap();
 
             let cursorrules = render_cursor_adapter(&neutral);
             std::fs::write(root.join(".cursorrules"), &cursorrules).ok();
@@ -242,7 +240,7 @@ fn main() {
             std::fs::write(root.join(".windsurfrules"), &windsurfrules).ok();
 
             println!(
-                "Regenerated: claude.md, _index.yaml, .cursorrules, .windsurfrules ({} memories)",
+                "Regenerated: claude.md, .ai/index.yaml, .cursorrules, .windsurfrules ({} memories)",
                 metas.len()
             );
         }

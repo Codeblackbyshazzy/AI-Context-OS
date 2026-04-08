@@ -157,9 +157,9 @@ export function ConnectorsView() {
         if (!info) {
           throw new Error("Could not resolve workspace location");
         }
-        const handoffPath = `${info.workspace_root}/09-scratch/handoff.md`;
+        const handoffPath = `${info.workspace_root}/.ai/scratch/handoff.md`;
         await writeFile(handoffPath, text);
-        setBridgeFeedback(`File saved to 09-scratch/handoff.md and copied to clipboard.`);
+        setBridgeFeedback(`File saved to .ai/scratch/handoff.md and copied to clipboard.`);
       } else {
         setBridgeFeedback("Context copied to clipboard.");
       }
