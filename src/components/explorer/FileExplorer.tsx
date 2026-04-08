@@ -36,8 +36,7 @@ import {
   renamePath,
   showInFileManager,
 } from "../../lib/tauri";
-import type { Conflict, FileNode, MemoryType } from "../../lib/types";
-import { MEMORY_TYPE_COLORS } from "../../lib/types";
+import type { Conflict, FileNode } from "../../lib/types";
 
 interface ContextMenuState {
   x: number;
@@ -205,10 +204,6 @@ function getTypeColor(node: FileNode): string | undefined {
   // Los archivos no editables (no markdown) no tienen color (serán grises)
   if (!node.is_dir && !isMarkdownFile(node.name)) {
     return undefined;
-  }
-
-  if (node.memory_type) {
-    return MEMORY_TYPE_COLORS[node.memory_type];
   }
 
   // Zero Gravity: no folder-based type inference — use hash color for untyped nodes
@@ -1042,16 +1037,12 @@ export function FileExplorer() {
       return;
     }
 
-    // Zero Gravity: notes can be created in any directory.
-    // Default type is "context" — user can change it from the editor.
-    const memoryType: MemoryType = node.memory_type ?? "context";
-
     try {
       const nextId = uniqueName("untitled", new Set(memories.map((memory) => memory.id)));
       const created = await createMemoryAtPath(
         {
           id: nextId,
-          memory_type: memoryType,
+          ontology: "entity",
           l0: "Untitled",
           importance: 0.5,
           tags: [],
