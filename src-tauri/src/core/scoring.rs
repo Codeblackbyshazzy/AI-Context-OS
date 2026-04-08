@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use chrono::{DateTime, Utc};
 
 use crate::core::search::{bm25_score, build_doc_freq, l0_keyword_score, tag_match_score};
-use crate::core::types::{Memory, MemoryType, ScoreBreakdown};
+use crate::core::types::{Memory, MemoryOntology, ScoreBreakdown, SystemRole};
 
 // ─── Scoring weights per intent profile ───────────────────────────────────────
 
@@ -139,17 +139,17 @@ pub fn compute_score(
 // ─── Component scoring functions ──────────────────────────────────────────────
 
 /// Free-tier semantic approximation:
-/// 40% tag matching + 35% L0 keyword overlap + 25% type bonus
+/// 40% tag matching + 35% L0 keyword overlap + 25% ontology bonus
 fn semantic_score_free(query: &str, memory: &Memory) -> f64 {
     let tag_score = tag_match_score(query, &memory.meta.tags);
     let l0_score = l0_keyword_score(query, &memory.meta.l0);
-    let type_bonus = type_bonus_score(query, &memory.meta.memory_type);
+    let ontology_bonus = ontology_bonus_score(query, memory);
 
-    0.40 * tag_score + 0.35 * l0_score + 0.25 * type_bonus
+    0.40 * tag_score + 0.35 * l0_score + 0.25 * ontology_bonus
 }
 
-/// Heuristic type bonus — if query seems to match a type category, boost it.
-fn type_bonus_score(query: &str, memory_type: &MemoryType) -> f64 {
+/// Heuristic ontology bonus — if query seems to match the knowledge shape, boost it.
+fn ontology_bonus_score(query: &str, memory: &Memory) -> f64 {
     let q = query.to_lowercase();
     let code_terms = [
         "code", "coding", "debug", "function", "api", "bug", "test", "programa", "código",
@@ -173,8 +173,8 @@ fn type_bonus_score(query: &str, memory_type: &MemoryType) -> f64 {
         "tendencia",
     ];
 
-    match memory_type {
-        MemoryType::Skill | MemoryType::Rule => {
+    match memory.meta.system_role {
+        Some(SystemRole::Skill) | Some(SystemRole::Rule) => {
             if code_terms.iter().any(|t| q.contains(t)) {
                 return 0.8;
             }
@@ -183,17 +183,17 @@ fn type_bonus_score(query: &str, memory_type: &MemoryType) -> f64 {
             }
             0.3
         }
-        MemoryType::Context => {
-            0.4 // Generally useful
-        }
-        MemoryType::Intelligence => {
-            if analysis_terms.iter().any(|t| q.contains(t)) {
-                return 0.9;
+        None => match memory.meta.ontology {
+            MemoryOntology::Entity => 0.4,
+            MemoryOntology::Synthesis => {
+                if analysis_terms.iter().any(|t| q.contains(t)) {
+                    return 0.9;
+                }
+                0.2
             }
-            0.2
-        }
-        MemoryType::Project => 0.3,
-        _ => 0.1,
+            MemoryOntology::Concept => 0.3,
+            MemoryOntology::Source => 0.1,
+        },
     }
 }
 
