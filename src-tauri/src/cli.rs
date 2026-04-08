@@ -118,24 +118,14 @@ fn main() {
                 return;
             }
 
-            let dirs = [
-                "inbox",
-                "sources",
-                "01-context",
-                "02-daily",
-                "02-daily/sessions",
-                "03-intelligence",
-                "04-projects",
-                "05-resources",
-                "06-skills",
-                "07-tasks",
-                "08-rules",
-                "09-scratch",
-                ".cache",
-            ];
-
-            for dir in &dirs {
-                std::fs::create_dir_all(root.join(dir)).unwrap();
+            match core::paths::SystemPaths::new(&root).system_dirs().iter().try_for_each(|dir| {
+                std::fs::create_dir_all(dir).map_err(|e| format!("Failed to create {}: {}", dir.display(), e))
+            }) {
+                Ok(_) => {}
+                Err(e) => {
+                    eprintln!("Error creating workspace: {}", e);
+                    return;
+                }
             }
 
             let config = Config {
@@ -145,14 +135,15 @@ fn main() {
                 scratch_ttl_days: 7,
                 active_tools: vec!["claude".to_string()],
             };
+            let paths = core::paths::SystemPaths::new(&root);
             let yaml = serde_yaml::to_string(&config).unwrap();
-            std::fs::write(root.join("_config.yaml"), yaml).unwrap();
+            std::fs::write(paths.config_yaml(), yaml).unwrap();
             std::fs::write(
-                root.join("claude.md"),
+                paths.claude_md(),
                 "# AI Context OS — Router\n\nInitialized.\n",
             )
             .unwrap();
-            std::fs::write(root.join("_index.yaml"), "memories: []\n").unwrap();
+            std::fs::write(paths.index_yaml(), "memories: []\n").unwrap();
 
             println!("Workspace initialized at {}", root.display());
         }
