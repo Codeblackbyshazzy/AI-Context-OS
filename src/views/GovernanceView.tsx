@@ -18,7 +18,7 @@ import {
 } from "../lib/tauri";
 import { useAppStore } from "../lib/store";
 import type { Conflict, ConsolidationSuggestion, GodNode, MemoryMeta } from "../lib/types";
-import { MEMORY_TYPE_COLORS, MEMORY_TYPE_LABELS } from "../lib/types";
+import { MEMORY_ONTOLOGY_COLORS, MEMORY_ONTOLOGY_LABELS } from "../lib/types";
 
 type Tab = "stats" | "conflicts" | "decay" | "consolidation" | "scratch" | "god_nodes";
 
@@ -50,7 +50,7 @@ export function GovernanceView() {
 
   const typeGroups = memories.reduce(
     (acc, m) => {
-      acc[m.memory_type] = (acc[m.memory_type] || 0) + 1;
+      acc[m.ontology] = (acc[m.ontology] || 0) + 1;
       return acc;
     },
     {} as Record<string, number>,
@@ -93,24 +93,24 @@ export function GovernanceView() {
             </div>
             <div>
               <h3 className="mb-2 text-[11px] font-medium uppercase tracking-wider text-[color:var(--text-2)]">
-                By Type
+                Por ontologia
               </h3>
               <div className="space-y-1.5">
                 {Object.entries(typeGroups).map(([type, count]) => (
                   <div key={type} className="flex items-center gap-2">
                     <span
                       className="h-2 w-2 rounded-full"
-                      style={{ backgroundColor: MEMORY_TYPE_COLORS[type as keyof typeof MEMORY_TYPE_COLORS] }}
+                      style={{ backgroundColor: MEMORY_ONTOLOGY_COLORS[type as keyof typeof MEMORY_ONTOLOGY_COLORS] }}
                     />
                     <span className="w-20 text-xs text-[color:var(--text-1)]">
-                      {MEMORY_TYPE_LABELS[type as keyof typeof MEMORY_TYPE_LABELS]}
+                      {MEMORY_ONTOLOGY_LABELS[type as keyof typeof MEMORY_ONTOLOGY_LABELS]}
                     </span>
                     <div className="h-1 flex-1 overflow-hidden rounded-full bg-[color:var(--bg-3)]">
                       <div
                         className="h-full rounded-full"
                         style={{
                           width: `${(count / Math.max(1, memories.length)) * 100}%`,
-                          backgroundColor: MEMORY_TYPE_COLORS[type as keyof typeof MEMORY_TYPE_COLORS],
+                          backgroundColor: MEMORY_ONTOLOGY_COLORS[type as keyof typeof MEMORY_ONTOLOGY_COLORS],
                           opacity: 0.6,
                         }}
                       />
@@ -207,7 +207,7 @@ export function GovernanceView() {
             </p>
             {godNodes.map((gn) => {
               const mismatch = gn.mismatch_score;
-              const color = MEMORY_TYPE_COLORS[gn.memory_type];
+              const color = MEMORY_ONTOLOGY_COLORS[gn.ontology];
               return (
                 <div
                   key={gn.memory_id}

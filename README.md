@@ -1,10 +1,12 @@
 # MEMM - AI Context OS
 
 Translations:
-- [ES](/Users/alexdc/Documents/GitHub/AI-Context-OS/README.es.md)
+- [ES](./README.es.md)
 
 Extended system docs:
-- [Documentation Index](/Users/alexdc/Documents/GitHub/AI-Context-OS/docs/README.md)
+- [Documentation Index](./docs/README.md)
+- [Technical Paper](./docs/paper.md)
+- [Technical Whitepaper](./docs/whitepaper.md)
 
 AI Context OS is a desktop app (`Tauri v2 + React + TypeScript + Rust`) that turns a local folder into a universal, tool-agnostic memory layer for AI agents.
 
@@ -92,20 +94,20 @@ Key notes:
 
 ### Frontend
 
-- React app shell and routes in [src/App.tsx](/Users/alexdc/Documents/GitHub/AI-Context-OS/src/App.tsx)
-- State in [src/lib/store.ts](/Users/alexdc/Documents/GitHub/AI-Context-OS/src/lib/store.ts) and [src/lib/settingsStore.ts](/Users/alexdc/Documents/GitHub/AI-Context-OS/src/lib/settingsStore.ts)
-- IPC bridge in [src/lib/tauri.ts](/Users/alexdc/Documents/GitHub/AI-Context-OS/src/lib/tauri.ts)
-- TS contracts in [src/lib/types.ts](/Users/alexdc/Documents/GitHub/AI-Context-OS/src/lib/types.ts)
+- React app shell and routes in [src/App.tsx](./src/App.tsx)
+- State in [src/lib/store.ts](./src/lib/store.ts) and [src/lib/settingsStore.ts](./src/lib/settingsStore.ts)
+- IPC bridge in [src/lib/tauri.ts](./src/lib/tauri.ts)
+- TS contracts in [src/lib/types.ts](./src/lib/types.ts)
 
 ### Backend
 
-- Tauri bootstrap and command registry in [src-tauri/src/lib.rs](/Users/alexdc/Documents/GitHub/AI-Context-OS/src-tauri/src/lib.rs)
-- Shared runtime state in [src-tauri/src/state.rs](/Users/alexdc/Documents/GitHub/AI-Context-OS/src-tauri/src/state.rs)
-- Domain types in [src-tauri/src/core/types.rs](/Users/alexdc/Documents/GitHub/AI-Context-OS/src-tauri/src/core/types.rs)
-- Scoring in [src-tauri/src/core/scoring.rs](/Users/alexdc/Documents/GitHub/AI-Context-OS/src-tauri/src/core/scoring.rs)
-- Router + adapters in [src-tauri/src/core/router.rs](/Users/alexdc/Documents/GitHub/AI-Context-OS/src-tauri/src/core/router.rs) and [src-tauri/src/core/compat.rs](/Users/alexdc/Documents/GitHub/AI-Context-OS/src-tauri/src/core/compat.rs)
-- Observability in [src-tauri/src/core/observability.rs](/Users/alexdc/Documents/GitHub/AI-Context-OS/src-tauri/src/core/observability.rs)
-- MCP servers in [src-tauri/src/core/mcp.rs](/Users/alexdc/Documents/GitHub/AI-Context-OS/src-tauri/src/core/mcp.rs) and [src-tauri/src/core/mcp_http.rs](/Users/alexdc/Documents/GitHub/AI-Context-OS/src-tauri/src/core/mcp_http.rs)
+- Tauri bootstrap and command registry in [src-tauri/src/lib.rs](./src-tauri/src/lib.rs)
+- Shared runtime state in [src-tauri/src/state.rs](./src-tauri/src/state.rs)
+- Domain types in [src-tauri/src/core/types.rs](./src-tauri/src/core/types.rs)
+- Scoring in [src-tauri/src/core/scoring.rs](./src-tauri/src/core/scoring.rs)
+- Router + adapters in [src-tauri/src/core/router.rs](./src-tauri/src/core/router.rs) and [src-tauri/src/core/compat.rs](./src-tauri/src/core/compat.rs)
+- Observability in [src-tauri/src/core/observability.rs](./src-tauri/src/core/observability.rs)
+- MCP servers in [src-tauri/src/core/mcp.rs](./src-tauri/src/core/mcp.rs) and [src-tauri/src/core/mcp_http.rs](./src-tauri/src/core/mcp_http.rs)
 
 ## What is working right now (verified from code)
 

@@ -4,7 +4,7 @@ import { clsx } from "clsx";
 import { useAppStore } from "../../lib/store";
 import { FrontmatterForm } from "./FrontmatterForm";
 import { TipTapEditor } from "./TipTapEditor";
-import type { Memory, MemoryMeta, MemoryType, RawFileDocument } from "../../lib/types";
+import type { Memory, MemoryMeta, MemoryOntology, RawFileDocument } from "../../lib/types";
 
 type InspectorTab = "properties" | "links" | "history";
 type SaveStatus = "saved" | "dirty" | "saving" | "error";
@@ -19,7 +19,7 @@ interface OutgoingLink {
 interface IncomingLink {
   id: string;
   l0: string;
-  memoryType: MemoryType;
+  ontology: MemoryOntology;
   kinds: string[];
 }
 
@@ -246,7 +246,7 @@ export function MemoryEditor() {
       results.push({
         id: item.id,
         l0: item.l0,
-        memoryType: item.memory_type,
+        ontology: item.ontology,
         kinds,
       });
     }
@@ -345,7 +345,9 @@ export function MemoryEditor() {
               className="mb-1 w-full bg-transparent text-2xl font-semibold text-[color:var(--text-0)] placeholder:text-[color:var(--text-2)]/40 focus:outline-none"
             />
             <p className="mb-6 font-mono text-[11px] text-[color:var(--text-2)]">
-              {meta.memory_type}
+              {meta.ontology}
+              {meta.system_role && ` · ${meta.system_role}`}
+              {meta.folder_category && ` · ${meta.folder_category}`}
               {meta.importance >= 0.7 ? " · high" : meta.importance >= 0.4 ? "" : " · low"}
               {meta.always_load && " · pinned"}
               {meta.tags.length > 0 && ` · ${meta.tags.join(", ")}`}
@@ -510,7 +512,7 @@ function LinksPanel({
             <p className="mt-0.5 truncate text-[11px] text-[color:var(--text-2)]">{item.l0}</p>
             <div className="mt-1.5 flex flex-wrap items-center gap-1">
               <span className="rounded bg-[color:var(--bg-3)] px-1.5 py-0.5 text-[10px] text-[color:var(--text-2)]">
-                {item.memoryType}
+                {item.ontology}
               </span>
               {item.kinds.map((kind) => (
                 <span
@@ -882,7 +884,7 @@ function hasDerivedMemoryChanges(previous: Memory, next: MemoryMeta) {
 function toComparableMemoryMeta(meta: MemoryMeta) {
   return {
     id: meta.id,
-    memory_type: meta.memory_type,
+    ontology: meta.ontology,
     l0: meta.l0,
     importance: meta.importance,
     always_load: meta.always_load,
@@ -894,7 +896,6 @@ function toComparableMemoryMeta(meta: MemoryMeta) {
     requires: meta.requires,
     optional: meta.optional,
     output_format: meta.output_format,
-    ontology: meta.ontology,
     status: meta.status,
     protected: meta.protected,
     derived_from: meta.derived_from,

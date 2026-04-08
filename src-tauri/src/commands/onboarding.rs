@@ -4,7 +4,7 @@ use chrono::Utc;
 use tauri::{AppHandle, State};
 
 use crate::core::frontmatter::serialize_frontmatter;
-use crate::core::types::{default_ontology_for_memory_type, MemoryMeta, MemoryType};
+use crate::core::types::{MemoryMeta, MemoryOntology};
 use crate::state::AppState;
 
 #[derive(Debug, Clone, serde::Deserialize)]
@@ -118,7 +118,7 @@ fn create_profile_memory(
     let tools_label = tool_summary(&profile.tools);
     let meta = MemoryMeta {
         id: "perfil-profesional".to_string(),
-        memory_type: MemoryType::Context,
+        ontology: MemoryOntology::Entity,
         l0: format!(
             "{} — {} | Herramientas: {}",
             profile.name, profile.role, tools_label
@@ -138,10 +138,11 @@ fn create_profile_memory(
         requires: vec![],
         optional: vec![],
         output_format: None,
-        ontology: Some(default_ontology_for_memory_type(&MemoryType::Context)),
         status: None,
         protected: false,
         derived_from: vec![],
+        folder_category: None,
+        system_role: None,
     };
 
     let l1 = format!(
@@ -177,7 +178,7 @@ fn write_memory_file(
     folder: &str,
     filename: &str,
     id: &str,
-    mem_type: MemoryType,
+    ontology: MemoryOntology,
     l0: &str,
     importance: f64,
     tags: &[&str],
@@ -187,10 +188,9 @@ fn write_memory_file(
     requires: &[&str],
 ) -> Result<(), String> {
     let now = Utc::now();
-    let ontology = default_ontology_for_memory_type(&mem_type);
     let meta = MemoryMeta {
         id: id.to_string(),
-        memory_type: mem_type,
+        ontology,
         l0: l0.to_string(),
         importance,
         always_load: false,
@@ -207,10 +207,11 @@ fn write_memory_file(
         requires: requires.iter().map(|s| s.to_string()).collect(),
         optional: vec![],
         output_format: None,
-        ontology: Some(ontology),
         status: None,
         protected: false,
         derived_from: vec![],
+        folder_category: None,
+        system_role: None,
     };
 
     let body = format!("<!-- L1 -->\n{}\n\n<!-- L2 -->\n{}", l1, l2);
@@ -229,7 +230,7 @@ fn create_developer_template(root: &std::path::Path) -> Result<(), String> {
     // Skills
     write_memory_file(
         root, ".ai/skills", "code-reviewer.md", "code-reviewer",
-        MemoryType::Skill,
+        MemoryOntology::Concept,
         "Skill: Revisor de código con análisis de calidad y seguridad",
         0.85,
         &["código", "review", "calidad", "desarrollo"],
@@ -241,7 +242,7 @@ fn create_developer_template(root: &std::path::Path) -> Result<(), String> {
 
     write_memory_file(
         root, ".ai/skills", "debugger.md", "debugger",
-        MemoryType::Skill,
+        MemoryOntology::Concept,
         "Skill: Debugger sistemático para resolver bugs paso a paso",
         0.85,
         &["debug", "bugs", "errores", "desarrollo"],
@@ -253,7 +254,7 @@ fn create_developer_template(root: &std::path::Path) -> Result<(), String> {
 
     write_memory_file(
         root, ".ai/skills", "architect.md", "architect",
-        MemoryType::Skill,
+        MemoryOntology::Concept,
         "Skill: Arquitecto de software para diseño de sistemas",
         0.80,
         &["arquitectura", "diseño", "sistema", "desarrollo"],
@@ -266,7 +267,7 @@ fn create_developer_template(root: &std::path::Path) -> Result<(), String> {
     // Rules
     write_memory_file(
         root, ".ai/rules", "convenciones-codigo.md", "convenciones-codigo",
-        MemoryType::Rule,
+        MemoryOntology::Concept,
         "Convenciones de código del proyecto",
         0.9,
         &["código", "convenciones", "estilo"],
@@ -279,7 +280,7 @@ fn create_developer_template(root: &std::path::Path) -> Result<(), String> {
     // Context (written to inbox — type=context comes from frontmatter)
     write_memory_file(
         root, "inbox", "stack-tecnologico.md", "stack-tecnologico",
-        MemoryType::Context,
+        MemoryOntology::Entity,
         "Stack tecnológico del proyecto principal",
         0.9,
         &["tecnología", "stack", "desarrollo"],
@@ -296,7 +297,7 @@ fn create_creator_template(root: &std::path::Path) -> Result<(), String> {
     // Skills
     write_memory_file(
         root, ".ai/skills", "linkedin-post-writer.md", "linkedin-post-writer",
-        MemoryType::Skill,
+        MemoryOntology::Concept,
         "Skill: Escritor de posts de LinkedIn en el estilo del usuario",
         0.85,
         &["escritura", "linkedin", "contenido", "marketing"],
@@ -308,7 +309,7 @@ fn create_creator_template(root: &std::path::Path) -> Result<(), String> {
 
     write_memory_file(
         root, ".ai/skills", "newsletter-writer.md", "newsletter-writer",
-        MemoryType::Skill,
+        MemoryOntology::Concept,
         "Skill: Escritor de newsletters con estructura persuasiva",
         0.80,
         &["escritura", "newsletter", "email", "contenido"],
@@ -320,7 +321,7 @@ fn create_creator_template(root: &std::path::Path) -> Result<(), String> {
 
     write_memory_file(
         root, ".ai/skills", "content-repurposer.md", "content-repurposer",
-        MemoryType::Skill,
+        MemoryOntology::Concept,
         "Skill: Reutilizador de contenido para múltiples plataformas",
         0.75,
         &["contenido", "repurpose", "multiplataforma"],
@@ -333,7 +334,7 @@ fn create_creator_template(root: &std::path::Path) -> Result<(), String> {
     // Rules
     write_memory_file(
         root, ".ai/rules", "marca-y-voz.md", "marca-y-voz",
-        MemoryType::Rule,
+        MemoryOntology::Concept,
         "Guía de marca y tono de voz del usuario",
         0.95,
         &["marca", "voz", "tono", "comunicación"],
@@ -345,7 +346,7 @@ fn create_creator_template(root: &std::path::Path) -> Result<(), String> {
 
     write_memory_file(
         root, ".ai/rules", "estilo-comunicacion.md", "estilo-comunicacion",
-        MemoryType::Rule,
+        MemoryOntology::Concept,
         "Reglas de estilo para toda comunicación escrita",
         0.85,
         &["estilo", "comunicación", "escritura"],
@@ -362,7 +363,7 @@ fn create_entrepreneur_template(root: &std::path::Path) -> Result<(), String> {
     // Skills
     write_memory_file(
         root, ".ai/skills", "strategic-analyzer.md", "strategic-analyzer",
-        MemoryType::Skill,
+        MemoryOntology::Concept,
         "Skill: Análisis estratégico de negocio y mercado",
         0.85,
         &["estrategia", "negocio", "análisis", "mercado"],
@@ -374,7 +375,7 @@ fn create_entrepreneur_template(root: &std::path::Path) -> Result<(), String> {
 
     write_memory_file(
         root, ".ai/skills", "meeting-action-items.md", "meeting-action-items",
-        MemoryType::Skill,
+        MemoryOntology::Concept,
         "Skill: Extractor de action items de reuniones",
         0.80,
         &["reuniones", "tareas", "actas", "productividad"],
@@ -386,7 +387,7 @@ fn create_entrepreneur_template(root: &std::path::Path) -> Result<(), String> {
 
     write_memory_file(
         root, ".ai/skills", "task-prioritizer.md", "task-prioritizer",
-        MemoryType::Skill,
+        MemoryOntology::Concept,
         "Skill: Priorizador de tareas con matriz Eisenhower",
         0.80,
         &["tareas", "priorización", "productividad", "gestión"],
@@ -399,7 +400,7 @@ fn create_entrepreneur_template(root: &std::path::Path) -> Result<(), String> {
     // Rules
     write_memory_file(
         root, ".ai/rules", "restricciones.md", "restricciones",
-        MemoryType::Rule,
+        MemoryOntology::Concept,
         "Restricciones y directrices generales para la IA",
         0.95,
         &["restricciones", "reglas", "límites"],

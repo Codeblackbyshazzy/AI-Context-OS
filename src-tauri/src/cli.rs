@@ -109,7 +109,7 @@ fn load_all_memories(root: &PathBuf) -> Vec<Memory> {
     let scanned = scan_memories(root);
     scanned
         .iter()
-        .filter_map(|(_meta, path)| read_memory(std::path::Path::new(path)).ok())
+        .filter_map(|(_meta, path)| read_memory(root, std::path::Path::new(path)).ok())
         .collect()
 }
 
@@ -256,8 +256,8 @@ fn main() {
             println!("{:-<60}", "");
             for (meta, _path) in &scanned {
                 println!(
-                    "  [{}] {} (type: {:?}, importance: {:.1})",
-                    meta.id, meta.l0, meta.memory_type, meta.importance
+                    "  [{}] {} (ontology: {:?}, importance: {:.1})",
+                    meta.id, meta.l0, meta.ontology, meta.importance
                 );
             }
         }
@@ -265,10 +265,10 @@ fn main() {
         Commands::Show { id } => {
             let scanned = scan_memories(&root);
             if let Some((_meta, path)) = scanned.iter().find(|(m, _)| m.id == id) {
-                match read_memory(std::path::Path::new(path)) {
+                match read_memory(&root, std::path::Path::new(path)) {
                     Ok(memory) => {
                         println!("ID: {}", memory.meta.id);
-                        println!("Type: {:?}", memory.meta.memory_type);
+                        println!("Ontology: {:?}", memory.meta.ontology);
                         println!("L0: {}", memory.meta.l0);
                         println!("Importance: {:.2}", memory.meta.importance);
                         println!("Tags: {}", memory.meta.tags.join(", "));

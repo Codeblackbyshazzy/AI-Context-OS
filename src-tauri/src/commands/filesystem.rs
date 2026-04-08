@@ -38,10 +38,6 @@ fn read_dir_recursive(dir: &Path, depth: u32) -> Result<Vec<FileNode>, String> {
         }
 
         let is_dir = path.is_dir();
-        // Zero Gravity: directories no longer carry a memory type.
-        // Memory type comes from frontmatter on individual files.
-        let memory_type = None;
-
         let children = if is_dir {
             read_dir_recursive(&path, depth + 1)?
         } else {
@@ -53,7 +49,6 @@ fn read_dir_recursive(dir: &Path, depth: u32) -> Result<Vec<FileNode>, String> {
             path: path.to_string_lossy().to_string(),
             is_dir,
             children,
-            memory_type,
         });
     }
 

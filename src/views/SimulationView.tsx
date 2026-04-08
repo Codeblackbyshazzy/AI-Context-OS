@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Search, Zap, Copy, Check } from "lucide-react";
 import { simulateContext } from "../lib/tauri";
 import type { ScoredMemory } from "../lib/types";
-import { MEMORY_TYPE_COLORS, MEMORY_TYPE_LABELS } from "../lib/types";
+import { MEMORY_ONTOLOGY_COLORS, MEMORY_ONTOLOGY_LABELS } from "../lib/types";
 
 export function SimulationView() {
   const [query, setQuery] = useState("");
@@ -111,11 +111,11 @@ export function SimulationView() {
               <span
                 className="rounded px-1.5 py-0.5 text-[10px] font-medium"
                 style={{
-                  backgroundColor: MEMORY_TYPE_COLORS[r.memory_type] + "18",
-                  color: MEMORY_TYPE_COLORS[r.memory_type],
+                  backgroundColor: MEMORY_ONTOLOGY_COLORS[r.ontology] + "18",
+                  color: MEMORY_ONTOLOGY_COLORS[r.ontology],
                 }}
               >
-                {MEMORY_TYPE_LABELS[r.memory_type]}
+                {MEMORY_ONTOLOGY_LABELS[r.ontology]}
               </span>
               <span className="rounded border border-[var(--border)] px-1 py-0.5 font-mono text-[10px] text-[color:var(--text-2)]">
                 {r.load_level.toUpperCase()}

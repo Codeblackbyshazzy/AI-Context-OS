@@ -3,27 +3,18 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
-pub enum MemoryType {
-    Source,
-    Context,
-    Daily,
-    Intelligence,
-    Project,
-    Resource,
-    Skill,
-    Task,
-    Rule,
-    Scratch,
-}
-
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[serde(rename_all = "lowercase")]
 pub enum MemoryOntology {
     Source,
     Entity,
     Concept,
     Synthesis,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum SystemRole {
+    Rule,
+    Skill,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -33,22 +24,11 @@ pub enum MemoryStatus {
     Processed,
 }
 
-pub fn default_ontology_for_memory_type(memory_type: &MemoryType) -> MemoryOntology {
-    match memory_type {
-        MemoryType::Source | MemoryType::Resource => MemoryOntology::Source,
-        MemoryType::Project | MemoryType::Context | MemoryType::Task => MemoryOntology::Entity,
-        MemoryType::Skill | MemoryType::Rule => MemoryOntology::Concept,
-        MemoryType::Daily | MemoryType::Intelligence | MemoryType::Scratch => {
-            MemoryOntology::Synthesis
-        }
-    }
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MemoryMeta {
     pub id: String,
     #[serde(rename = "type")]
-    pub memory_type: MemoryType,
+    pub ontology: MemoryOntology,
     pub l0: String,
     #[serde(default = "default_importance")]
     pub importance: f64,
@@ -82,13 +62,15 @@ pub struct MemoryMeta {
     #[serde(default)]
     pub output_format: Option<String>,
     #[serde(default)]
-    pub ontology: Option<MemoryOntology>,
-    #[serde(default)]
     pub status: Option<MemoryStatus>,
     #[serde(default)]
     pub protected: bool,
     #[serde(default)]
     pub derived_from: Vec<String>,
+    #[serde(default, skip_serializing, skip_deserializing)]
+    pub folder_category: Option<String>,
+    #[serde(default, skip_serializing, skip_deserializing)]
+    pub system_role: Option<SystemRole>,
 }
 
 fn default_importance() -> f64 {
@@ -136,7 +118,9 @@ pub struct ScoreBreakdown {
 pub struct ScoredMemory {
     pub memory_id: String,
     pub l0: String,
-    pub memory_type: MemoryType,
+    pub ontology: MemoryOntology,
+    pub folder_category: Option<String>,
+    pub system_role: Option<SystemRole>,
     pub load_level: LoadLevel,
     pub score: ScoreBreakdown,
     pub token_estimate: u32,
@@ -146,7 +130,9 @@ pub struct ScoredMemory {
 pub struct GraphNode {
     pub id: String,
     pub label: String,
-    pub memory_type: MemoryType,
+    pub ontology: MemoryOntology,
+    pub folder_category: Option<String>,
+    pub system_role: Option<SystemRole>,
     pub importance: f64,
     pub decay_score: f64,
     pub community: Option<u32>,
@@ -156,7 +142,9 @@ pub struct GraphNode {
 pub struct GodNode {
     pub memory_id: String,
     pub l0: String,
-    pub memory_type: MemoryType,
+    pub ontology: MemoryOntology,
+    pub folder_category: Option<String>,
+    pub system_role: Option<SystemRole>,
     pub degree: usize,
     pub importance: f64,
     /// positive = graph considers it more important than the engineer does
@@ -183,7 +171,6 @@ pub struct FileNode {
     pub is_dir: bool,
     #[serde(default)]
     pub children: Vec<FileNode>,
-    pub memory_type: Option<MemoryType>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -236,7 +223,7 @@ pub struct Conflict {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConsolidationSuggestion {
     pub entries: Vec<DailyEntry>,
-    pub suggested_type: MemoryType,
+    pub suggested_ontology: MemoryOntology,
     pub summary: String,
 }
 
@@ -328,7 +315,7 @@ pub struct TaskFilter {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateMemoryInput {
     pub id: String,
-    pub memory_type: MemoryType,
+    pub ontology: MemoryOntology,
     pub l0: String,
     #[serde(default = "default_importance")]
     pub importance: f64,
@@ -350,7 +337,7 @@ pub struct SaveMemoryInput {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MemoryFilter {
-    pub memory_type: Option<MemoryType>,
+    pub ontology: Option<MemoryOntology>,
     pub tags: Option<Vec<String>>,
     pub min_importance: Option<f64>,
 }

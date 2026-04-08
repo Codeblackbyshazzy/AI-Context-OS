@@ -36,8 +36,7 @@ import {
   renamePath,
   showInFileManager,
 } from "../../lib/tauri";
-import type { Conflict, FileNode, MemoryType } from "../../lib/types";
-import { MEMORY_TYPE_COLORS } from "../../lib/types";
+import type { Conflict, FileNode } from "../../lib/types";
 
 interface ContextMenuState {
   x: number;
@@ -207,13 +206,25 @@ function getTypeColor(node: FileNode): string | undefined {
     return undefined;
   }
 
-  if (node.memory_type) {
-    return MEMORY_TYPE_COLORS[node.memory_type];
-  }
-
   // Zero Gravity: no folder-based type inference — use hash color for untyped nodes
   const stringToHash = node.is_dir ? node.name : (node.path.split("/").slice(-2, -1)[0] || node.name);
   return getStringColor(stringToHash);
+}
+
+function defaultOntologyForDirectory(path: string): "source" | "entity" | "concept" | "synthesis" {
+  const normalized = path.replace(/\\/g, "/");
+  if (normalized.includes("/sources") || normalized.endsWith("/sources")) {
+    return "source";
+  }
+  if (
+    normalized.includes("/.ai/skills")
+    || normalized.endsWith("/.ai/skills")
+    || normalized.includes("/.ai/rules")
+    || normalized.endsWith("/.ai/rules")
+  ) {
+    return "concept";
+  }
+  return "entity";
 }
 
 
@@ -1042,16 +1053,12 @@ export function FileExplorer() {
       return;
     }
 
-    // Zero Gravity: notes can be created in any directory.
-    // Default type is "context" — user can change it from the editor.
-    const memoryType: MemoryType = node.memory_type ?? "context";
-
     try {
       const nextId = uniqueName("untitled", new Set(memories.map((memory) => memory.id)));
       const created = await createMemoryAtPath(
         {
           id: nextId,
-          memory_type: memoryType,
+          ontology: defaultOntologyForDirectory(node.path),
           l0: "Untitled",
           importance: 0.5,
           tags: [],

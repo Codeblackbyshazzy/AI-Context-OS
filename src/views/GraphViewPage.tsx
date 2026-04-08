@@ -25,11 +25,11 @@ import { useNavigate } from "react-router-dom";
 import { useAppStore } from "../lib/store";
 import { saveMemory, getMemory } from "../lib/tauri";
 import {
-  MEMORY_TYPE_COLORS,
-  MEMORY_TYPE_LABELS,
+  MEMORY_ONTOLOGY_COLORS,
+  MEMORY_ONTOLOGY_LABELS,
   type GraphNode as GNode,
   type GraphEdge,
-  type MemoryType,
+  type MemoryOntology,
 } from "../lib/types";
 
 const elkWorkerUrl = new URL("elkjs/lib/elk-worker.min.js", import.meta.url).toString();
@@ -72,7 +72,7 @@ function MemoryNodeComponent({
   const gn = data.node;
   const color = data.colorByCommunity
     ? communityColor(gn.community)
-    : (MEMORY_TYPE_COLORS[gn.memory_type] ?? "#64748b");
+    : (MEMORY_ONTOLOGY_COLORS[gn.ontology] ?? "#64748b");
   return (
     <div
       className="min-w-[180px] rounded border border-[var(--border)] bg-[color:var(--bg-1)] px-2.5 py-2"
@@ -87,7 +87,7 @@ function MemoryNodeComponent({
       </div>
       <div className="mt-1.5 flex items-center gap-1.5">
         <span className="text-[10px] text-[color:var(--text-2)]">
-          {MEMORY_TYPE_LABELS[gn.memory_type]}
+          {MEMORY_ONTOLOGY_LABELS[gn.ontology]}
         </span>
         <span className="ml-auto font-mono text-[10px] text-[color:var(--text-2)]">
           {gn.importance.toFixed(1)}
@@ -151,7 +151,7 @@ export function GraphViewPage() {
   const [edgeMode, setEdgeMode] = useState<"related" | "requires" | "optional">(
     "related",
   );
-  const [typeFilter, setTypeFilter] = useState<MemoryType | "all">("all");
+  const [ontologyFilter, setOntologyFilter] = useState<MemoryOntology | "all">("all");
   const [minImportance, setMinImportance] = useState(0);
   const [selectedNode, setSelectedNode] = useState<GNode | null>(null);
   const [showInspector, setShowInspector] = useState(true);
@@ -169,8 +169,8 @@ export function GraphViewPage() {
       return { nodes: [] as GNode[], edges: [] as GraphEdge[] };
     }
     let filtered = graphData.nodes;
-    if (typeFilter !== "all") {
-      filtered = filtered.filter((node) => node.memory_type === typeFilter);
+    if (ontologyFilter !== "all") {
+      filtered = filtered.filter((node) => node.ontology === ontologyFilter);
     }
     if (minImportance > 0) {
       filtered = filtered.filter((node) => node.importance >= minImportance);
@@ -180,7 +180,7 @@ export function GraphViewPage() {
       (edge) => nodeIds.has(edge.source) && nodeIds.has(edge.target),
     );
     return { nodes: filtered, edges: edgesFiltered };
-  }, [graphData, typeFilter, minImportance]);
+  }, [graphData, ontologyFilter, minImportance]);
 
   useEffect(() => {
     if (!graphData) return;
@@ -263,7 +263,7 @@ export function GraphViewPage() {
 
         if (edgeMode === "related") {
           ensureUniquePush(memory.meta.related, connection.target);
-        } else if (memory.meta.memory_type === "skill") {
+        } else if (memory.meta.system_role === "skill") {
           if (edgeMode === "requires") {
             ensureUniquePush(memory.meta.requires, connection.target);
           } else {
@@ -315,14 +315,14 @@ export function GraphViewPage() {
 
         <div className="ml-auto flex items-center gap-1.5">
           <select
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value as MemoryType | "all")}
+            value={ontologyFilter}
+            onChange={(e) => setOntologyFilter(e.target.value as MemoryOntology | "all")}
             className="rounded border border-[var(--border)] bg-[color:var(--bg-2)] px-2 py-1 text-[11px] text-[color:var(--text-1)]"
           >
-            <option value="all">All types</option>
-            {(Object.keys(MEMORY_TYPE_LABELS) as MemoryType[]).map((type) => (
-              <option key={type} value={type}>
-                {MEMORY_TYPE_LABELS[type]}
+            <option value="all">Todas las ontologias</option>
+            {(Object.keys(MEMORY_ONTOLOGY_LABELS) as MemoryOntology[]).map((ontology) => (
+              <option key={ontology} value={ontology}>
+                {MEMORY_ONTOLOGY_LABELS[ontology]}
               </option>
             ))}
           </select>
@@ -364,7 +364,7 @@ export function GraphViewPage() {
                 ? "text-[color:var(--accent)] bg-[color:var(--accent)]/10"
                 : "text-[color:var(--text-2)] hover:text-[color:var(--text-1)]",
             )}
-            title={colorByCommunity ? "Color by memory type" : "Color by community"}
+            title={colorByCommunity ? "Color by ontologia" : "Color by comunidad"}
           >
             <Layers className="h-3.5 w-3.5" />
           </button>
@@ -441,7 +441,8 @@ export function GraphViewPage() {
                     <p className="mt-0.5 text-[11px] text-[color:var(--text-2)]">{selectedNode.label}</p>
                   </div>
                   <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
-                    <NodeMetric label="Type" value={MEMORY_TYPE_LABELS[selectedNode.memory_type]} />
+                    <NodeMetric label="Ontologia" value={MEMORY_ONTOLOGY_LABELS[selectedNode.ontology]} />
+                    <NodeMetric label="Coleccion" value={selectedNode.folder_category ?? "—"} />
                     <NodeMetric label="Importance" value={selectedNode.importance.toFixed(2)} />
                     <NodeMetric label="Decay" value={selectedNode.decay_score.toFixed(2)} />
                     <NodeMetric

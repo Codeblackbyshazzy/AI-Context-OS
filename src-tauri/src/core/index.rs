@@ -2,7 +2,7 @@ use std::fs;
 use std::path::Path;
 
 use crate::core::frontmatter::parse_frontmatter;
-use crate::core::paths::{AI_DIR, AI_SKIP_SUBDIRS, SCAN_SKIP_DIRS};
+use crate::core::paths::{enrich_memory_meta, AI_DIR, AI_SKIP_SUBDIRS, SCAN_SKIP_DIRS};
 use crate::core::types::MemoryMeta;
 
 /// Scan the entire workspace recursively and collect all memory metadata.
@@ -10,11 +10,11 @@ use crate::core::types::MemoryMeta;
 /// Skips .git, node_modules, .cache, and files starting with `_`.
 pub fn scan_memories(root: &Path) -> Vec<(MemoryMeta, String)> {
     let mut results = Vec::new();
-    scan_dir_recursive(root, &mut results);
+    scan_dir_recursive(root, root, &mut results);
     results
 }
 
-fn scan_dir_recursive(dir: &Path, results: &mut Vec<(MemoryMeta, String)>) {
+fn scan_dir_recursive(root: &Path, dir: &Path, results: &mut Vec<(MemoryMeta, String)>) {
     let entries = match fs::read_dir(dir) {
         Ok(e) => e,
         Err(_) => return,
@@ -35,14 +35,15 @@ fn scan_dir_recursive(dir: &Path, results: &mut Vec<(MemoryMeta, String)>) {
             {
                 continue;
             }
-            scan_dir_recursive(&path, results);
+            scan_dir_recursive(root, &path, results);
         } else if path.extension().map_or(false, |ext| ext == "md") {
             // Skip files starting with _ (like _project.md templates)
             if name.starts_with('_') {
                 continue;
             }
             if let Ok(content) = fs::read_to_string(&path) {
-                if let Ok((meta, _)) = parse_frontmatter(&content) {
+                if let Ok((mut meta, _)) = parse_frontmatter(&content) {
+                    enrich_memory_meta(&mut meta, &path, root);
                     results.push((meta, path.to_string_lossy().to_string()));
                 }
             }

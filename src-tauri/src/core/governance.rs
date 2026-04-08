@@ -4,9 +4,7 @@ use std::path::Path;
 
 use crate::core::decay::should_archive;
 use crate::core::search::tokenize;
-use crate::core::types::{
-    Conflict, ConsolidationSuggestion, DailyEntry, Memory, MemoryMeta, MemoryType,
-};
+use crate::core::types::{Conflict, ConsolidationSuggestion, DailyEntry, Memory, MemoryMeta, MemoryOntology};
 
 /// Detect potential conflicts between related memories.
 /// Heuristic: if two related memories share tags but their L1 content contains
@@ -135,7 +133,7 @@ pub fn suggest_consolidation(entries: &[DailyEntry]) -> Vec<ConsolidationSuggest
     if decisions.len() >= 3 {
         suggestions.push(ConsolidationSuggestion {
             entries: decisions.iter().map(|e| (*e).clone()).collect(),
-            suggested_type: MemoryType::Project,
+            suggested_ontology: MemoryOntology::Entity,
             summary: format!(
                 "{} decisions that could be documented as project decisions",
                 decisions.len()
@@ -146,7 +144,7 @@ pub fn suggest_consolidation(entries: &[DailyEntry]) -> Vec<ConsolidationSuggest
     if ideas.len() >= 3 {
         suggestions.push(ConsolidationSuggestion {
             entries: ideas.iter().map(|e| (*e).clone()).collect(),
-            suggested_type: MemoryType::Intelligence,
+            suggested_ontology: MemoryOntology::Synthesis,
             summary: format!(
                 "{} ideas that could become intelligence/research notes",
                 ideas.len()

@@ -229,11 +229,12 @@ pub fn run() {
             if let tauri::WindowEvent::Destroyed = event {
                 // Flush watcher-updated access counts to disk
                 if let Some(state) = window.try_state::<AppState>() {
+                    let root = state.get_root();
                     if let Ok(index) = state.memory_index.read() {
                         for (_id, (meta, path)) in index.iter() {
                             if meta.access_count > 0 {
                                 if let Ok(mut memory) =
-                                    crate::core::memory::read_memory(std::path::Path::new(path))
+                                    crate::core::memory::read_memory(&root, std::path::Path::new(path))
                                 {
                                     if memory.meta.access_count != meta.access_count {
                                         memory.meta.access_count = meta.access_count;

@@ -6,11 +6,8 @@ use tauri::{AppHandle, Emitter, State};
 
 use crate::core::index::scan_memories;
 use crate::core::memory::{read_memory, write_memory};
-use crate::core::paths::SystemPaths;
-use crate::core::types::{
-    default_ontology_for_memory_type, CreateMemoryInput, Memory, MemoryFilter, MemoryMeta,
-    SaveMemoryInput,
-};
+use crate::core::paths::{enrich_memory_meta, SystemPaths};
+use crate::core::types::{CreateMemoryInput, Memory, MemoryFilter, MemoryMeta, SaveMemoryInput};
 use crate::state::AppState;
 
 fn should_regenerate_router(
@@ -21,7 +18,7 @@ fn should_regenerate_router(
 ) -> bool {
     old_file_path != new_file_path
         || old_meta.id != new_meta.id
-        || old_meta.memory_type != new_meta.memory_type
+        || old_meta.ontology != new_meta.ontology
         || old_meta.l0 != new_meta.l0
         || old_meta.importance != new_meta.importance
         || old_meta.always_load != new_meta.always_load
@@ -90,8 +87,8 @@ pub fn list_memories(
         .map(|(meta, _path)| meta)
         .filter(|m| {
             if let Some(ref f) = filter {
-                if let Some(ref ft) = f.memory_type {
-                    if &m.memory_type != ft {
+                if let Some(ref ontology) = f.ontology {
+                    if &m.ontology != ontology {
                         return false;
                     }
                 }
@@ -117,13 +114,14 @@ pub fn list_memories(
 /// Auto-increments access_count and updates last_access on every read.
 #[tauri::command]
 pub fn get_memory(id: String, state: State<AppState>) -> Result<Memory, String> {
+    let root = state.get_root();
     let index = state.memory_index.read().unwrap();
 
     let (_meta, path) = index
         .get(&id)
         .ok_or_else(|| format!("Memory not found: {}", id))?;
 
-    let mut memory = read_memory(std::path::Path::new(path))?;
+    let mut memory = read_memory(&root, std::path::Path::new(path))?;
 
     // Update access tracking
     memory.meta.access_count += 1;
@@ -210,6 +208,8 @@ pub fn save_memory(
         ));
     }
 
+    enrich_memory_meta(&mut meta, &target_file_path, &root);
+
     let memory = Memory {
         meta,
         l1_content: input.l1_content,
@@ -280,7 +280,8 @@ pub fn rename_memory_file(
         return Err(format!("Memory path not found: {}", path));
     }
 
-    let mut memory = read_memory(&old_path)?;
+    let root = state.get_root();
+    let mut memory = read_memory(&root, &old_path)?;
     let old_id = memory.meta.id.clone();
     let trimmed_id = new_id.trim();
     if trimmed_id.is_empty() {
@@ -307,6 +308,7 @@ pub fn rename_memory_file(
     memory.meta.modified = Utc::now();
     memory.meta.version += 1;
     memory.file_path = new_path.to_string_lossy().to_string();
+    enrich_memory_meta(&mut memory.meta, &new_path, &root);
 
     write_memory(&new_path, &memory)?;
     state.mark_recent_write(&new_path);
@@ -348,7 +350,8 @@ pub fn duplicate_memory_file(
         return Err(format!("Memory path not found: {}", path));
     }
 
-    let source = read_memory(&source_path)?;
+    let root = state.get_root();
+    let source = read_memory(&root, &source_path)?;
     let trimmed_id = new_id.trim();
     if trimmed_id.is_empty() {
         return Err("Memory id cannot be empty".to_string());
@@ -369,10 +372,10 @@ pub fn duplicate_memory_file(
     }
 
     let now = Utc::now();
-    let memory = Memory {
+    let mut memory = Memory {
         meta: MemoryMeta {
             id: trimmed_id.to_string(),
-            memory_type: source.meta.memory_type,
+            ontology: source.meta.ontology,
             l0: source.meta.l0,
             importance: source.meta.importance,
             always_load: source.meta.always_load,
@@ -389,16 +392,18 @@ pub fn duplicate_memory_file(
             requires: source.meta.requires,
             optional: source.meta.optional,
             output_format: source.meta.output_format,
-            ontology: source.meta.ontology,
             status: source.meta.status,
             protected: source.meta.protected,
             derived_from: source.meta.derived_from,
+            folder_category: source.meta.folder_category,
+            system_role: source.meta.system_role,
         },
         l1_content: source.l1_content,
         l2_content: source.l2_content,
         raw_content: String::new(),
         file_path: target_path.to_string_lossy().to_string(),
     };
+    enrich_memory_meta(&mut memory.meta, &target_path, &root);
 
     write_memory(&target_path, &memory)?;
     state.mark_recent_write(&target_path);
@@ -437,7 +442,7 @@ pub fn move_memory_file(
     let root = state.get_root();
     let destination_dir = validate_memory_directory(&root, &destination_dir)?;
 
-    let mut memory = read_memory(&source_path)?;
+    let mut memory = read_memory(&root, &source_path)?;
     let target_path = destination_dir.join(format!("{}.md", memory.meta.id));
     if target_path == source_path {
         return Ok(memory);
@@ -450,10 +455,10 @@ pub fn move_memory_file(
     }
 
     let old_id = memory.meta.id.clone();
-    // Type is preserved — Zero Gravity decouples location from semantics
     memory.meta.modified = Utc::now();
     memory.meta.version += 1;
     memory.file_path = target_path.to_string_lossy().to_string();
+    enrich_memory_meta(&mut memory.meta, &target_path, &root);
 
     write_memory(&target_path, &memory)?;
     state.mark_recent_write(&target_path);
@@ -505,10 +510,9 @@ fn create_memory_internal(
     }
 
     let now = Utc::now();
-    let ontology = default_ontology_for_memory_type(&input.memory_type);
-    let meta = MemoryMeta {
+    let mut meta = MemoryMeta {
         id: trimmed_id.to_string(),
-        memory_type: input.memory_type,
+        ontology: input.ontology,
         l0: input.l0,
         importance: input.importance,
         always_load: false,
@@ -525,11 +529,13 @@ fn create_memory_internal(
         requires: Vec::new(),
         optional: Vec::new(),
         output_format: None,
-        ontology: Some(ontology),
         status: None,
         protected: false,
         derived_from: Vec::new(),
+        folder_category: None,
+        system_role: None,
     };
+    enrich_memory_meta(&mut meta, &file_path, &state.get_root());
 
     let memory = Memory {
         meta,
