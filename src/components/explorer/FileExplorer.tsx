@@ -210,12 +210,8 @@ function getTypeColor(node: FileNode): string | undefined {
   if (node.memory_type) {
     return MEMORY_TYPE_COLORS[node.memory_type];
   }
-  const folderType = inferFolderTypeFromPath(node.path);
-  if (folderType) {
-    return MEMORY_TYPE_COLORS[folderType];
-  }
-  
-  // Si no está mapeado a un tipo de memoria, generamos un color consistente
+
+  // Zero Gravity: no folder-based type inference — use hash color for untyped nodes
   const stringToHash = node.is_dir ? node.name : (node.path.split("/").slice(-2, -1)[0] || node.name);
   return getStringColor(stringToHash);
 }
@@ -614,10 +610,12 @@ function pathMatchesTarget(targetPath: string | null, candidatePath: string): bo
 function isAdvancedOnlyFile(node: FileNode): boolean {
   if (node.is_dir) return false;
   if (isInboxPath(node.path)) return false;
+  if (isSourcesPath(node.path)) return false;
   if (PROTECTED_FILE_NAMES.has(node.name)) return true;
   if (!isMarkdownFile(node.name)) return true;
   if (node.name.startsWith("_")) return true;
-  return inferFolderTypeFromPath(node.path) === null;
+  // Zero Gravity: all .md files are visible by default regardless of folder
+  return false;
 }
 
 function filterExplorerTree(
