@@ -1,6 +1,6 @@
 # AI Context OS — Technical Whitepaper
 
-**Version 1.0 · April 2026**
+**Version 1.0 · Mar 2026**
 
 ---
 
