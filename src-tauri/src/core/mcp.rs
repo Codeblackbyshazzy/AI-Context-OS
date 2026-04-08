@@ -15,7 +15,7 @@ use crate::core::jsonl::append_jsonl;
 use crate::core::levels::join_levels;
 use crate::core::memory::read_memory;
 use crate::core::observability::{classify_task, ObservabilityDb};
-use crate::core::paths::enrich_memory_meta;
+use crate::core::paths::{enrich_memory_meta, AI_DIR, RULES_DIR, SKILLS_DIR};
 use crate::core::types::{Config, LoadLevel, MemoryMeta, MemoryOntology, SystemRole};
 
 /// Shared state accessible by the MCP server tools.
@@ -62,10 +62,54 @@ pub struct SaveMemoryParams {
     /// Extended detail content (L2)
     #[serde(default)]
     pub l2_content: String,
+    /// Optional destination folder relative to the workspace root, for example
+    /// `inbox`, `.ai/skills`, or `.ai/rules`. Defaults to `inbox`.
+    pub folder: Option<String>,
 }
 
 fn default_importance() -> f64 {
     0.5
+}
+
+fn resolve_memory_folder(root: &std::path::Path, folder: Option<&str>) -> Result<PathBuf, String> {
+    let requested = folder.unwrap_or("inbox").trim();
+    if requested.is_empty() {
+        return Ok(root.join("inbox"));
+    }
+
+    let relative = PathBuf::from(requested);
+    if relative.is_absolute() {
+        return Err("Folder must be relative to the workspace root".to_string());
+    }
+
+    for component in relative.components() {
+        match component {
+            std::path::Component::Normal(_) => {}
+            _ => {
+                return Err(
+                    "Folder must be a simple relative workspace path without `..`".to_string(),
+                )
+            }
+        }
+    }
+
+    let mut parts = relative.iter().map(|part| part.to_string_lossy().to_string());
+    let first = parts.next().ok_or_else(|| "Folder cannot be empty".to_string())?;
+    let second = parts.next();
+
+    if first == AI_DIR {
+        match second.as_deref() {
+            Some(SKILLS_DIR) | Some(RULES_DIR) => {}
+            _ => {
+                return Err(
+                    "Only `.ai/skills` and `.ai/rules` are valid MCP destinations inside `.ai/`"
+                        .to_string(),
+                )
+            }
+        }
+    }
+
+    Ok(root.join(relative))
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -207,8 +251,11 @@ impl AiContextMcpServer {
             }
         };
 
-        let paths = crate::core::paths::SystemPaths::new(&root);
-        let file_path = paths.inbox_dir().join(format!("{}.md", params.id));
+        let target_folder = match resolve_memory_folder(&root, params.folder.as_deref()) {
+            Ok(path) => path,
+            Err(e) => return format!("Invalid folder: {}", e),
+        };
+        let file_path = target_folder.join(format!("{}.md", params.id));
 
         let now = Utc::now();
         let mut meta = MemoryMeta {

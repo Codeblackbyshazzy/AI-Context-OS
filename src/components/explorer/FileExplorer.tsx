@@ -211,6 +211,22 @@ function getTypeColor(node: FileNode): string | undefined {
   return getStringColor(stringToHash);
 }
 
+function defaultOntologyForDirectory(path: string): "source" | "entity" | "concept" | "synthesis" {
+  const normalized = path.replace(/\\/g, "/");
+  if (normalized.includes("/sources") || normalized.endsWith("/sources")) {
+    return "source";
+  }
+  if (
+    normalized.includes("/.ai/skills")
+    || normalized.endsWith("/.ai/skills")
+    || normalized.includes("/.ai/rules")
+    || normalized.endsWith("/.ai/rules")
+  ) {
+    return "concept";
+  }
+  return "entity";
+}
+
 
 function isMarkdownFile(name: string): boolean {
   return name.toLowerCase().endsWith(".md");
@@ -1042,7 +1058,7 @@ export function FileExplorer() {
       const created = await createMemoryAtPath(
         {
           id: nextId,
-          ontology: "entity",
+          ontology: defaultOntologyForDirectory(node.path),
           l0: "Untitled",
           importance: 0.5,
           tags: [],
