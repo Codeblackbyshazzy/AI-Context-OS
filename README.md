@@ -1,4 +1,4 @@
-# MEMM - Memory Master AI Context OS
+# MEMM - AI Context OS
 
 Translations:
 - [ES](/Users/alexdc/Documents/GitHub/AI-Context-OS/README.es.md)
