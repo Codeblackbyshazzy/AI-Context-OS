@@ -146,7 +146,7 @@ export function ConnectorsView() {
           "",
           "## Active memories",
           "",
-          ...memories.map((m) => `### [${m.memory_id}] (${m.memory_type})\n${m.l0}`),
+          ...memories.map((m) => `### [${m.memory_id}] (${m.ontology})\n${m.l0}`),
         ].join("\n");
       } else {
         text = memories.map((m) => `## ${m.memory_id}\n${m.l0}`).join("\n\n");

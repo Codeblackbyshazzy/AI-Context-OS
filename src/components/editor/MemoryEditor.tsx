@@ -512,7 +512,7 @@ function LinksPanel({
             <p className="mt-0.5 truncate text-[11px] text-[color:var(--text-2)]">{item.l0}</p>
             <div className="mt-1.5 flex flex-wrap items-center gap-1">
               <span className="rounded bg-[color:var(--bg-3)] px-1.5 py-0.5 text-[10px] text-[color:var(--text-2)]">
-                {item.memoryType}
+                {item.ontology}
               </span>
               {item.kinds.map((kind) => (
                 <span
