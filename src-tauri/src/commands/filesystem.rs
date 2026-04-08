@@ -4,10 +4,10 @@ use std::process::Command;
 
 use tauri::State;
 
-use crate::core::types::{FileNode, MemoryType};
+use crate::core::types::FileNode;
 use crate::state::AppState;
 
-const SPECIAL_ROOT_ORDER: [&str; 4] = ["inbox", "sources", "00-inbox", "01-sources"];
+const SPECIAL_ROOT_ORDER: [&str; 3] = ["inbox", "sources", ".ai"];
 
 /// Get the file tree of the workspace.
 #[tauri::command]
@@ -32,20 +32,15 @@ fn read_dir_recursive(dir: &Path, depth: u32) -> Result<Vec<FileNode>, String> {
         let path = entry.path();
         let name = entry.file_name().to_string_lossy().to_string();
 
-        // Skip hidden files/dirs (except .cache)
-        if name.starts_with('.') && name != ".cache" {
+        // Skip hidden files/dirs (except .ai and .cache)
+        if name.starts_with('.') && name != ".ai" && name != ".cache" {
             continue;
         }
 
-        // Skip _index.yaml, _config.yaml, claude.md at root level — they're system files
-        // but we still show them
-
         let is_dir = path.is_dir();
-        let memory_type = if is_dir {
-            MemoryType::from_folder(&name)
-        } else {
-            None
-        };
+        // Zero Gravity: directories no longer carry a memory type.
+        // Memory type comes from frontmatter on individual files.
+        let memory_type = None;
 
         let children = if is_dir {
             read_dir_recursive(&path, depth + 1)?

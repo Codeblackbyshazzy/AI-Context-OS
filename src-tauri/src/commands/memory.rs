@@ -8,7 +8,7 @@ use crate::core::index::scan_memories;
 use crate::core::memory::{read_memory, write_memory};
 use crate::core::types::{
     default_ontology_for_memory_type, CreateMemoryInput, Memory, MemoryFilter, MemoryMeta,
-    MemoryType, SaveMemoryInput,
+    SaveMemoryInput,
 };
 use crate::state::AppState;
 
@@ -382,7 +382,8 @@ pub fn duplicate_memory_file(
     Ok(memory)
 }
 
-/// Move a memory file into another workspace folder, updating its type when needed.
+/// Move a memory file into another workspace folder.
+/// Zero Gravity: the memory type is preserved — only the physical location changes.
 #[tauri::command]
 pub fn move_memory_file(
     path: String,
@@ -409,9 +410,6 @@ pub fn move_memory_file(
         ));
     }
 
-    let root = state.get_root();
-    let destination_type = memory_type_for_directory(&root, &destination_dir)?;
-
     let mut memory = read_memory(&source_path)?;
     let target_path = destination_dir.join(format!("{}.md", memory.meta.id));
     if target_path == source_path {
@@ -425,7 +423,7 @@ pub fn move_memory_file(
     }
 
     let old_id = memory.meta.id.clone();
-    memory.meta.memory_type = destination_type;
+    // Type is preserved — Zero Gravity decouples location from semantics
     memory.meta.modified = Utc::now();
     memory.meta.version += 1;
     memory.file_path = target_path.to_string_lossy().to_string();
@@ -530,26 +528,3 @@ fn create_memory_internal(
     Ok(memory)
 }
 
-fn memory_type_for_directory(
-    root: &std::path::Path,
-    dir: &std::path::Path,
-) -> Result<MemoryType, String> {
-    let relative = dir.strip_prefix(root).map_err(|_| {
-        format!(
-            "Destination must stay inside the workspace: {}",
-            dir.display()
-        )
-    })?;
-    let folder = relative
-        .components()
-        .next()
-        .and_then(|component| component.as_os_str().to_str())
-        .ok_or_else(|| format!("Failed to infer memory type from {}", dir.display()))?;
-
-    MemoryType::from_folder(folder).ok_or_else(|| {
-        format!(
-            "Destination must be inside a memory folder: {}",
-            dir.display()
-        )
-    })
-}

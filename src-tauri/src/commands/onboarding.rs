@@ -77,7 +77,8 @@ pub fn run_onboarding(
 #[tauri::command]
 pub fn is_onboarded(state: State<AppState>) -> Result<bool, String> {
     let root = state.get_root();
-    Ok(root.join("claude.md").exists() && root.join("01-context/perfil-profesional.md").exists())
+    let paths = crate::core::paths::SystemPaths::new(&root);
+    Ok(root.join("claude.md").exists() && paths.ai_dir().exists())
 }
 
 fn shellexpand(path: &str) -> String {
@@ -152,7 +153,9 @@ fn create_profile_memory(
     let content = serialize_frontmatter(&meta, &body)
         .map_err(|e| format!("Failed to serialize profile: {}", e))?;
 
-    let path = root.join("01-context/perfil-profesional.md");
+    let paths = crate::core::paths::SystemPaths::new(root);
+    let path = paths.ai_dir().join("context/perfil-profesional.md");
+    fs::create_dir_all(paths.ai_dir().join("context")).ok();
     fs::create_dir_all(path.parent().unwrap()).ok();
     fs::write(&path, content).map_err(|e| format!("Failed to write profile: {}", e))?;
 
@@ -215,7 +218,7 @@ fn write_memory_file(
 fn create_developer_template(root: &std::path::Path) -> Result<(), String> {
     // Skills
     write_memory_file(
-        root, "06-skills", "code-reviewer.md", "code-reviewer",
+        root, ".ai/skills", "code-reviewer.md", "code-reviewer",
         MemoryType::Skill,
         "Skill: Revisor de código con análisis de calidad y seguridad",
         0.85,
@@ -227,7 +230,7 @@ fn create_developer_template(root: &std::path::Path) -> Result<(), String> {
     )?;
 
     write_memory_file(
-        root, "06-skills", "debugger.md", "debugger",
+        root, ".ai/skills", "debugger.md", "debugger",
         MemoryType::Skill,
         "Skill: Debugger sistemático para resolver bugs paso a paso",
         0.85,
@@ -239,7 +242,7 @@ fn create_developer_template(root: &std::path::Path) -> Result<(), String> {
     )?;
 
     write_memory_file(
-        root, "06-skills", "architect.md", "architect",
+        root, ".ai/skills", "architect.md", "architect",
         MemoryType::Skill,
         "Skill: Arquitecto de software para diseño de sistemas",
         0.80,
@@ -252,7 +255,7 @@ fn create_developer_template(root: &std::path::Path) -> Result<(), String> {
 
     // Rules
     write_memory_file(
-        root, "08-rules", "convenciones-codigo.md", "convenciones-codigo",
+        root, ".ai/rules", "convenciones-codigo.md", "convenciones-codigo",
         MemoryType::Rule,
         "Convenciones de código del proyecto",
         0.9,
@@ -265,7 +268,7 @@ fn create_developer_template(root: &std::path::Path) -> Result<(), String> {
 
     // Context
     write_memory_file(
-        root, "01-context", "stack-tecnologico.md", "stack-tecnologico",
+        root, ".ai/context", "stack-tecnologico.md", "stack-tecnologico",
         MemoryType::Context,
         "Stack tecnológico del proyecto principal",
         0.9,
@@ -282,7 +285,7 @@ fn create_developer_template(root: &std::path::Path) -> Result<(), String> {
 fn create_creator_template(root: &std::path::Path) -> Result<(), String> {
     // Skills
     write_memory_file(
-        root, "06-skills", "linkedin-post-writer.md", "linkedin-post-writer",
+        root, ".ai/skills", "linkedin-post-writer.md", "linkedin-post-writer",
         MemoryType::Skill,
         "Skill: Escritor de posts de LinkedIn en el estilo del usuario",
         0.85,
@@ -294,7 +297,7 @@ fn create_creator_template(root: &std::path::Path) -> Result<(), String> {
     )?;
 
     write_memory_file(
-        root, "06-skills", "newsletter-writer.md", "newsletter-writer",
+        root, ".ai/skills", "newsletter-writer.md", "newsletter-writer",
         MemoryType::Skill,
         "Skill: Escritor de newsletters con estructura persuasiva",
         0.80,
@@ -306,7 +309,7 @@ fn create_creator_template(root: &std::path::Path) -> Result<(), String> {
     )?;
 
     write_memory_file(
-        root, "06-skills", "content-repurposer.md", "content-repurposer",
+        root, ".ai/skills", "content-repurposer.md", "content-repurposer",
         MemoryType::Skill,
         "Skill: Reutilizador de contenido para múltiples plataformas",
         0.75,
@@ -319,7 +322,7 @@ fn create_creator_template(root: &std::path::Path) -> Result<(), String> {
 
     // Rules
     write_memory_file(
-        root, "08-rules", "marca-y-voz.md", "marca-y-voz",
+        root, ".ai/rules", "marca-y-voz.md", "marca-y-voz",
         MemoryType::Rule,
         "Guía de marca y tono de voz del usuario",
         0.95,
@@ -331,7 +334,7 @@ fn create_creator_template(root: &std::path::Path) -> Result<(), String> {
     )?;
 
     write_memory_file(
-        root, "08-rules", "estilo-comunicacion.md", "estilo-comunicacion",
+        root, ".ai/rules", "estilo-comunicacion.md", "estilo-comunicacion",
         MemoryType::Rule,
         "Reglas de estilo para toda comunicación escrita",
         0.85,
@@ -348,7 +351,7 @@ fn create_creator_template(root: &std::path::Path) -> Result<(), String> {
 fn create_entrepreneur_template(root: &std::path::Path) -> Result<(), String> {
     // Skills
     write_memory_file(
-        root, "06-skills", "strategic-analyzer.md", "strategic-analyzer",
+        root, ".ai/skills", "strategic-analyzer.md", "strategic-analyzer",
         MemoryType::Skill,
         "Skill: Análisis estratégico de negocio y mercado",
         0.85,
@@ -360,7 +363,7 @@ fn create_entrepreneur_template(root: &std::path::Path) -> Result<(), String> {
     )?;
 
     write_memory_file(
-        root, "06-skills", "meeting-action-items.md", "meeting-action-items",
+        root, ".ai/skills", "meeting-action-items.md", "meeting-action-items",
         MemoryType::Skill,
         "Skill: Extractor de action items de reuniones",
         0.80,
@@ -372,7 +375,7 @@ fn create_entrepreneur_template(root: &std::path::Path) -> Result<(), String> {
     )?;
 
     write_memory_file(
-        root, "06-skills", "task-prioritizer.md", "task-prioritizer",
+        root, ".ai/skills", "task-prioritizer.md", "task-prioritizer",
         MemoryType::Skill,
         "Skill: Priorizador de tareas con matriz Eisenhower",
         0.80,
@@ -385,7 +388,7 @@ fn create_entrepreneur_template(root: &std::path::Path) -> Result<(), String> {
 
     // Rules
     write_memory_file(
-        root, "08-rules", "restricciones.md", "restricciones",
+        root, ".ai/rules", "restricciones.md", "restricciones",
         MemoryType::Rule,
         "Restricciones y directrices generales para la IA",
         0.95,
