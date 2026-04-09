@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useMemo, useState, useRef } from "react";
+import { useEffect, useCallback, useMemo, useState } from "react";
 import {
   ReactFlow,
   Background,
@@ -15,7 +15,9 @@ import * as d3 from "d3-force";
 import {
   AlertTriangle,
   ExternalLink,
+  LayoutGrid,
   Network,
+  Orbit,
   PanelRightClose,
   PanelRightOpen,
   RefreshCw,
@@ -38,6 +40,8 @@ import {
 // Constants
 // ---------------------------------------------------------------------------
 
+type ViewMode = "cards" | "cosmos";
+
 const COMMUNITY_PALETTE = [
   "#6366f1", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6",
   "#0ea5e9", "#22c55e", "#f43f5e", "#a16207", "#0891b2",
@@ -57,51 +61,54 @@ function communityColor(community: number | null): string {
   return COMMUNITY_PALETTE[community % COMMUNITY_PALETTE.length];
 }
 
-// Node size: base 160px wide, scales up with degree (max +80px)
-function nodeWidth(degree: number): number {
+// Cards mode: width scales with degree
+function cardWidth(degree: number): number {
   return 160 + Math.min(degree * 10, 80);
 }
 
+// Cosmos mode: radius scales with degree (min 14, max 38)
+function cosmosRadius(degree: number): number {
+  return Math.max(14, Math.min(14 + degree * 5, 38));
+}
+
 // ---------------------------------------------------------------------------
-// Force-directed layout
+// Force-directed layout (params differ by mode)
 // ---------------------------------------------------------------------------
 
 function layoutWithForce(
   gnodes: GNode[],
   gedges: GraphEdge[],
+  mode: ViewMode,
 ): Promise<Record<string, { x: number; y: number }>> {
   return new Promise((resolve) => {
-    if (gnodes.length === 0) {
-      resolve({});
-      return;
-    }
+    if (gnodes.length === 0) { resolve({}); return; }
 
     const simNodes = gnodes.map((n) => ({ id: n.id, x: 0, y: 0 }));
+    const nodeSet = new Set(gnodes.map((n) => n.id));
     const simLinks = gedges
-      .filter((e) => gnodes.some((n) => n.id === e.source) && gnodes.some((n) => n.id === e.target))
+      .filter((e) => nodeSet.has(e.source) && nodeSet.has(e.target))
       .map((e) => ({ source: e.source, target: e.target }));
 
-    const sim = d3
-      .forceSimulation(simNodes)
-      .force("link", d3.forceLink(simLinks).id((d) => (d as { id: string }).id).distance(140).strength(0.4))
-      .force("charge", d3.forceManyBody().strength(-350))
-      .force("center", d3.forceCenter(0, 0))
-      .force("collide", d3.forceCollide(90))
-      .stop();
+    const linkDist  = mode === "cosmos" ? 90  : 150;
+    const charge    = mode === "cosmos" ? -220 : -380;
+    const collide   = mode === "cosmos" ? 52  : 95;
 
-    // Run synchronously to avoid React render thrash
-    sim.tick(300);
+    d3.forceSimulation(simNodes)
+      .force("link",    d3.forceLink(simLinks).id((d) => (d as { id: string }).id).distance(linkDist).strength(0.45))
+      .force("charge",  d3.forceManyBody().strength(charge))
+      .force("center",  d3.forceCenter(0, 0))
+      .force("collide", d3.forceCollide(collide))
+      .stop()
+      .tick(300);
 
     const positions: Record<string, { x: number; y: number }> = {};
-    for (const n of simNodes) {
-      positions[n.id] = { x: n.x ?? 0, y: n.y ?? 0 };
-    }
+    for (const n of simNodes) positions[n.id] = { x: n.x ?? 0, y: n.y ?? 0 };
     resolve(positions);
   });
 }
 
 // ---------------------------------------------------------------------------
-// Node types
+// Shared node data interface
 // ---------------------------------------------------------------------------
 
 interface NodeData extends Record<string, unknown> {
@@ -124,31 +131,27 @@ interface FlowEdge {
   source: string;
   target: string;
   label?: string;
-  style?: { stroke?: string; strokeWidth?: number };
+  style?: { stroke?: string; strokeWidth?: number; strokeDasharray?: string };
   labelStyle?: { fill?: string; fontSize?: number };
   animated?: boolean;
 }
 
-function MemoryNodeComponent({ data }: { data: NodeData }) {
+// ---------------------------------------------------------------------------
+// Cards node — detailed rectangle with metadata
+// ---------------------------------------------------------------------------
+
+function CardsNode({ data }: { data: NodeData }) {
   const { node: gn, colorByCommunity, godMode, godIds } = data;
   const [hovered, setHovered] = useState(false);
 
   const isGod = godMode && godIds.has(gn.id);
-  const color = isGod
-    ? "#ef4444"
-    : colorByCommunity
-    ? communityColor(gn.community)
+  const color = isGod ? "#ef4444"
+    : colorByCommunity ? communityColor(gn.community)
     : (MEMORY_ONTOLOGY_COLORS[gn.ontology] ?? "#64748b");
-
-  const w = nodeWidth(gn.degree);
 
   return (
     <div
-      style={{
-        width: w,
-        opacity: Math.max(0.4, gn.decay_score),
-        position: "relative",
-      }}
+      style={{ width: cardWidth(gn.degree), opacity: Math.max(0.4, gn.decay_score), position: "relative" }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
@@ -176,38 +179,143 @@ function MemoryNodeComponent({ data }: { data: NodeData }) {
           {gn.label}
         </div>
         <div className="mt-1.5 flex items-center gap-1.5">
-          <span className="text-[10px] text-[color:var(--text-2)]">
-            {MEMORY_ONTOLOGY_LABELS[gn.ontology]}
-          </span>
-          <span className="ml-auto font-mono text-[10px] text-[color:var(--text-2)]">
-            {gn.importance.toFixed(1)}
-          </span>
+          <span className="text-[10px] text-[color:var(--text-2)]">{MEMORY_ONTOLOGY_LABELS[gn.ontology]}</span>
+          <span className="ml-auto font-mono text-[10px] text-[color:var(--text-2)]">{gn.importance.toFixed(1)}</span>
         </div>
       </div>
 
-      {/* Hover preview tooltip */}
       {hovered && gn.preview && (
-        <div
-          className="pointer-events-none absolute left-0 top-full z-50 mt-1.5 w-64 rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-3 py-2 shadow-lg"
-          style={{ maxWidth: 260 }}
-        >
-          <p className="text-[11px] font-medium text-[color:var(--text-0)]">{gn.label}</p>
-          <p className="mt-1 text-[10px] leading-relaxed text-[color:var(--text-2)]">
-            {gn.preview}
-            {gn.preview.length >= 160 ? "…" : ""}
-          </p>
-          {gn.degree > 0 && (
-            <p className="mt-1.5 text-[9px] text-[color:var(--text-2)]">
-              {gn.degree} connection{gn.degree !== 1 ? "s" : ""}
-            </p>
-          )}
-        </div>
+        <HoverTooltip node={gn} />
       )}
     </div>
   );
 }
 
-const nodeTypes = { memory: MemoryNodeComponent };
+// ---------------------------------------------------------------------------
+// Cosmos node — minimal circle + label (Obsidian-style)
+// ---------------------------------------------------------------------------
+
+function CosmosNode({ data }: { data: NodeData }) {
+  const { node: gn, colorByCommunity, godMode, godIds } = data;
+  const [hovered, setHovered] = useState(false);
+
+  const isGod = godMode && godIds.has(gn.id);
+  const color = isGod ? "#ef4444"
+    : colorByCommunity ? communityColor(gn.community)
+    : (MEMORY_ONTOLOGY_COLORS[gn.ontology] ?? "#64748b");
+
+  const r = cosmosRadius(gn.degree);
+  const diam = r * 2;
+
+  return (
+    <div
+      style={{ width: diam + 60, opacity: Math.max(0.35, gn.decay_score), position: "relative" }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      {/* Circle */}
+      <div className="flex justify-center">
+        <div
+          className="rounded-full transition-transform"
+          style={{
+            width: diam,
+            height: diam,
+            backgroundColor: color,
+            opacity: 0.85,
+            boxShadow: isGod
+              ? `0 0 0 2px #ef4444, 0 0 12px ${color}60`
+              : `0 0 8px ${color}50`,
+            transform: hovered ? "scale(1.15)" : "scale(1)",
+          }}
+        />
+      </div>
+      {/* Label below circle */}
+      <div
+        className="mt-1 text-center font-medium leading-tight text-[color:var(--text-1)]"
+        style={{
+          fontSize: Math.max(9, Math.min(10 + gn.degree, 12)),
+          maxWidth: diam + 60,
+          overflow: "hidden",
+          display: "-webkit-box",
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: "vertical",
+          textShadow: "0 1px 3px rgba(0,0,0,0.8)",
+        }}
+      >
+        {gn.label || gn.id}
+      </div>
+
+      {hovered && gn.preview && (
+        <HoverTooltip node={gn} />
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Shared hover tooltip
+// ---------------------------------------------------------------------------
+
+function HoverTooltip({ node: gn }: { node: GNode }) {
+  return (
+    <div
+      className="pointer-events-none absolute left-1/2 top-full z-50 mt-2 w-60 -translate-x-1/2 rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-3 py-2 shadow-lg"
+    >
+      <p className="text-[11px] font-medium text-[color:var(--text-0)]">{gn.label}</p>
+      <p className="mt-1 text-[10px] leading-relaxed text-[color:var(--text-2)]">
+        {gn.preview}{gn.preview.length >= 160 ? "…" : ""}
+      </p>
+      <div className="mt-1.5 flex items-center gap-2 text-[9px] text-[color:var(--text-2)]">
+        <span>{MEMORY_ONTOLOGY_LABELS[gn.ontology]}</span>
+        {gn.degree > 0 && <span>{gn.degree} link{gn.degree !== 1 ? "s" : ""}</span>}
+      </div>
+    </div>
+  );
+}
+
+const nodeTypes = {
+  cards: CardsNode,
+  cosmos: CosmosNode,
+};
+
+// ---------------------------------------------------------------------------
+// View mode switcher button group
+// ---------------------------------------------------------------------------
+
+function ViewModeToggle({ mode, onChange }: { mode: ViewMode; onChange: (m: ViewMode) => void }) {
+  return (
+    <div className="flex rounded border border-[var(--border)] overflow-hidden">
+      <button
+        type="button"
+        onClick={() => onChange("cards")}
+        className={clsx(
+          "flex items-center gap-1 px-2 py-1 text-[10px] transition-colors",
+          mode === "cards"
+            ? "bg-[color:var(--accent)] text-white"
+            : "bg-[color:var(--bg-2)] text-[color:var(--text-2)] hover:text-[color:var(--text-1)]",
+        )}
+        title="Cards view"
+      >
+        <LayoutGrid className="h-3 w-3" />
+        <span>Cards</span>
+      </button>
+      <button
+        type="button"
+        onClick={() => onChange("cosmos")}
+        className={clsx(
+          "flex items-center gap-1 px-2 py-1 text-[10px] transition-colors border-l border-[var(--border)]",
+          mode === "cosmos"
+            ? "bg-[color:var(--accent)] text-white"
+            : "bg-[color:var(--bg-2)] text-[color:var(--text-2)] hover:text-[color:var(--text-1)]",
+        )}
+        title="Cosmos view (Obsidian-style)"
+      >
+        <Orbit className="h-3 w-3" />
+        <span>Cosmos</span>
+      </button>
+    </div>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Main component
@@ -220,6 +328,7 @@ export function GraphViewPage() {
   const [edges, setEdges, onEdgesChange] = useEdgesState<FlowEdge>([]);
   const [layouting, setLayouting] = useState(false);
   const [layoutSeed, setLayoutSeed] = useState(0);
+  const [viewMode, setViewMode] = useState<ViewMode>("cosmos");
   const [edgeMode, setEdgeMode] = useState<"related" | "requires" | "optional">("related");
   const [ontologyFilter, setOntologyFilter] = useState<MemoryOntology | "all">("all");
   const [minImportance, setMinImportance] = useState(0);
@@ -228,28 +337,17 @@ export function GraphViewPage() {
   const [colorByCommunity, setColorByCommunity] = useState(false);
   const [godMode, setGodMode] = useState(false);
   const [flowInstance, setFlowInstance] = useState<ReactFlowInstance<FlowNode, FlowEdge> | null>(null);
-  const layoutingRef = useRef(false);
 
-  useEffect(() => {
-    loadGraph();
-  }, [loadGraph]);
+  useEffect(() => { loadGraph(); }, [loadGraph]);
 
-  // God node IDs derived from graphData
   const godIds = useMemo<Set<string>>(() => {
     if (!graphData) return new Set();
-    const degreeMap = new Map<string, number>();
-    for (const n of graphData.nodes) {
-      degreeMap.set(n.id, n.degree);
-    }
-    const maxDeg = Math.max(1, ...Array.from(degreeMap.values()));
-    const ids = new Set<string>();
-    for (const n of graphData.nodes) {
-      const normDeg = (degreeMap.get(n.id) ?? 0) / maxDeg;
-      if (normDeg - n.importance > 0.2 || (degreeMap.get(n.id) ?? 0) >= 2) {
-        ids.add(n.id);
-      }
-    }
-    return ids;
+    const maxDeg = Math.max(1, ...graphData.nodes.map((n) => n.degree));
+    return new Set(
+      graphData.nodes
+        .filter((n) => (n.degree / maxDeg) - n.importance > 0.2 || n.degree >= 2)
+        .map((n) => n.id),
+    );
   }, [graphData]);
 
   const filteredData = useMemo(() => {
@@ -258,56 +356,57 @@ export function GraphViewPage() {
     if (ontologyFilter !== "all") filtered = filtered.filter((n) => n.ontology === ontologyFilter);
     if (minImportance > 0) filtered = filtered.filter((n) => n.importance >= minImportance);
     const nodeIds = new Set(filtered.map((n) => n.id));
-    const edgesFiltered = graphData.edges.filter(
-      (e) => nodeIds.has(e.source) && nodeIds.has(e.target),
-    );
-    return { nodes: filtered, edges: edgesFiltered };
+    return {
+      nodes: filtered,
+      edges: graphData.edges.filter((e) => nodeIds.has(e.source) && nodeIds.has(e.target)),
+    };
   }, [graphData, ontologyFilter, minImportance]);
 
-  // Keep selectedNode in sync when graphData refreshes
   useEffect(() => {
     if (!graphData || !selectedNode) return;
     setSelectedNode(graphData.nodes.find((n) => n.id === selectedNode.id) ?? null);
   }, [graphData, selectedNode]);
 
-  // Build backlinks map
   const backlinksMap = useMemo(() => {
     const map = new Map<string, string[]>();
     if (!graphData) return map;
     for (const e of graphData.edges) {
-      const existing = map.get(e.target) ?? [];
-      if (!existing.includes(e.source)) existing.push(e.source);
-      map.set(e.target, existing);
-      // undirected: also track reverse
-      const rev = map.get(e.source) ?? [];
-      if (!rev.includes(e.target)) rev.push(e.target);
-      map.set(e.source, rev);
+      const addLink = (key: string, val: string) => {
+        const arr = map.get(key) ?? [];
+        if (!arr.includes(val)) arr.push(val);
+        map.set(key, arr);
+      };
+      addLink(e.target, e.source);
+      addLink(e.source, e.target);
     }
     return map;
   }, [graphData]);
 
+  // Recompute layout whenever data, visual mode, or seed changes
   useEffect(() => {
     if (filteredData.nodes.length === 0) {
       setNodes([]);
       setEdges([]);
-      setLayouting(false);
       return;
     }
-    if (layoutingRef.current) return;
 
-    const doLayout = async () => {
-      layoutingRef.current = true;
-      setLayouting(true);
+    let cancelled = false;
+    setLayouting(true);
 
-      const positions = await layoutWithForce(filteredData.nodes, filteredData.edges);
+    void layoutWithForce(filteredData.nodes, filteredData.edges, viewMode).then((positions) => {
+      if (cancelled) return;
 
-      const newNodes: FlowNode[] = filteredData.nodes.map((node) => ({
-        id: node.id,
-        type: "memory",
-        position: positions[node.id] ?? { x: 0, y: 0 },
-        style: { width: nodeWidth(node.degree) },
-        data: { node, colorByCommunity, godMode, godIds },
-      }));
+      const newNodes: FlowNode[] = filteredData.nodes.map((node) => {
+        const isCards = viewMode === "cards";
+        const w = isCards ? cardWidth(node.degree) : (cosmosRadius(node.degree) * 2 + 60);
+        return {
+          id: node.id,
+          type: viewMode,
+          position: positions[node.id] ?? { x: 0, y: 0 },
+          style: { width: w },
+          data: { node, colorByCommunity, godMode, godIds },
+        };
+      });
 
       const newEdges: FlowEdge[] = filteredData.edges.map((edge, i) => ({
         id: `e-${edge.source}-${edge.target}-${i}`,
@@ -317,35 +416,37 @@ export function GraphViewPage() {
         animated: edge.edge_type === "requires",
         style: {
           stroke: EDGE_COLORS[edge.edge_type] ?? "#6b7280",
-          strokeWidth: edge.edge_type === "tag" ? 1 : 1.5,
+          strokeWidth: viewMode === "cosmos" ? 1 : edge.edge_type === "tag" ? 1 : 1.5,
           strokeDasharray: edge.edge_type === "tag" ? "4 3" : undefined,
-        } as FlowEdge["style"],
+        },
         labelStyle: { fill: "#8b9cb4", fontSize: 9 },
       }));
 
       setNodes(newNodes);
       setEdges(newEdges);
-      layoutingRef.current = false;
       setLayouting(false);
-      requestAnimationFrame(() => flowInstance?.fitView({ padding: 0.2, duration: 350 }));
-    };
+      requestAnimationFrame(() => flowInstance?.fitView({ padding: 0.15, duration: 400 }));
+    });
 
-    void doLayout();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredData, layoutSeed, colorByCommunity, godMode, godIds, flowInstance]);
+    return () => { cancelled = true; };
+  }, [filteredData, layoutSeed, viewMode, colorByCommunity, godMode, godIds, flowInstance, setNodes, setEdges]);
 
   const onConnect = useCallback(
     async (connection: Connection) => {
       if (!connection.source || !connection.target) return;
-      const newEdge: FlowEdge = {
-        id: `e-new-${Date.now()}`,
-        source: connection.source,
-        target: connection.target,
-        label: edgeMode,
-        style: { stroke: EDGE_COLORS[edgeMode], strokeWidth: 1.5 },
-        labelStyle: { fill: "#8b9cb4", fontSize: 9 },
-      };
-      setEdges((cur) => addEdge(newEdge, cur));
+      setEdges((cur) =>
+        addEdge(
+          {
+            id: `e-new-${Date.now()}`,
+            source: connection.source!,
+            target: connection.target!,
+            label: edgeMode,
+            style: { stroke: EDGE_COLORS[edgeMode], strokeWidth: 1.5 },
+            labelStyle: { fill: "#8b9cb4", fontSize: 9 },
+          },
+          cur,
+        ),
+      );
       try {
         const memory = await getMemory(connection.source);
         const push = (arr: string[], v: string) => { if (!arr.includes(v)) arr.push(v); };
@@ -369,8 +470,7 @@ export function GraphViewPage() {
   }, []);
 
   const onNodeDoubleClick = useCallback(
-    async (_: unknown, node: { id: string; data: NodeData }) => {
-      setSelectedNode(node.data.node);
+    async (_: unknown, node: { id: string }) => {
       try {
         await selectFile(node.id);
         navigate("/");
@@ -381,12 +481,17 @@ export function GraphViewPage() {
     [navigate, selectFile, setError],
   );
 
-  const godCount = godMode ? godIds.size : 0;
+  const handleViewModeChange = useCallback((m: ViewMode) => {
+    setViewMode(m);
+    setLayoutSeed((p) => p + 1);
+  }, []);
 
   return (
     <div className="relative flex h-full min-h-0 flex-col">
       {/* Toolbar */}
       <div className="flex items-center gap-2 border-b border-[var(--border)] px-3 py-2">
+        <ViewModeToggle mode={viewMode} onChange={handleViewModeChange} />
+
         <span className="text-[11px] text-[color:var(--text-2)]">
           {filteredData.nodes.length} nodes · {filteredData.edges.length} edges
         </span>
@@ -426,23 +531,19 @@ export function GraphViewPage() {
             <option value="optional">optional</option>
           </select>
 
-          {/* God mode toggle */}
           <button
             type="button"
             onClick={() => setGodMode((p) => !p)}
             className={clsx(
               "flex items-center gap-1 rounded px-1.5 py-1 text-[10px] transition-colors",
-              godMode
-                ? "bg-red-500/15 text-red-400"
-                : "text-[color:var(--text-2)] hover:text-[color:var(--text-1)]",
+              godMode ? "bg-red-500/15 text-red-400" : "text-[color:var(--text-2)] hover:text-[color:var(--text-1)]",
             )}
-            title="Highlight god nodes (high degree vs low importance)"
+            title="Highlight god nodes"
           >
             <AlertTriangle className="h-3.5 w-3.5" />
-            {godMode && godCount > 0 && <span>{godCount}</span>}
+            {godMode && godIds.size > 0 && <span>{godIds.size}</span>}
           </button>
 
-          {/* Community/ontology color toggle */}
           <button
             type="button"
             onClick={() => setColorByCommunity((p) => !p)}
@@ -477,7 +578,7 @@ export function GraphViewPage() {
       </div>
 
       <div className="flex min-h-0 flex-1">
-        {/* Graph canvas */}
+        {/* Canvas */}
         <div className="min-h-0 min-w-0 flex-1 overflow-hidden bg-[color:var(--bg-0)]">
           {nodes.length > 0 ? (
             <ReactFlow
@@ -493,10 +594,20 @@ export function GraphViewPage() {
               fitView
               proOptions={{ hideAttribution: true }}
             >
-              <Background color="rgba(255,255,255,0.03)" gap={24} />
+              {viewMode === "cosmos" ? (
+                <Background color="rgba(255,255,255,0.025)" gap={32} size={1} />
+              ) : (
+                <Background color="rgba(255,255,255,0.03)" gap={24} />
+              )}
               <Controls />
               <MiniMap
-                nodeColor="rgba(255,255,255,0.15)"
+                nodeColor={(n) => {
+                  const nd = (n.data as NodeData | undefined)?.node;
+                  if (!nd) return "rgba(255,255,255,0.15)";
+                  return colorByCommunity
+                    ? communityColor(nd.community)
+                    : (MEMORY_ONTOLOGY_COLORS[nd.ontology] ?? "#64748b");
+                }}
                 style={{
                   backgroundColor: "var(--bg-1)",
                   border: "1px solid var(--border)",
@@ -512,7 +623,7 @@ export function GraphViewPage() {
           )}
         </div>
 
-        {/* Inspector panel */}
+        {/* Inspector */}
         <aside
           className={clsx(
             "obs-inspector min-h-0 transition-all",
@@ -527,11 +638,8 @@ export function GraphViewPage() {
                   backlinks={backlinksMap.get(selectedNode.id) ?? []}
                   graphNodes={graphData?.nodes ?? []}
                   colorByCommunity={colorByCommunity}
-                  onOpenNode={(id) => void onNodeDoubleClick(null, { id, data: { node: selectedNode, colorByCommunity, godMode, godIds } as NodeData })}
-                  onSelectNode={(id) => {
-                    const found = graphData?.nodes.find((n) => n.id === id) ?? null;
-                    setSelectedNode(found);
-                  }}
+                  onOpenNode={(id) => void onNodeDoubleClick(null, { id })}
+                  onSelectNode={(id) => setSelectedNode(graphData?.nodes.find((n) => n.id === id) ?? null)}
                 />
               ) : (
                 <p className="text-xs text-[color:var(--text-2)]">
@@ -544,7 +652,7 @@ export function GraphViewPage() {
       </div>
 
       {layouting && (
-        <div className="pointer-events-none absolute right-8 top-20 rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-2.5 py-1 text-xs text-[color:var(--text-1)]">
+        <div className="pointer-events-none absolute right-8 top-16 rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-2.5 py-1 text-xs text-[color:var(--text-1)]">
           Calculating layout…
         </div>
       )}
@@ -616,7 +724,6 @@ function InspectorPanel({
         Open in Explorer
       </button>
 
-      {/* Backlinks */}
       {backlinkNodes.length > 0 && (
         <div>
           <div className="mb-1.5 flex items-center gap-1 text-[10px] text-[color:var(--text-2)]">
@@ -636,9 +743,7 @@ function InspectorPanel({
                   style={{ backgroundColor: MEMORY_ONTOLOGY_COLORS[n.ontology] ?? "#64748b" }}
                 />
                 <span className="truncate text-[10px] text-[color:var(--text-1)]">{n.id}</span>
-                <span className="ml-auto shrink-0 text-[9px] text-[color:var(--text-2)]">
-                  {n.degree}
-                </span>
+                <span className="ml-auto shrink-0 text-[9px] text-[color:var(--text-2)]">{n.degree}</span>
               </button>
             ))}
           </div>

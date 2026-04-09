@@ -15,6 +15,8 @@ pub struct OnboardingProfile {
     pub language: String,
     pub template: String, // "developer", "creator", "entrepreneur", "custom"
     pub root_dir: Option<String>,
+    #[serde(default)]
+    pub use_existing_root: bool,
 }
 
 /// Run full onboarding: create workspace, profile, template skills/rules, and router.
@@ -37,8 +39,10 @@ pub fn run_onboarding(
     let config = crate::commands::config::create_workspace_structure(&root, &profile.tools)?;
     *state.config.write().unwrap() = config;
 
-    // Step 3: Create starter folders for user content
-    create_starter_folders(&root)?;
+    // Step 3: Create starter folders only for brand new workspaces.
+    if !profile.use_existing_root {
+        create_starter_folders(&root)?;
+    }
 
     // Step 4: Generate perfil-profesional.md
     create_profile_memory(&root, &profile)?;

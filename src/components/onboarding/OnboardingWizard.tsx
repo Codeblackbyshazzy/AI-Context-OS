@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { open } from "@tauri-apps/plugin-dialog";
 import {
   Brain,
   Code,
@@ -33,6 +34,7 @@ export function OnboardingWizard({ onComplete }: Props) {
   const [language, setLang] = useState("es");
   const [template, setTemplate] = useState("developer");
   const [rootDir, setRootDir] = useState("~/AI-Context-OS");
+  const [workspaceMode, setWorkspaceMode] = useState<"new" | "existing">("existing");
 
   const TEMPLATES = [
     { id: "developer",    label: t("onboarding.template.developer"),    icon: Code,      desc: t("onboarding.template.developerDesc") },
@@ -66,6 +68,7 @@ export function OnboardingWizard({ onComplete }: Props) {
         language,
         template,
         root_dir: rootDir !== "~/AI-Context-OS" ? rootDir : undefined,
+        use_existing_root: workspaceMode === "existing",
       };
       await runOnboarding(profile);
       setLanguage(language as "en" | "es");
@@ -74,6 +77,18 @@ export function OnboardingWizard({ onComplete }: Props) {
       setError(String(e));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleChooseFolder = async () => {
+    const selected = await open({
+      directory: true,
+      multiple: false,
+      defaultPath: rootDir,
+    });
+
+    if (typeof selected === "string" && selected.trim().length > 0) {
+      setRootDir(selected);
     }
   };
 
@@ -123,6 +138,42 @@ export function OnboardingWizard({ onComplete }: Props) {
                     {t("onboarding.location.desc")}
                   </p>
                 </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setWorkspaceMode("existing")}
+                    className={clsx(
+                      "rounded-md border p-3 text-left transition-colors",
+                      workspaceMode === "existing"
+                        ? "border-[color:var(--accent)] bg-[color:var(--accent-muted)]"
+                        : "border-[var(--border)] bg-[color:var(--bg-2)] hover:border-[var(--border-active)]",
+                    )}
+                  >
+                    <p className="text-xs font-medium text-[color:var(--text-0)]">
+                      {t("onboarding.location.useExisting")}
+                    </p>
+                    <p className="mt-1 text-[11px] leading-tight text-[color:var(--text-2)]">
+                      {t("onboarding.location.useExistingDesc")}
+                    </p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setWorkspaceMode("new")}
+                    className={clsx(
+                      "rounded-md border p-3 text-left transition-colors",
+                      workspaceMode === "new"
+                        ? "border-[color:var(--accent)] bg-[color:var(--accent-muted)]"
+                        : "border-[var(--border)] bg-[color:var(--bg-2)] hover:border-[var(--border-active)]",
+                    )}
+                  >
+                    <p className="text-xs font-medium text-[color:var(--text-0)]">
+                      {t("onboarding.location.createNew")}
+                    </p>
+                    <p className="mt-1 text-[11px] leading-tight text-[color:var(--text-2)]">
+                      {t("onboarding.location.createNewDesc")}
+                    </p>
+                  </button>
+                </div>
                 <div className="flex items-center gap-2">
                   <FolderOpen className="h-4 w-4 shrink-0 text-[color:var(--text-2)]" />
                   <input
@@ -131,6 +182,18 @@ export function OnboardingWizard({ onComplete }: Props) {
                     className="flex-1 rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-3 py-2 text-sm text-[color:var(--text-0)] placeholder:text-[color:var(--text-2)]"
                     placeholder="~/AI-Context-OS"
                   />
+                  <button
+                    type="button"
+                    onClick={() => void handleChooseFolder()}
+                    className="rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-3 py-2 text-xs font-medium text-[color:var(--text-0)] transition-colors hover:border-[var(--border-active)]"
+                  >
+                    {t("onboarding.location.chooseFolder")}
+                  </button>
+                </div>
+                <div className="rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] p-3 text-[11px] leading-relaxed text-[color:var(--text-2)]">
+                  <p>{t(`onboarding.location.${workspaceMode}Hint`)}</p>
+                  <p className="mt-2">{t("onboarding.location.systemFiles")}</p>
+                  <p className="mt-2">{t("onboarding.location.compatibility")}</p>
                 </div>
                 <p className="font-mono text-[11px] text-[color:var(--text-2)]">
                   {t("onboarding.location.structure")}
@@ -239,6 +302,7 @@ export function OnboardingWizard({ onComplete }: Props) {
                   {t("onboarding.confirm.title")}
                 </h2>
                 <div className="space-y-2 rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] p-3 text-xs">
+                  <Row label={t("onboarding.confirm.modeLabel")} value={t(`onboarding.location.modeValue.${workspaceMode}`)} />
                   <Row label="Name" value={name} />
                   <Row label="Role" value={role} />
                   <Row label="Template" value={template} />

@@ -66,8 +66,21 @@
     },
     "location": {
       "title": "Workspace location",
-      "desc": "A workspace folder will be created with system infrastructure and starter directories for your AI memory.",
-      "structure": "inbox/ · sources/ · .ai/ (rules, journal, tasks, scratch)"
+      "desc": "You can create a new workspace or point the app at a folder you already use, including a personal archive or an Obsidian/Logseq vault.",
+      "useExisting": "Use existing folder",
+      "useExistingDesc": "Choose your current root folder and prepare AI Context OS inside it.",
+      "createNew": "Create new folder",
+      "createNewDesc": "Start with an initial structure tailored for AI Context OS.",
+      "chooseFolder": "Choose folder",
+      "existingHint": "Best if you already keep information in organized folders. The app will work from that root without forcing a prior migration.",
+      "newHint": "The app will create a new root and add a few starter folders to help you begin.",
+      "systemFiles": "AI Context OS will add or update its system files if they are missing: .ai/, claude.md, .cursorrules, .windsurfrules, inbox/, and sources/.",
+      "compatibility": "An Obsidian or Logseq vault can be used as the root. Your notes stay where they are; Markdown files with compatible frontmatter can be indexed as memories.",
+      "structure": "System infrastructure: inbox/ · sources/ · .ai/ (rules, journal, tasks, scratch)",
+      "modeValue": {
+        "new": "New folder",
+        "existing": "Existing folder"
+      }
     },
     "profile": {
       "title": "Your profile",
@@ -94,13 +107,14 @@
     },
     "confirm": {
       "title": "Summary",
-      "desc": "The workspace will be created with initial memories and auto-generated integration files."
+      "desc": "The app will prepare this location to work as an AI Context OS workspace and add its base infrastructure.",
+      "modeLabel": "Mode"
     },
     "actions": {
       "back": "Back",
       "next": "Next",
-      "create": "Create Workspace",
-      "creating": "Creating..."
+      "create": "Prepare Workspace",
+      "creating": "Preparing..."
     }
   },
   "explorer": {

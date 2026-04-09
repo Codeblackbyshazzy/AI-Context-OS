@@ -128,6 +128,7 @@ export interface OnboardingProfile {
   language: string;
   template: string;
   root_dir?: string;
+  use_existing_root?: boolean;
 }
 export const runOnboarding = (profile: OnboardingProfile) =>
   invoke<boolean>("run_onboarding", { profile });
