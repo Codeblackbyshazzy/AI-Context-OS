@@ -3,11 +3,24 @@ use std::collections::HashMap;
 use chrono::Utc;
 use petgraph::graph::{Graph, NodeIndex};
 use petgraph::Undirected;
+use regex::Regex;
 
 use crate::core::decay::decay_score;
 use crate::core::types::{GodNode, GraphData, GraphEdge, GraphNode, Memory};
 
-/// Build an undirected graph from explicit memory relationships (related/requires/optional).
+/// Extract [[wikilink]] targets from markdown content.
+fn extract_wikilinks(content: &str) -> Vec<String> {
+    let re = Regex::new(r"\[\[([^\]]+)\]\]").unwrap();
+    re.captures_iter(content)
+        .map(|c| c[1].trim().to_string())
+        .filter(|s| !s.is_empty())
+        .collect()
+}
+
+/// Build an undirected graph from:
+///   - Explicit relationships (related/requires/optional)
+///   - Wikilinks [[id]] in l1_content / l2_content
+///   - Tag co-occurrence (≥1 shared tag)
 pub fn build_graph(memories: &[Memory]) -> Graph<String, String, Undirected> {
     let mut graph = Graph::<String, String, Undirected>::new_undirected();
     let mut id_to_node: HashMap<String, NodeIndex> = HashMap::new();
@@ -19,6 +32,7 @@ pub fn build_graph(memories: &[Memory]) -> Graph<String, String, Undirected> {
 
     for m in memories {
         if let Some(&source) = id_to_node.get(&m.meta.id) {
+            // Explicit: related
             for related_id in &m.meta.related {
                 if let Some(&target) = id_to_node.get(related_id) {
                     if !graph.contains_edge(source, target) {
@@ -26,6 +40,7 @@ pub fn build_graph(memories: &[Memory]) -> Graph<String, String, Undirected> {
                     }
                 }
             }
+            // Explicit: requires
             for req_id in &m.meta.requires {
                 if let Some(&target) = id_to_node.get(req_id) {
                     if !graph.contains_edge(source, target) {
@@ -33,10 +48,45 @@ pub fn build_graph(memories: &[Memory]) -> Graph<String, String, Undirected> {
                     }
                 }
             }
+            // Explicit: optional
             for opt_id in &m.meta.optional {
                 if let Some(&target) = id_to_node.get(opt_id) {
                     if !graph.contains_edge(source, target) {
                         graph.add_edge(source, target, "optional".to_string());
+                    }
+                }
+            }
+            // Wikilinks from content
+            let wikilinks: Vec<String> = extract_wikilinks(&m.l1_content)
+                .into_iter()
+                .chain(extract_wikilinks(&m.l2_content))
+                .collect();
+            for linked_id in wikilinks {
+                if let Some(&target) = id_to_node.get(&linked_id) {
+                    if !graph.contains_edge(source, target) {
+                        graph.add_edge(source, target, "wikilink".to_string());
+                    }
+                }
+            }
+        }
+    }
+
+    // Tag co-occurrence edges (≥1 shared tag)
+    let mem_vec: Vec<&Memory> = memories.iter().collect();
+    for i in 0..mem_vec.len() {
+        for j in (i + 1)..mem_vec.len() {
+            let shared = mem_vec[i]
+                .meta
+                .tags
+                .iter()
+                .any(|t| mem_vec[j].meta.tags.contains(t));
+            if shared {
+                if let (Some(&src), Some(&tgt)) = (
+                    id_to_node.get(&mem_vec[i].meta.id),
+                    id_to_node.get(&mem_vec[j].meta.id),
+                ) {
+                    if !graph.contains_edge(src, tgt) {
+                        graph.add_edge(src, tgt, "tag".to_string());
                     }
                 }
             }
@@ -90,16 +140,33 @@ pub fn compute_community_map(memories: &[Memory]) -> HashMap<String, u32> {
         }
     }
 
-    // Implicit tag co-occurrence edges (≥2 shared tags)
+    // Implicit tag co-occurrence edges (≥1 shared tag)
     for i in 0..n {
         for j in (i + 1)..n {
             let shared = memories[i]
                 .meta
                 .tags
                 .iter()
-                .filter(|t| memories[j].meta.tags.contains(t))
-                .count();
-            if shared >= 2 {
+                .any(|t| memories[j].meta.tags.contains(t));
+            if shared {
+                if !adj[i].contains(&j) {
+                    adj[i].push(j);
+                }
+                if !adj[j].contains(&i) {
+                    adj[j].push(i);
+                }
+            }
+        }
+    }
+
+    // Also add wikilink edges to community adjacency
+    for (i, m) in memories.iter().enumerate() {
+        let wikilinks: Vec<String> = extract_wikilinks(&m.l1_content)
+            .into_iter()
+            .chain(extract_wikilinks(&m.l2_content))
+            .collect();
+        for linked_id in wikilinks {
+            if let Some(&j) = idx_map.get(linked_id.as_str()) {
                 if !adj[i].contains(&j) {
                     adj[i].push(j);
                 }
@@ -242,6 +309,14 @@ pub fn to_graph_data(memories: &[Memory], _decay_threshold: f64) -> GraphData {
         if let Some(memory) = id_map.get(id) {
             let days_since_last_access =
                 (Utc::now() - memory.meta.last_access).num_hours() as f64 / 24.0;
+            let degree = graph.neighbors(node_idx).count();
+            let preview: String = memory
+                .l1_content
+                .chars()
+                .take(160)
+                .collect::<String>()
+                .trim()
+                .to_string();
             nodes.push(GraphNode {
                 id: id.to_string(),
                 label: memory.meta.l0.clone(),
@@ -255,6 +330,8 @@ pub fn to_graph_data(memories: &[Memory], _decay_threshold: f64) -> GraphData {
                     days_since_last_access.max(0.0),
                 ),
                 community: community_map.get(id).copied(),
+                degree,
+                preview,
             });
         }
     }

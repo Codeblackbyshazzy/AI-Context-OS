@@ -136,6 +136,8 @@ pub struct GraphNode {
     pub importance: f64,
     pub decay_score: f64,
     pub community: Option<u32>,
+    pub degree: usize,
+    pub preview: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
