@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { FileText, PanelRightClose, PanelRightOpen, Trash2, ChevronRight } from "lucide-react";
 import { clsx } from "clsx";
 import { useAppStore } from "../../lib/store";
@@ -608,7 +609,7 @@ function HistoryPanel({
   );
 }
 
-function formatTimestamp(value: string, t: (key: string) => string): string {
+function formatTimestamp(value: string, t: TFunction): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return t("memoryEditor.history.notAvailable");
   return date.toLocaleString();
