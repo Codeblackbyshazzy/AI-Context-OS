@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { FileText, PanelRightClose, PanelRightOpen, Trash2, ChevronRight } from "lucide-react";
 import { clsx } from "clsx";
 import { useAppStore } from "../../lib/store";
@@ -37,6 +38,7 @@ interface RawFileDraft {
 }
 
 export function MemoryEditor() {
+  const { t } = useTranslation();
   const {
     activeMemory,
     activeRawFile,
@@ -257,13 +259,13 @@ export function MemoryEditor() {
   const historyEntries = useMemo(() => {
     if (!meta) return [] as Array<{ label: string; value: string }>;
     return [
-      { label: "Created", value: formatTimestamp(meta.created) },
-      { label: "Modified", value: formatTimestamp(meta.modified) },
-      { label: "Last access", value: formatTimestamp(meta.last_access) },
-      { label: "Version", value: `v${meta.version}` },
-      { label: "Access count", value: String(meta.access_count) },
+      { label: t("memoryEditor.history.created"), value: formatTimestamp(meta.created, t) },
+      { label: t("memoryEditor.history.modified"), value: formatTimestamp(meta.modified, t) },
+      { label: t("memoryEditor.history.lastAccess"), value: formatTimestamp(meta.last_access, t) },
+      { label: t("memoryEditor.history.version"), value: `v${meta.version}` },
+      { label: t("memoryEditor.history.accessCount"), value: String(meta.access_count) },
     ];
-  }, [meta]);
+  }, [meta, t]);
   const isProtected = meta?.protected ?? false;
   const isStateSynced = meta?.id === activeMemory?.meta.id;
 
@@ -292,9 +294,9 @@ export function MemoryEditor() {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-2 text-center text-[color:var(--text-2)]">
         <FileText className="h-8 w-8 text-[color:var(--text-2)]" />
-        <p className="text-sm text-[color:var(--text-1)]">Select a file to edit</p>
+        <p className="text-sm text-[color:var(--text-1)]">{t("memoryEditor.empty.title")}</p>
         <p className="max-w-sm text-xs">
-          Use the sidebar explorer to open a note or file.
+          {t("memoryEditor.empty.description")}
         </p>
       </div>
     );
@@ -314,7 +316,7 @@ export function MemoryEditor() {
           type="button"
           onClick={() => setShowInspector((prev) => !prev)}
           className="rounded p-1 text-[color:var(--text-2)] transition-colors hover:text-[color:var(--text-1)]"
-          title={showInspector ? "Hide inspector" : "Show inspector"}
+          title={showInspector ? t("memoryEditor.actions.hideInspector") : t("memoryEditor.actions.showInspector")}
         >
           {showInspector ? <PanelRightClose className="h-3.5 w-3.5" /> : <PanelRightOpen className="h-3.5 w-3.5" />}
         </button>
@@ -323,7 +325,7 @@ export function MemoryEditor() {
           onClick={handleDelete}
           disabled={loading || isProtected}
           className="rounded p-1 text-[color:var(--text-2)] transition-colors hover:text-[color:var(--danger)] disabled:opacity-50"
-          title={isProtected ? "Protected file" : "Delete memory"}
+          title={isProtected ? t("explorer.protected") : t("memoryEditor.actions.deleteMemory")}
         >
           <Trash2 className="h-3.5 w-3.5" />
         </button>
@@ -341,17 +343,17 @@ export function MemoryEditor() {
                 handleMetaChange({ ...meta, l0: e.target.value });
               }}
               readOnly={isProtected}
-              placeholder="Untitled"
+              placeholder={t("memoryEditor.untitled")}
               className="mb-1 w-full bg-transparent text-2xl font-semibold text-[color:var(--text-0)] placeholder:text-[color:var(--text-2)]/40 focus:outline-none"
             />
             <p className="mb-6 font-mono text-[11px] text-[color:var(--text-2)]">
               {meta.ontology}
               {meta.system_role && ` · ${meta.system_role}`}
               {meta.folder_category && ` · ${meta.folder_category}`}
-              {meta.importance >= 0.7 ? " · high" : meta.importance >= 0.4 ? "" : " · low"}
-              {meta.always_load && " · pinned"}
+              {meta.importance >= 0.7 ? ` · ${t("memoryEditor.meta.high")}` : meta.importance >= 0.4 ? "" : ` · ${t("memoryEditor.meta.low")}`}
+              {meta.always_load && ` · ${t("memoryEditor.meta.pinned")}`}
               {meta.tags.length > 0 && ` · ${meta.tags.join(", ")}`}
-              {" · "}L2 content · v{meta.version}
+              {` · ${t("memoryEditor.meta.l2Content")} · v${meta.version}`}
             </p>
 
             {/* L2 — Main content */}
@@ -366,7 +368,7 @@ export function MemoryEditor() {
               }}
               onBlur={() => void handleSave()}
               className="min-h-[400px]"
-              placeholder="Type here..."
+              placeholder={t("memoryEditor.placeholders.typeHere")}
               editable={!isProtected}
             />
 
@@ -383,7 +385,7 @@ export function MemoryEditor() {
                     l1Open && "rotate-90",
                   )}
                 />
-                L1 · Extended summary
+                {t("memoryEditor.l1Title")}
               </button>
               {l1Open && (
                 <div className="mt-2">
@@ -398,7 +400,7 @@ export function MemoryEditor() {
                     }}
                     onBlur={() => void handleSave()}
                     className="min-h-[120px]"
-                    placeholder="L1 summary (150-300 tokens)..."
+                    placeholder={t("memoryEditor.placeholders.l1Summary")}
                     editable={!isProtected}
                   />
                 </div>
@@ -418,17 +420,17 @@ export function MemoryEditor() {
             <div className="flex items-center gap-1 border-b border-[var(--border)] px-2 py-1.5">
               <InspectorTabButton
                 active={inspectorTab === "properties"}
-                label="Properties"
+                label={t("memoryEditor.tabs.properties")}
                 onClick={() => setInspectorTab("properties")}
               />
               <InspectorTabButton
                 active={inspectorTab === "links"}
-                label="Links"
+                label={t("memoryEditor.tabs.links")}
                 onClick={() => setInspectorTab("links")}
               />
               <InspectorTabButton
                 active={inspectorTab === "history"}
-                label="History"
+                label={t("memoryEditor.tabs.history")}
                 onClick={() => setInspectorTab("history")}
               />
             </div>
@@ -489,16 +491,18 @@ function LinksPanel({
   incoming: IncomingLink[];
   onOpenMemory: (id: string) => void;
 }) {
+  const { t } = useTranslation();
+
   return (
     <div className="space-y-3 p-3">
-      <LinkGroup title="Outgoing" links={outgoing} onOpenMemory={onOpenMemory} />
+      <LinkGroup title={t("memoryEditor.links.outgoing")} links={outgoing} onOpenMemory={onOpenMemory} />
       <div className="space-y-2">
         <p className="text-[10px] uppercase tracking-[0.12em] text-[color:var(--text-2)]">
-          Incoming
+          {t("memoryEditor.links.incoming")}
         </p>
         {incoming.length === 0 && (
           <p className="rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-2.5 py-2 text-xs text-[color:var(--text-2)]">
-            No backlinks.
+            {t("memoryEditor.links.noBacklinks")}
           </p>
         )}
         {incoming.map((item) => (
@@ -539,12 +543,14 @@ function LinkGroup({
   links: OutgoingLink[];
   onOpenMemory: (id: string) => void;
 }) {
+  const { t } = useTranslation();
+
   return (
     <div className="space-y-2">
       <p className="text-[10px] uppercase tracking-[0.12em] text-[color:var(--text-2)]">{title}</p>
       {links.length === 0 && (
         <p className="rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-2.5 py-2 text-xs text-[color:var(--text-2)]">
-          No links.
+          {t("memoryEditor.links.noLinks")}
         </p>
       )}
       {links.map((item) => (
@@ -578,11 +584,13 @@ function HistoryPanel({
   history: ReadonlyArray<{ label: string; value: string }>;
   dirty: boolean;
 }) {
+  const { t } = useTranslation();
+
   return (
     <div className="space-y-2 p-3">
       {dirty && (
         <div className="rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-2.5 py-2 text-xs text-[color:var(--text-1)]">
-          There are pending changes to synchronize.
+          {t("memoryEditor.history.pendingSync")}
         </div>
       )}
       {history.map((entry) => (
@@ -600,21 +608,22 @@ function HistoryPanel({
   );
 }
 
-function formatTimestamp(value: string): string {
+function formatTimestamp(value: string, t: (key: string) => string): string {
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Not available";
+  if (Number.isNaN(date.getTime())) return t("memoryEditor.history.notAvailable");
   return date.toLocaleString();
 }
 
 function SaveStateBadge({ status }: { status: SaveStatus }) {
+  const { t } = useTranslation();
   const label =
     status === "saving"
-      ? "Saving..."
+      ? t("memoryEditor.saveStatus.saving")
       : status === "error"
-        ? "Save error"
+        ? t("memoryEditor.saveStatus.error")
         : status === "dirty"
-          ? "Pending"
-          : "Saved";
+          ? t("memoryEditor.saveStatus.pending")
+          : t("memoryEditor.saveStatus.saved");
 
   return (
     <span

@@ -164,6 +164,84 @@
     "loadMore": "Load more days...",
     "backendError": "Backend error"
   },
+  "memoryEditor": {
+    "untitled": "Untitled",
+    "l1Title": "L1 · Extended summary",
+    "tabs": {
+      "properties": "Properties",
+      "links": "Links",
+      "history": "History"
+    },
+    "actions": {
+      "hideInspector": "Hide inspector",
+      "showInspector": "Show inspector",
+      "deleteMemory": "Delete memory"
+    },
+    "empty": {
+      "title": "Select a file to edit",
+      "description": "Use the sidebar explorer to open a note or file."
+    },
+    "meta": {
+      "high": "high",
+      "low": "low",
+      "pinned": "pinned",
+      "l2Content": "L2 content"
+    },
+    "placeholders": {
+      "typeHere": "Type here...",
+      "l1Summary": "L1 summary (150-300 tokens)..."
+    },
+    "saveStatus": {
+      "saving": "Saving...",
+      "error": "Save error",
+      "pending": "Pending",
+      "saved": "Saved"
+    },
+    "links": {
+      "outgoing": "Outgoing",
+      "incoming": "Incoming",
+      "noBacklinks": "No backlinks.",
+      "noLinks": "No links."
+    },
+    "history": {
+      "created": "Created",
+      "modified": "Modified",
+      "lastAccess": "Last access",
+      "version": "Version",
+      "accessCount": "Access count",
+      "pendingSync": "There are pending changes to synchronize.",
+      "notAvailable": "Not available"
+    },
+    "frontmatter": {
+      "id": "ID",
+      "memoryIdPlaceholder": "memory-id",
+      "status": "Status",
+      "unprocessed": "Unprocessed",
+      "processed": "Processed",
+      "type": "Type (AI ontology)",
+      "alwaysLoad": "Always load",
+      "protect": "Protect",
+      "importance": "Importance",
+      "confidence": "Confidence",
+      "decay": "Decay",
+      "l0Summary": "L0 summary",
+      "l0Placeholder": "One-line summary...",
+      "tags": "Tags",
+      "addTag": "Add tag...",
+      "related": "Related",
+      "memoryIdEllipsis": "memory-id...",
+      "derivedFrom": "Derived from",
+      "sourceIdEllipsis": "source-id...",
+      "triggers": "Triggers",
+      "triggerPhrase": "trigger phrase...",
+      "outputFormat": "Output format",
+      "outputFormatPlaceholder": "markdown / json / text...",
+      "requires": "Requires",
+      "requiredMemoryId": "required memory-id...",
+      "optional": "Optional",
+      "optionalMemoryId": "optional memory-id..."
+    }
+  },
   "graph": {
     "nodesEdges": "{{nodes}} nodes · {{edges}} edges",
     "filterAll": "All ontologies",

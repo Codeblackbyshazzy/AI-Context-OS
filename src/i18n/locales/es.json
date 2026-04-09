@@ -164,6 +164,84 @@
     "loadMore": "Cargar más días...",
     "backendError": "Error del sistema"
   },
+  "memoryEditor": {
+    "untitled": "Sin título",
+    "l1Title": "L1 · Resumen ampliado",
+    "tabs": {
+      "properties": "Propiedades",
+      "links": "Enlaces",
+      "history": "Historial"
+    },
+    "actions": {
+      "hideInspector": "Ocultar inspector",
+      "showInspector": "Mostrar inspector",
+      "deleteMemory": "Eliminar memoria"
+    },
+    "empty": {
+      "title": "Selecciona un archivo para editar",
+      "description": "Usa el explorador lateral para abrir una nota o archivo."
+    },
+    "meta": {
+      "high": "alta",
+      "low": "baja",
+      "pinned": "fijada",
+      "l2Content": "contenido L2"
+    },
+    "placeholders": {
+      "typeHere": "Escribe aquí...",
+      "l1Summary": "Resumen L1 (150-300 tokens)..."
+    },
+    "saveStatus": {
+      "saving": "Guardando...",
+      "error": "Error al guardar",
+      "pending": "Pendiente",
+      "saved": "Guardado"
+    },
+    "links": {
+      "outgoing": "Salientes",
+      "incoming": "Entrantes",
+      "noBacklinks": "Sin enlaces entrantes.",
+      "noLinks": "Sin enlaces."
+    },
+    "history": {
+      "created": "Creado",
+      "modified": "Modificado",
+      "lastAccess": "Último acceso",
+      "version": "Versión",
+      "accessCount": "Accesos",
+      "pendingSync": "Hay cambios pendientes por sincronizar.",
+      "notAvailable": "No disponible"
+    },
+    "frontmatter": {
+      "id": "ID",
+      "memoryIdPlaceholder": "memory-id",
+      "status": "Estado",
+      "unprocessed": "Sin procesar",
+      "processed": "Procesado",
+      "type": "Tipo (ontología IA)",
+      "alwaysLoad": "Cargar siempre",
+      "protect": "Proteger",
+      "importance": "Importancia",
+      "confidence": "Confianza",
+      "decay": "Decaimiento",
+      "l0Summary": "Resumen L0",
+      "l0Placeholder": "Resumen en una línea...",
+      "tags": "Etiquetas",
+      "addTag": "Añadir etiqueta...",
+      "related": "Relacionado",
+      "memoryIdEllipsis": "memory-id...",
+      "derivedFrom": "Derivado de",
+      "sourceIdEllipsis": "source-id...",
+      "triggers": "Disparadores",
+      "triggerPhrase": "frase activadora...",
+      "outputFormat": "Formato de salida",
+      "outputFormatPlaceholder": "markdown / json / texto...",
+      "requires": "Requiere",
+      "requiredMemoryId": "memory-id requerida...",
+      "optional": "Opcional",
+      "optionalMemoryId": "memory-id opcional..."
+    }
+  },
   "graph": {
     "nodesEdges": "{{nodes}} nodos · {{edges}} aristas",
     "filterAll": "Todas las ontologías",

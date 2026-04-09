@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { MemoryMeta, MemoryOntology } from "../../lib/types";
 import { MEMORY_ONTOLOGY_LABELS } from "../../lib/types";
 
@@ -83,6 +84,8 @@ const toMemoryRef = (value: string) =>
     .replace(/[^a-z0-9-_]/g, "");
 
 export function FrontmatterForm({ meta, onChange, readonly = false }: FrontmatterFormProps) {
+  const { t } = useTranslation();
+
   const update = (partial: Partial<MemoryMeta>) => {
     onChange({ ...meta, ...partial });
   };
@@ -98,19 +101,19 @@ export function FrontmatterForm({ meta, onChange, readonly = false }: Frontmatte
   return (
     <div className="space-y-3 p-3">
       {/* Identity */}
-      <Field label="ID">
+      <Field label={t("memoryEditor.frontmatter.id")}>
         <input
           type="text"
           value={meta.id}
           onChange={(e) => update({ id: toMemoryRef(e.target.value) })}
           disabled={readonly}
           className="w-full rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-2 py-1.5 text-xs text-[color:var(--text-0)] placeholder:text-[color:var(--text-2)]"
-          placeholder="memory-id"
+          placeholder={t("memoryEditor.frontmatter.memoryIdPlaceholder")}
         />
       </Field>
 
       {meta.status && (
-        <Field label="Estado">
+        <Field label={t("memoryEditor.frontmatter.status")}>
           <span
             className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium ${
               meta.status === "unprocessed"
@@ -118,12 +121,14 @@ export function FrontmatterForm({ meta, onChange, readonly = false }: Frontmatte
                 : "bg-[color:var(--success)]/12 text-[color:var(--success)]"
             }`}
           >
-            {meta.status === "unprocessed" ? "Sin procesar" : "Procesado"}
+            {meta.status === "unprocessed"
+              ? t("memoryEditor.frontmatter.unprocessed")
+              : t("memoryEditor.frontmatter.processed")}
           </span>
         </Field>
       )}
 
-      <Field label="Type (AI Ontology)">
+      <Field label={t("memoryEditor.frontmatter.type")}>
         <select
           value={meta.ontology}
           onChange={(e) => update({ ontology: e.target.value as MemoryOntology })}
@@ -146,7 +151,7 @@ export function FrontmatterForm({ meta, onChange, readonly = false }: Frontmatte
           disabled={readonly}
           className="accent-[color:var(--accent)]"
         />
-        Cargar siempre
+        {t("memoryEditor.frontmatter.alwaysLoad")}
       </label>
 
       <label className="flex items-center gap-2 text-xs text-[color:var(--text-1)]">
@@ -156,14 +161,14 @@ export function FrontmatterForm({ meta, onChange, readonly = false }: Frontmatte
           onChange={(e) => update({ protected: e.target.checked })}
           className="accent-[color:var(--accent)]"
         />
-        Proteger
+        {t("memoryEditor.frontmatter.protect")}
       </label>
 
       <div className="border-t border-[var(--border)]" />
 
       {/* Scores */}
       <Slider
-        label="Importancia"
+        label={t("memoryEditor.frontmatter.importance")}
         value={meta.importance}
         min={0}
         max={1}
@@ -172,7 +177,7 @@ export function FrontmatterForm({ meta, onChange, readonly = false }: Frontmatte
         onChange={(v) => update({ importance: v })}
       />
       <Slider
-        label="Confianza"
+        label={t("memoryEditor.frontmatter.confidence")}
         value={meta.confidence}
         min={0}
         max={1}
@@ -181,7 +186,7 @@ export function FrontmatterForm({ meta, onChange, readonly = false }: Frontmatte
         onChange={(v) => update({ confidence: v })}
       />
       <Slider
-        label="Decaimiento"
+        label={t("memoryEditor.frontmatter.decay")}
         value={meta.decay_rate}
         min={0.95}
         max={0.9999}
@@ -194,37 +199,37 @@ export function FrontmatterForm({ meta, onChange, readonly = false }: Frontmatte
       <div className="border-t border-[var(--border)]" />
 
       {/* Content */}
-      <Field label="Resumen L0">
+      <Field label={t("memoryEditor.frontmatter.l0Summary")}>
         <input
           type="text"
           value={meta.l0}
           onChange={(e) => update({ l0: e.target.value })}
           disabled={readonly}
-          placeholder="Resumen en una linea..."
+          placeholder={t("memoryEditor.frontmatter.l0Placeholder")}
           className="w-full rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-2 py-1.5 text-xs text-[color:var(--text-0)] placeholder:text-[color:var(--text-2)]"
         />
       </Field>
 
       <ChipEditor
-        label="Etiquetas"
+        label={t("memoryEditor.frontmatter.tags")}
         values={meta.tags}
-        placeholder="Anadir etiqueta..."
+        placeholder={t("memoryEditor.frontmatter.addTag")}
         disabled={readonly}
         onAdd={(value) => update({ tags: addUnique(meta.tags, value, false) })}
         onRemove={(value) => update({ tags: meta.tags.filter((tag) => tag !== value) })}
       />
       <ChipEditor
-        label="Relacionado"
+        label={t("memoryEditor.frontmatter.related")}
         values={meta.related}
-        placeholder="memory-id..."
+        placeholder={t("memoryEditor.frontmatter.memoryIdEllipsis")}
         disabled={readonly}
         onAdd={(value) => update({ related: addUnique(meta.related, value) })}
         onRemove={(value) => update({ related: meta.related.filter((item) => item !== value) })}
       />
       <ChipEditor
-        label="Derivado de"
+        label={t("memoryEditor.frontmatter.derivedFrom")}
         values={meta.derived_from}
-        placeholder="source-id..."
+        placeholder={t("memoryEditor.frontmatter.sourceIdEllipsis")}
         disabled={readonly}
         onAdd={(value) => update({ derived_from: addUnique(meta.derived_from, value) })}
         onRemove={(value) =>
@@ -235,35 +240,35 @@ export function FrontmatterForm({ meta, onChange, readonly = false }: Frontmatte
         <>
           <div className="border-t border-[var(--border)]" />
           <ChipEditor
-            label="Disparadores"
+            label={t("memoryEditor.frontmatter.triggers")}
             values={meta.triggers}
-            placeholder="frase activadora..."
+            placeholder={t("memoryEditor.frontmatter.triggerPhrase")}
             disabled={readonly}
             onAdd={(value) => update({ triggers: addUnique(meta.triggers, value, false) })}
             onRemove={(value) => update({ triggers: meta.triggers.filter((item) => item !== value) })}
           />
-          <Field label="Formato de salida">
+          <Field label={t("memoryEditor.frontmatter.outputFormat")}>
             <input
               type="text"
               value={meta.output_format ?? ""}
               onChange={(e) => update({ output_format: e.target.value.trim() || null })}
               disabled={readonly}
-              placeholder="markdown / json / texto..."
+              placeholder={t("memoryEditor.frontmatter.outputFormatPlaceholder")}
               className="w-full rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-2 py-1.5 text-xs text-[color:var(--text-0)] placeholder:text-[color:var(--text-2)]"
             />
           </Field>
           <ChipEditor
-            label="Requiere"
+            label={t("memoryEditor.frontmatter.requires")}
             values={meta.requires}
-            placeholder="memory-id requerida..."
+            placeholder={t("memoryEditor.frontmatter.requiredMemoryId")}
             disabled={readonly}
             onAdd={(value) => update({ requires: addUnique(meta.requires, value) })}
             onRemove={(value) => update({ requires: meta.requires.filter((item) => item !== value) })}
           />
           <ChipEditor
-            label="Opcional"
+            label={t("memoryEditor.frontmatter.optional")}
             values={meta.optional}
-            placeholder="memory-id opcional..."
+            placeholder={t("memoryEditor.frontmatter.optionalMemoryId")}
             disabled={readonly}
             onAdd={(value) => update({ optional: addUnique(meta.optional, value) })}
             onRemove={(value) => update({ optional: meta.optional.filter((item) => item !== value) })}
