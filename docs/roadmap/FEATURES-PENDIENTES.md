@@ -34,9 +34,14 @@
 
 ## Governance
 
-- ⬚ **Consolidación ejecutable** — Aplicar sugerencias de consolidación con un click (merge entries → nueva memoria)
+- ⬚ **Consolidación ejecutable** — Aplicar sugerencias de consolidación con un click (merge entries → nueva memoria). Botón "Create memory from this" que pre-rellena el editor con el contenido consolidado y el ontology sugerido.
+- ⬚ **Resolución de conflictos** — Añadir acciones por cada conflicto detectado: "Edit A", "Edit B", "Mark as intentional" (suprime el conflicto para no volver a verlo). Actualmente los conflictos son read-only sin camino de salida.
 - ⬚ **Historial de governance** — Log de acciones tomadas (archivados, promovidos, etc.)
 - ✅ **God nodes** — Detección de "Code Smells de contexto" comparando la alta centralidad de grado (Degree Centrality) vs baja importancia asignada.
+- ✅ **Badge de issues en sidebar** — Contador visible en el icono de Governance con el total de issues activos (conflictos + decaimiento + scratch expirado). Se refresca cada 5 minutos en background.
+- ✅ **Confirmación en bulk deletes** — Modal de confirmación antes de "Archive all" y "Clear all". Incluye confirmación también en archivado/borrado individual.
+- ✅ **God Nodes: lenguaje accionable** — Reemplazado "mismatch score" opaco por etiqueta legible ("Undervalued — boost it") y botón "Boost importance" que incrementa el score directamente.
+- ✅ **Auto-refresh de datos** — Governance recarga datos en background cada 5 minutos sin necesidad de navegar a la sección.
 
 ## Explorer & Editor
 
