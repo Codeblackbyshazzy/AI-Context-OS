@@ -796,6 +796,26 @@ function SnippetCard({
   );
 }
 
+function NullInfoBanner() {
+  return (
+    <div
+      style={{
+        padding: "12px 16px",
+        borderRadius: 8,
+        background: "var(--bg-2)",
+        border: "1px solid var(--danger)",
+        fontSize: 12,
+        color: "var(--text-2)",
+        lineHeight: 1.6,
+      }}
+    >
+      <strong style={{ color: "var(--danger)" }}>Workspace not detected.</strong>{" "}
+      Configuration snippets require an initialized workspace. Go to{" "}
+      <strong style={{ color: "var(--text-1)" }}>Settings → Workspace</strong> to set up your workspace first.
+    </div>
+  );
+}
+
 function ActionButton({
   icon,
   label,
