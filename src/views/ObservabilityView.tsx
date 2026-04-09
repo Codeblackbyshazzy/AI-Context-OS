@@ -1,10 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   Activity,
   BarChart3,
   Zap,
   Check,
   X,
+  RefreshCw,
+  TrendingUp,
+  TrendingDown,
+  Minus,
 } from "lucide-react";
 import { clsx } from "clsx";
 import {
@@ -16,6 +20,8 @@ import {
   applyOptimization,
   dismissOptimization,
   runOptimizationAnalysis,
+  getHealthScore,
+  getHealthHistory,
 } from "../lib/tauri";
 import type {
   ContextRequestRecord,
@@ -23,14 +29,136 @@ import type {
   TopMemoryRecord,
   UnusedMemoryRecord,
   OptimizationRecord,
+  HealthScore,
+  HealthScoreSnapshot,
 } from "../lib/types";
-// Store not used in this view currently (live events not yet wired)
-// import { useObservabilityStore } from "../lib/observabilityStore";
 
 type Tab = "live" | "intelligence" | "optimizations";
 
+// ─── Health Banner ───
+
+function HealthBanner({ health, history }: { health: HealthScore | null; history: HealthScoreSnapshot[] }) {
+  if (!health) return null;
+
+  const score = Math.round(health.score);
+  const isHealthy = score >= 80;
+  const isWarning = score >= 60 && score < 80;
+
+  const color = isHealthy
+    ? "var(--success, #10b981)"
+    : isWarning
+      ? "#f59e0b"
+      : "var(--danger, #ef4444)";
+
+  const label = isHealthy ? "Healthy" : isWarning ? "Needs attention" : "Action required";
+
+  // Trend: compare last two snapshots
+  const trend =
+    history.length >= 2
+      ? history[0].score - history[1].score
+      : null;
+
+  const breakdownItems: { key: keyof typeof health.breakdown; label: string }[] = [
+    { key: "coverage", label: "Coverage" },
+    { key: "efficiency", label: "Efficiency" },
+    { key: "freshness", label: "Freshness" },
+    { key: "balance", label: "Balance" },
+    { key: "cleanliness", label: "Cleanliness" },
+  ];
+
+  return (
+    <div
+      className="card"
+      style={{
+        padding: "14px 16px",
+        marginBottom: 16,
+        borderLeft: `3px solid ${color}`,
+        display: "flex",
+        flexDirection: "column",
+        gap: 10,
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        {/* Score circle */}
+        <div
+          style={{
+            width: 48,
+            height: 48,
+            borderRadius: "50%",
+            border: `3px solid ${color}`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+          }}
+        >
+          <span style={{ fontSize: 16, fontWeight: 700, color }}>{score}</span>
+        </div>
+
+        {/* Label + summary */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color }}>{label}</span>
+            {trend !== null && (
+              <span
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 2,
+                  fontSize: 11,
+                  color: trend > 0 ? "#10b981" : trend < 0 ? "#ef4444" : "var(--text-2)",
+                }}
+              >
+                {trend > 0 ? <TrendingUp size={12} /> : trend < 0 ? <TrendingDown size={12} /> : <Minus size={12} />}
+                {trend > 0 ? "+" : ""}{trend.toFixed(0)} vs yesterday
+              </span>
+            )}
+          </div>
+          <p style={{ fontSize: 11, color: "var(--text-2)", margin: 0 }}>{health.summary}</p>
+        </div>
+      </div>
+
+      {/* Breakdown bars */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 8 }}>
+        {breakdownItems.map(({ key, label }) => {
+          const val = Math.round(health.breakdown[key]);
+          const barColor = val >= 80 ? "#10b981" : val >= 60 ? "#f59e0b" : "#ef4444";
+          return (
+            <div key={key} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "var(--text-2)" }}>
+                <span>{label}</span>
+                <span style={{ color: barColor, fontWeight: 600 }}>{val}</span>
+              </div>
+              <div style={{ height: 4, borderRadius: 2, background: "var(--bg-3)", overflow: "hidden" }}>
+                <div
+                  style={{
+                    width: `${val}%`,
+                    height: "100%",
+                    borderRadius: 2,
+                    background: barColor,
+                    transition: "width 0.5s ease",
+                  }}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─── Main View ───
+
 export function ObservabilityView() {
   const [activeTab, setActiveTab] = useState<Tab>("live");
+  const [health, setHealth] = useState<HealthScore | null>(null);
+  const [history, setHistory] = useState<HealthScoreSnapshot[]>([]);
+
+  useEffect(() => {
+    getHealthScore().then(setHealth).catch(console.error);
+    getHealthHistory(7).then(setHistory).catch(console.error);
+  }, []);
 
   const tabs: { id: Tab; icon: typeof Activity; label: string }[] = [
     { id: "live", icon: Activity, label: "Live" },
@@ -39,11 +167,22 @@ export function ObservabilityView() {
   ];
 
   return (
-    <div
-      className="view-container h-full overflow-y-auto"
-      style={{ padding: 24 }}
-    >
+    <div className="view-container h-full overflow-y-auto" style={{ padding: 24 }}>
+      <h2
+        style={{
+          fontSize: 13,
+          fontWeight: 700,
+          color: "var(--text-2)",
+          textTransform: "uppercase",
+          letterSpacing: "0.08em",
+          marginBottom: 16,
+          margin: "0 0 16px",
+        }}
+      >
         Observability
+      </h2>
+
+      <HealthBanner health={health} history={history} />
 
       {/* Tab bar */}
       <div style={{ display: "flex", gap: 4, marginBottom: 20, borderBottom: "1px solid var(--border)" }}>
@@ -83,22 +222,47 @@ export function ObservabilityView() {
 
 function LiveTab() {
   const [requests, setRequests] = useState<ContextRequestRecord[]>([]);
+  const [secondsAgo, setSecondsAgo] = useState(0);
+  const lastLoadRef = useRef<number>(Date.now());
 
   const loadRequests = () => {
-    getRecentContextRequests(20).then(setRequests).catch(console.error);
+    getRecentContextRequests(20)
+      .then((data) => {
+        setRequests(data);
+        lastLoadRef.current = Date.now();
+        setSecondsAgo(0);
+      })
+      .catch(console.error);
   };
 
   useEffect(() => {
     loadRequests();
-    // Poll every 5 seconds for new requests
-    const interval = setInterval(loadRequests, 5000);
-    return () => clearInterval(interval);
+    const poll = setInterval(loadRequests, 5000);
+    return () => clearInterval(poll);
+  }, []);
+
+  // Tick the "updated X sec ago" counter every second
+  useEffect(() => {
+    const tick = setInterval(() => {
+      setSecondsAgo(Math.floor((Date.now() - lastLoadRef.current) / 1000));
+    }, 1000);
+    return () => clearInterval(tick);
   }, []);
 
   const last = requests[0];
+  const updatedLabel =
+    secondsAgo < 5 ? "just now" : `${secondsAgo}s ago`;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      {/* Live indicator */}
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <span className="live-dot" />
+        <span style={{ fontSize: 11, color: "var(--text-2)" }}>
+          Live · updated {updatedLabel}
+        </span>
+      </div>
+
       {/* Last request card */}
       {last ? (
         <div className="card" style={{ padding: 16 }}>
@@ -123,7 +287,9 @@ function LiveTab() {
               }}
             />
           </div>
-            {last.tokens_used} / {last.token_budget} tokens ({last.memories_loaded} memories loaded)
+          <div style={{ fontSize: 11, color: "var(--text-2)", marginTop: 4 }}>
+            {last.tokens_used} / {last.token_budget} tokens · {last.memories_loaded} memories loaded
+          </div>
         </div>
       ) : (
         <div className="card" style={{ padding: 24, textAlign: "center", color: "var(--text-2)", fontSize: 13 }}>
@@ -153,7 +319,7 @@ function LiveTab() {
                 }}
               >
                 <div style={{ flex: 1, color: "var(--text-0)", fontWeight: 500 }}>
-                  {req.query.length > 60 ? req.query.slice(0, 60) + "..." : req.query}
+                  {req.query.length > 60 ? req.query.slice(0, 60) + "…" : req.query}
                 </div>
                 <div style={{ display: "flex", gap: 12, color: "var(--text-2)", fontSize: 11, flexShrink: 0 }}>
                   <span>{req.tokens_used}t</span>
@@ -183,15 +349,53 @@ function IntelligenceTab() {
     getUnusedMemoriesStats(30).then(setUnusedMemories).catch(console.error);
   }, []);
 
+  const requestTrend = stats ? stats.requests_this_week - stats.requests_prev_week : 0;
+  const efficiencyLevel =
+    !stats ? null
+    : stats.efficiency_percent >= 80 ? "up"
+    : stats.efficiency_percent >= 60 ? "neutral"
+    : "down";
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       {/* Stat cards */}
       {stats && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
-          <StatCard label="Requests/week" value={stats.requests_this_week} delta={stats.requests_this_week - stats.requests_prev_week} />
+          <StatCard
+            label="Requests/week"
+            value={stats.requests_this_week}
+            delta={requestTrend}
+          />
           <StatCard label="Tokens served" value={stats.tokens_served_total} />
           <StatCard label="Active memories" value={`${stats.active_memories}/${stats.total_memories}`} />
-          <StatCard label="Efficiency" value={`${stats.efficiency_percent.toFixed(0)}%`} />
+          <StatCard label="Efficiency" value={`${stats.efficiency_percent.toFixed(0)}%`} trend={efficiencyLevel} />
+        </div>
+      )}
+
+      {/* Efficiency trend explainer */}
+      {stats && (
+        <div
+          className="card"
+          style={{
+            padding: "10px 14px",
+            fontSize: 12,
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            color: "var(--text-1)",
+          }}
+        >
+          {efficiencyLevel === "up" && <TrendingUp size={14} color="#10b981" />}
+          {efficiencyLevel === "neutral" && <Minus size={14} color="#f59e0b" />}
+          {efficiencyLevel === "down" && <TrendingDown size={14} color="#ef4444" />}
+          <span>
+            {efficiencyLevel === "up" &&
+              `Context efficiency is strong at ${stats.efficiency_percent.toFixed(0)}% — memories are well-calibrated for the queries coming in.`}
+            {efficiencyLevel === "neutral" &&
+              `Efficiency at ${stats.efficiency_percent.toFixed(0)}% — some memories may be loaded without matching query context.`}
+            {efficiencyLevel === "down" &&
+              `Efficiency low at ${stats.efficiency_percent.toFixed(0)}% — consider running an optimization analysis to recalibrate.`}
+          </span>
         </div>
       )}
 
@@ -209,7 +413,7 @@ function IntelligenceTab() {
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <span style={{ fontWeight: 600, color: "var(--text-0)" }}>{mem.memory_id}</span>
                   <span style={{ color: "var(--text-2)" }}>
-                    {mem.times_served}x — {mem.typical_level} — {mem.pct_of_requests.toFixed(0)}%
+                    {mem.times_served}x · {mem.typical_level} · {mem.pct_of_requests.toFixed(0)}%
                   </span>
                 </div>
                 <div style={{ marginTop: 4, background: "var(--bg-2)", borderRadius: 3, height: 4 }}>
@@ -254,7 +458,17 @@ function IntelligenceTab() {
   );
 }
 
-function StatCard({ label, value, delta }: { label: string; value: string | number; delta?: number }) {
+function StatCard({
+  label,
+  value,
+  delta,
+  trend,
+}: {
+  label: string;
+  value: string | number;
+  delta?: number;
+  trend?: "up" | "neutral" | "down" | null;
+}) {
   return (
     <div className="card" style={{ padding: 14, textAlign: "center" }}>
       <div style={{ fontSize: 11, color: "var(--text-2)", marginBottom: 4 }}>{label}</div>
@@ -262,6 +476,13 @@ function StatCard({ label, value, delta }: { label: string; value: string | numb
       {delta !== undefined && delta !== 0 && (
         <div style={{ fontSize: 11, color: delta > 0 ? "#10b981" : "#ef4444", marginTop: 2 }}>
           {delta > 0 ? "+" : ""}{delta} vs last week
+        </div>
+      )}
+      {trend && (
+        <div style={{ display: "flex", justifyContent: "center", marginTop: 4 }}>
+          {trend === "up" && <TrendingUp size={12} color="#10b981" />}
+          {trend === "neutral" && <Minus size={12} color="#f59e0b" />}
+          {trend === "down" && <TrendingDown size={12} color="#ef4444" />}
         </div>
       )}
     </div>
@@ -273,21 +494,32 @@ function StatCard({ label, value, delta }: { label: string; value: string | numb
 function OptimizationsTab() {
   const [optimizations, setOptimizations] = useState<OptimizationRecord[]>([]);
   const [loading, setLoading] = useState(false);
+  const [lastAnalyzed, setLastAnalyzed] = useState<Date | null>(null);
 
-  useEffect(() => {
-    getPendingOptimizations().then(setOptimizations).catch(console.error);
-  }, []);
-
-  const handleAnalyze = async () => {
+  const runAnalysis = async () => {
     setLoading(true);
     try {
       const result = await runOptimizationAnalysis();
       setOptimizations(result);
+      setLastAnalyzed(new Date());
     } catch (e) {
       console.error(e);
     }
     setLoading(false);
   };
+
+  // Auto-run on mount: first load pending, then run a fresh analysis
+  useEffect(() => {
+    getPendingOptimizations()
+      .then((pending) => {
+        setOptimizations(pending);
+        // Only auto-analyze if no pending items (avoid redundant analysis)
+        if (pending.length === 0) runAnalysis();
+        else setLastAnalyzed(new Date());
+      })
+      .catch(() => runAnalysis());
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleApply = async (id: number) => {
     await applyOptimization(id);
@@ -305,36 +537,49 @@ function OptimizationsTab() {
     low: optimizations.filter((o) => o.impact === "low"),
   };
 
+  const lastAnalyzedLabel = lastAnalyzed
+    ? `Last analyzed ${Math.floor((Date.now() - lastAnalyzed.getTime()) / 60000)}m ago`
+    : null;
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <span style={{ fontSize: 13, color: "var(--text-1)" }}>
-          {optimizations.length} pending optimizations
-        </span>
+        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          <span style={{ fontSize: 13, color: "var(--text-1)" }}>
+            {loading ? "Analyzing…" : `${optimizations.length} pending optimizations`}
+          </span>
+          {lastAnalyzedLabel && !loading && (
+            <span style={{ fontSize: 11, color: "var(--text-2)" }}>{lastAnalyzedLabel}</span>
+          )}
+        </div>
         <button
-          onClick={handleAnalyze}
+          onClick={runAnalysis}
           disabled={loading}
           style={{
-            padding: "6px 14px",
+            display: "flex",
+            alignItems: "center",
+            gap: 5,
+            padding: "6px 12px",
             fontSize: 12,
             fontWeight: 600,
-            background: "var(--accent)",
-            color: "#fff",
-            border: "none",
+            background: "var(--bg-2)",
+            color: "var(--text-1)",
+            border: "1px solid var(--border)",
             borderRadius: 6,
             cursor: loading ? "wait" : "pointer",
             opacity: loading ? 0.6 : 1,
           }}
         >
-          {loading ? "Analyzing..." : "Analyze"}
+          <RefreshCw size={12} className={loading ? "spin" : ""} />
+          {loading ? "Analyzing…" : "Re-analyze"}
         </button>
       </div>
 
       {(["high", "medium", "low"] as const).map((impact) => {
         const items = grouped[impact];
         if (items.length === 0) return null;
-        const impactLabels = { high: "High", medium: "Medium", low: "Low" };
         const impactColors = { high: "#ef4444", medium: "#f59e0b", low: "#71717a" };
+        const impactLabels = { high: "High", medium: "Medium", low: "Low" };
         return (
           <div key={impact}>
             <h3 style={{ fontSize: 12, fontWeight: 700, color: impactColors[impact], marginBottom: 6, textTransform: "uppercase" }}>
@@ -350,13 +595,12 @@ function OptimizationsTab() {
                     <div style={{ fontSize: 12, color: "var(--text-1)" }}>{opt.description}</div>
                     <div style={{ fontSize: 11, color: "var(--text-2)", marginTop: 4 }}>
                       {opt.evidence}
-                      {opt.estimated_token_saving && ` — ~${opt.estimated_token_saving} tokens saved`}
+                      {opt.estimated_token_saving && ` · ~${opt.estimated_token_saving} tokens saved`}
                     </div>
                   </div>
                   <div style={{ display: "flex", gap: 6, flexShrink: 0, marginLeft: 12 }}>
                     <button
                       onClick={() => handleApply(opt.id)}
-                      title="Apply"
                       style={{
                         padding: "4px 8px",
                         fontSize: 11,
@@ -374,7 +618,6 @@ function OptimizationsTab() {
                     </button>
                     <button
                       onClick={() => handleDismiss(opt.id)}
-                      title="Dismiss"
                       style={{
                         padding: "4px 8px",
                         fontSize: 11,
@@ -398,12 +641,17 @@ function OptimizationsTab() {
         );
       })}
 
-      {optimizations.length === 0 && (
+      {!loading && optimizations.length === 0 && (
         <div className="card" style={{ padding: 24, textAlign: "center", color: "var(--text-2)", fontSize: 13 }}>
-          No pending optimizations. Run an analysis to find opportunities.
+          No pending optimizations — your context OS looks well-tuned.
+        </div>
+      )}
+
+      {loading && (
+        <div className="card" style={{ padding: 24, textAlign: "center", color: "var(--text-2)", fontSize: 13 }}>
+          Running analysis…
         </div>
       )}
     </div>
   );
 }
-
