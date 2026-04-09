@@ -75,11 +75,22 @@ const CONNECTORS: ConnectorDef[] = [
     ],
   },
   {
+    id: "gemini-cli",
+    name: "Gemini CLI",
+    tier: "Local Native",
+    description: "Native MCP via Gemini CLI. Same 4 tools as Claude Code.",
+    icon: "♊",
+    capabilities: [
+      "stdio MCP via Gemini CLI (get_context, save_memory, get_skill, log_session)",
+      "Automatic reading of context from workspace root",
+    ],
+  },
+  {
     id: "gemini",
     name: "Gemini Web",
     tier: "Bridge",
     description: "No native integration. Manual transfer of optimal context.",
-    icon: "♊",
+    icon: "✦",
     capabilities: [
       "Copy optimized context to clipboard",
       "Generate handoff.md with structured summary",
@@ -381,24 +392,11 @@ export function ConnectorsView() {
 
               {active.id === "claude-code" && info && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                  {/* Option 1: Terminal */}
+                  {/* Option 1: MCP register */}
                   <div>
-                    <SectionLabel>Option 1 — Local CLI (recommended)</SectionLabel>
+                    <SectionLabel>⭐ Option 1 — Register MCP server (recommended)</SectionLabel>
                     <p style={{ fontSize: 12, color: "var(--text-2)", marginBottom: 8 }}>
-                      Open your terminal in the source folder and initialize the session with:
-                    </p>
-                    <SnippetCard
-                      snippet={`claude "${info.workspace_root}"`}
-                      onCopy={() => copyWithFeedback(`claude "${info.workspace_root}"`, "terminal")}
-                      copied={copied === "terminal"}
-                    />
-                  </div>
-
-                  {/* Option 2: MCP add */}
-                  <div>
-                    <SectionLabel>Option 2 — Register global server</SectionLabel>
-                    <p style={{ fontSize: 12, color: "var(--text-2)", marginBottom: 8 }}>
-                      Register AI Context OS as a permanent MCP server to invoke it from other sessions.
+                      Register AI Context OS as a permanent MCP server. This gives Claude Code access to all 4 tools (<code style={{ color: "var(--accent)" }}>get_context</code>, <code style={{ color: "var(--accent)" }}>save_memory</code>, <code style={{ color: "var(--accent)" }}>get_skill</code>, <code style={{ color: "var(--accent)" }}>log_session</code>).
                     </p>
                     <SnippetCard
                       snippet={`claude mcp add ai-context-os -- "${info.binary_path}" mcp-server --root "${info.workspace_root}"`}
@@ -410,8 +408,21 @@ export function ConnectorsView() {
                     />
                   </div>
 
+                  {/* Option 2: claude.md only */}
+                  <div>
+                    <SectionLabel>Option 2 — Open workspace (claude.md only)</SectionLabel>
+                    <p style={{ fontSize: 12, color: "var(--text-2)", marginBottom: 8 }}>
+                      Opens Claude Code in your workspace. The <code style={{ color: "var(--accent)" }}>claude.md</code> is auto-loaded as context, but MCP tools are <strong>not</strong> available without Option 1.
+                    </p>
+                    <SnippetCard
+                      snippet={`claude "${info.workspace_root}"`}
+                      onCopy={() => copyWithFeedback(`claude "${info.workspace_root}"`, "terminal")}
+                      copied={copied === "terminal"}
+                    />
+                  </div>
+
                   <InfoBox>
-                    Tools for managing memories will be loaded automatically in CLI.
+                    <strong>Tip:</strong> Use both options together — register the MCP server once, then open the workspace with Option 2 for full context + tools.
                   </InfoBox>
                 </div>
               )}
@@ -425,7 +436,7 @@ export function ConnectorsView() {
                     </p>
                     {(() => {
                       const config = JSON.stringify(
-                        { mcpServers: { "ai-context-os": { url: info.http_url } } },
+                        { mcpServers: { "ai-context-os": { type: "sse", url: info.http_url } } },
                         null,
                         2
                       );
@@ -516,7 +527,7 @@ export function ConnectorsView() {
                   <div>
                     <SectionLabel>Option 2 — ChatGPT web (manual handoff)</SectionLabel>
                     <p style={{ fontSize: 12, color: "var(--text-2)", marginBottom: 8 }}>
-                      For ChatGPT web without Codex, transfer the context manually.
+                      For ChatGPT web without Codex, generate a context snapshot and paste it at the <strong>beginning of a new conversation</strong> before your first message.
                     </p>
                   </div>
                   <BridgePanel
@@ -527,6 +538,62 @@ export function ConnectorsView() {
                     error={bridgeError}
                     onAction={handleBridgeAction}
                   />
+                </div>
+              )}
+
+              {active.id === "gemini-cli" && info && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                  <div>
+                    <SectionLabel>⭐ Option 1 — Register MCP server (recommended)</SectionLabel>
+                    <p style={{ fontSize: 12, color: "var(--text-2)", marginBottom: 8 }}>
+                      Install{" "}
+                      <a href="https://github.com/google-gemini/gemini-cli" target="_blank" rel="noreferrer"
+                        style={{ color: "var(--accent)", textDecoration: "underline" }}>
+                        Gemini CLI
+                      </a>{" "}
+                      and register AI Context OS as a permanent MCP server:
+                    </p>
+                    <SnippetCard
+                      snippet={`gemini mcp add ai-context-os -- "${info.binary_path}" mcp-server --root "${info.workspace_root}"`}
+                      onCopy={() => copyWithFeedback(
+                        `gemini mcp add ai-context-os -- "${info.binary_path}" mcp-server --root "${info.workspace_root}"`,
+                        "gemini-mcp-add"
+                      )}
+                      copied={copied === "gemini-mcp-add"}
+                    />
+                  </div>
+
+                  <div>
+                    <SectionLabel>Option 2 — settings.json (manual)</SectionLabel>
+                    <p style={{ fontSize: 12, color: "var(--text-2)", marginBottom: 8 }}>
+                      Or add manually to <code style={{ color: "var(--accent)" }}>~/.gemini/settings.json</code>:
+                    </p>
+                    {(() => {
+                      const config = JSON.stringify(
+                        {
+                          mcpServers: {
+                            "ai-context-os": {
+                              command: info.binary_path,
+                              args: ["mcp-server", "--root", info.workspace_root],
+                            },
+                          },
+                        },
+                        null,
+                        2
+                      );
+                      return (
+                        <SnippetCard
+                          snippet={config}
+                          onCopy={() => copyWithFeedback(config, "gemini-settings")}
+                          copied={copied === "gemini-settings"}
+                        />
+                      );
+                    })()}
+                  </div>
+
+                  <InfoBox>
+                    Gemini CLI supports MCP natively. Once registered, all 4 tools are available in every Gemini CLI session.
+                  </InfoBox>
                 </div>
               )}
 
