@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import {
   Calendar,
   ChevronLeft,
@@ -28,7 +29,7 @@ function getDateLocale(language: string): string {
   return language.startsWith("es") ? "es-ES" : "en-US";
 }
 
-function formatDateLabel(dateStr: string, locale: string, t: (key: string) => string): string {
+function formatDateLabel(dateStr: string, locale: string, t: TFunction): string {
   const d = new Date(dateStr + "T12:00:00");
   const today = new Date();
   const todayStr = today.toISOString().slice(0, 10);
@@ -183,7 +184,8 @@ interface DayPageProps {
 }
 
 function DayPage({ date, isToday }: DayPageProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const locale = getDateLocale(i18n.resolvedLanguage ?? i18n.language);
   const memories = useAppStore((s) => s.memories);
   const [loaded, setLoaded] = useState(false);
   const [blocks, setBlocks] = useState<JournalBlock[]>([]);

@@ -257,7 +257,7 @@
   },
   "taskStates": {
     "todo": "Pendiente",
-    "inProgress": "En progreso",
+    "in_progress": "En progreso",
     "done": "Hecho",
     "cancelled": "Cancelado"
   },

@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import {
   Circle,
   CheckCircle2,
@@ -24,7 +25,6 @@ import type {
 import {
   TASK_STATE_LABELS,
   TASK_STATE_COLORS,
-  TASK_PRIORITY_LABELS,
 } from "../lib/types";
 
 // ─── Helpers ───
@@ -61,7 +61,7 @@ function PriorityDot({ priority }: { priority: TaskPriority | null }) {
 function relativeDate(
   dateStr: string,
   locale: string,
-  t: (key: string, opts?: object) => string,
+  t: TFunction,
 ): string {
   const d = new Date(dateStr);
   const now = new Date();
