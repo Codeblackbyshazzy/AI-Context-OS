@@ -513,7 +513,7 @@ export function GraphViewPage() {
           </select>
 
           <div className="flex items-center gap-1">
-            <label className="text-[10px] text-[color:var(--text-2)]">Imp ≥</label>
+            <label className="text-[10px] text-[color:var(--text-2)]">{t("graph.importanceLabel")}</label>
             <input
               type="range" min="0" max="1" step="0.1"
               value={minImportance}

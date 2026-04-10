@@ -279,6 +279,7 @@
     "ontology": "Ontology",
     "collection": "Collection",
     "importance": "Importance",
+    "importanceLabel": "Imp ≥",
     "decay": "Decay",
     "community": "Community",
     "openInExplorer": "Open in Explorer",
