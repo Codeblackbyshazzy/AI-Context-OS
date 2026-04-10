@@ -94,7 +94,7 @@ function AppContent() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [showOnboardingForVault, setShowOnboardingForVault] = useState(false);
   const titlebarRef = useRef<HTMLDivElement>(null);
-  const { switchPhase, setActiveVaultPath, loadVaults } = useVaultStore();
+  const { setActiveVaultPath, loadVaults } = useVaultStore();
 
   // Responsive: auto-close explorer on narrow windows
   useEffect(() => {
