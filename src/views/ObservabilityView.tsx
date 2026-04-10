@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import {
   Activity,
   BarChart3,
@@ -12,6 +12,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { clsx } from "clsx";
+import { useTranslation } from "react-i18next";
 import {
   getRecentContextRequests,
   getObservabilityStats,
@@ -38,14 +39,6 @@ type Tab = "live" | "intelligence" | "optimizations";
 
 // ─── Health Banner ───
 
-const DIMENSION_INFO: Record<string, { label: string; description: string; needsUsage: boolean }> = {
-  coverage:    { label: "Coverage",    description: "% of memories ever surfaced by the router",        needsUsage: true },
-  efficiency:  { label: "Efficiency",  description: "How well loaded memories match actual queries",    needsUsage: true },
-  freshness:   { label: "Freshness",   description: "Recency of memory access patterns",                needsUsage: false },
-  balance:     { label: "Balance",     description: "Distribution across ontology types",               needsUsage: true },
-  cleanliness: { label: "Cleanliness", description: "Absence of expired scratch / decay candidates",    needsUsage: false },
-};
-
 interface HealthBannerProps {
   health: HealthScore | null;
   history: HealthScoreSnapshot[];
@@ -55,6 +48,16 @@ interface HealthBannerProps {
 }
 
 function HealthBanner({ health, history, hasUsageData, highImpactCount, onNavigateToOptimizations }: HealthBannerProps) {
+  const { t } = useTranslation();
+
+  const DIMENSION_INFO = useMemo(() => ({
+    coverage:    { label: t("observability.health.dimensions.coverage"),    description: t("observability.health.dimensions.coverageDesc"),        needsUsage: true },
+    efficiency:  { label: t("observability.health.dimensions.efficiency"),  description: t("observability.health.dimensions.efficiencyDesc"),    needsUsage: true },
+    freshness:   { label: t("observability.health.dimensions.freshness"),   description: t("observability.health.dimensions.freshnessDesc"),                needsUsage: false },
+    balance:     { label: t("observability.health.dimensions.balance"),     description: t("observability.health.dimensions.balanceDesc"),               needsUsage: true },
+    cleanliness: { label: t("observability.health.dimensions.cleanliness"), description: t("observability.health.dimensions.cleanlinessDesc"),    needsUsage: false },
+  }), [t]);
+
   if (!health) return null;
 
   const score = Math.round(health.score);
@@ -67,7 +70,11 @@ function HealthBanner({ health, history, hasUsageData, highImpactCount, onNaviga
       ? "#f59e0b"
       : "var(--danger, #ef4444)";
 
-  const label = isHealthy ? "Healthy" : isWarning ? "Needs attention" : "Action required";
+  const label = isHealthy
+    ? t("observability.health.healthy")
+    : isWarning
+      ? t("observability.health.needsAttention")
+      : t("observability.health.actionRequired");
 
   const trend =
     history.length >= 2 ? history[0].score - history[1].score : null;
@@ -115,13 +122,13 @@ function HealthBanner({ health, history, hasUsageData, highImpactCount, onNaviga
                 }}
               >
                 {trend > 0 ? <TrendingUp size={12} /> : trend < 0 ? <TrendingDown size={12} /> : <Minus size={12} />}
-                {trend > 0 ? "+" : ""}{trend.toFixed(0)} vs yesterday
+                {t("observability.health.vsYesterday", { value: (trend > 0 ? "+" : "") + trend.toFixed(0) })}
               </span>
             )}
           </div>
           <p style={{ fontSize: 11, color: "var(--text-2)", margin: 0 }}>
             {!hasUsageData
-              ? "Some scores need usage data — connect an AI tool and send a few requests to calibrate."
+              ? t("observability.health.needsUsageData")
               : health.summary}
           </p>
         </div>
@@ -146,7 +153,7 @@ function HealthBanner({ health, history, hasUsageData, highImpactCount, onNaviga
               whiteSpace: "nowrap",
             }}
           >
-            Fix {highImpactCount} issue{highImpactCount > 1 ? "s" : ""}
+            {t("observability.health.fixIssue", { count: highImpactCount })}
             <ArrowRight size={12} />
           </button>
         )}
@@ -184,7 +191,7 @@ function HealthBanner({ health, history, hasUsageData, highImpactCount, onNaviga
                 )}
               </div>
               <span style={{ fontSize: 9, color: "var(--text-2)", lineHeight: 1.3 }}>
-                {noData ? "needs usage data" : description}
+                {noData ? t("observability.health.dimensions.needsUsageDataBrief") : description}
               </span>
             </div>
           );
@@ -197,6 +204,7 @@ function HealthBanner({ health, history, hasUsageData, highImpactCount, onNaviga
 // ─── Main View ───
 
 export function ObservabilityView() {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<Tab>("live");
   const [health, setHealth] = useState<HealthScore | null>(null);
   const [history, setHistory] = useState<HealthScoreSnapshot[]>([]);
@@ -217,11 +225,11 @@ export function ObservabilityView() {
     }).catch(console.error);
   }, []);
 
-  const tabs: { id: Tab; icon: typeof Activity; label: string }[] = [
-    { id: "live", icon: Activity, label: "Live" },
-    { id: "intelligence", icon: BarChart3, label: "Intelligence" },
-    { id: "optimizations", icon: Zap, label: "Optimizations" },
-  ];
+  const tabs: { id: Tab; icon: typeof Activity; label: string }[] = useMemo(() => [
+    { id: "live", icon: Activity, label: t("observability.tabs.live") },
+    { id: "intelligence", icon: BarChart3, label: t("observability.tabs.intelligence") },
+    { id: "optimizations", icon: Zap, label: t("observability.tabs.optimizations") },
+  ], [t]);
 
   return (
     <div className="view-container h-full overflow-y-auto" style={{ padding: 24 }}>
@@ -236,7 +244,7 @@ export function ObservabilityView() {
           margin: "0 0 16px",
         }}
       >
-        Observability
+        {t("sidebar.observability")}
       </h2>
 
       <HealthBanner
@@ -284,6 +292,7 @@ export function ObservabilityView() {
 // ─── Live Tab ───
 
 function LiveTab() {
+  const { t } = useTranslation();
   const [requests, setRequests] = useState<ContextRequestRecord[]>([]);
   const [secondsAgo, setSecondsAgo] = useState(0);
   const lastLoadRef = useRef<number>(Date.now());
@@ -314,7 +323,7 @@ function LiveTab() {
 
   const last = requests[0];
   const updatedLabel =
-    secondsAgo < 5 ? "just now" : `${secondsAgo}s ago`;
+    secondsAgo < 5 ? t("observability.live.justNow") : t("observability.live.secondsAgo", { value: secondsAgo });
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -322,20 +331,20 @@ function LiveTab() {
       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
         <span className="live-dot" />
         <span style={{ fontSize: 11, color: "var(--text-2)" }}>
-          Live · updated {updatedLabel}
+          {t("observability.live.liveUpdated", { value: updatedLabel })}
         </span>
       </div>
 
       {/* Last request card */}
       {last ? (
         <div className="card" style={{ padding: 16 }}>
-          <div style={{ fontSize: 11, color: "var(--text-2)", marginBottom: 4 }}>Last request</div>
+          <div style={{ fontSize: 11, color: "var(--text-2)", marginBottom: 4 }}>{t("observability.lastRequest")}</div>
           <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-0)", marginBottom: 8 }}>
             "{last.query}"
           </div>
           <div style={{ display: "flex", gap: 16, fontSize: 12, color: "var(--text-1)" }}>
-            <span>Source: {last.source}</span>
-            <span>Type: {last.task_type}</span>
+            <span>{t("observability.source", { value: last.source })}</span>
+            <span>{t("observability.type", { value: last.task_type })}</span>
             <span>{new Date(last.timestamp).toLocaleString()}</span>
           </div>
           {/* Token bar */}
@@ -351,22 +360,26 @@ function LiveTab() {
             />
           </div>
           <div style={{ fontSize: 11, color: "var(--text-2)", marginTop: 4 }}>
-            {last.tokens_used} / {last.token_budget} tokens · {last.memories_loaded} memories loaded
+            {t("observability.live.tokensMemories", {
+              tokens: last.tokens_used,
+              budget: last.token_budget,
+              memories: last.memories_loaded
+            })}
           </div>
         </div>
       ) : (
         <div className="card" style={{ padding: 24, textAlign: "center", color: "var(--text-2)", fontSize: 13 }}>
-          No context requests yet. Connect an AI tool to get started.
+          {t("observability.noRequests")}
         </div>
       )}
 
       {/* History */}
       <div>
         <h3 style={{ fontSize: 13, fontWeight: 600, color: "var(--text-1)", marginBottom: 8 }}>
-          Request history
+          {t("observability.requestHistory")}
         </h3>
         {requests.length === 0 ? (
-          <div style={{ color: "var(--text-2)", fontSize: 12 }}>No history</div>
+          <div style={{ color: "var(--text-2)", fontSize: 12 }}>{t("observability.noHistory")}</div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             {requests.map((req) => (
@@ -402,6 +415,7 @@ function LiveTab() {
 // ─── Intelligence Tab ───
 
 function IntelligenceTab() {
+  const { t } = useTranslation();
   const [stats, setStats] = useState<ObservabilityStats | null>(null);
   const [topMemories, setTopMemories] = useState<TopMemoryRecord[]>([]);
   const [unusedMemories, setUnusedMemories] = useState<UnusedMemoryRecord[]>([]);
@@ -425,13 +439,13 @@ function IntelligenceTab() {
       {stats && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
           <StatCard
-            label="Requests/week"
+            label={t("observability.intelligence.requestsPerWeek")}
             value={stats.requests_this_week}
             delta={requestTrend}
           />
-          <StatCard label="Tokens served" value={stats.tokens_served_total} />
-          <StatCard label="Active memories" value={`${stats.active_memories}/${stats.total_memories}`} />
-          <StatCard label="Efficiency" value={`${stats.efficiency_percent.toFixed(0)}%`} trend={efficiencyLevel} />
+          <StatCard label={t("observability.intelligence.tokensServed")} value={stats.tokens_served_total} />
+          <StatCard label={t("observability.intelligence.activeMemories")} value={`${stats.active_memories}/${stats.total_memories}`} />
+          <StatCard label={t("observability.intelligence.efficiency")} value={`${stats.efficiency_percent.toFixed(0)}%`} trend={efficiencyLevel} />
         </div>
       )}
 
@@ -453,11 +467,11 @@ function IntelligenceTab() {
           {efficiencyLevel === "down" && <TrendingDown size={14} color="#ef4444" />}
           <span>
             {efficiencyLevel === "up" &&
-              `Context efficiency is strong at ${stats.efficiency_percent.toFixed(0)}% — memories are well-calibrated for the queries coming in.`}
+              t("observability.intelligence.efficiencyStrong", { value: stats.efficiency_percent.toFixed(0) })}
             {efficiencyLevel === "neutral" &&
-              `Efficiency at ${stats.efficiency_percent.toFixed(0)}% — some memories may be loaded without matching query context.`}
+              t("observability.intelligence.efficiencyNeutral", { value: stats.efficiency_percent.toFixed(0) })}
             {efficiencyLevel === "down" &&
-              `Efficiency low at ${stats.efficiency_percent.toFixed(0)}% — consider running an optimization analysis to recalibrate.`}
+              t("observability.intelligence.efficiencyDown", { value: stats.efficiency_percent.toFixed(0) })}
           </span>
         </div>
       )}
@@ -465,10 +479,10 @@ function IntelligenceTab() {
       {/* Top memories */}
       <div>
         <h3 style={{ fontSize: 13, fontWeight: 600, color: "var(--text-1)", marginBottom: 8 }}>
-          Top memories (30 days)
+          {t("observability.intelligence.topMemories")}
         </h3>
         {topMemories.length === 0 ? (
-          <div style={{ color: "var(--text-2)", fontSize: 12 }}>Insufficient data</div>
+          <div style={{ color: "var(--text-2)", fontSize: 12 }}>{t("observability.intelligence.insufficientData")}</div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             {topMemories.map((mem) => (
@@ -499,7 +513,7 @@ function IntelligenceTab() {
       {unusedMemories.length > 0 && (
         <div>
           <h3 style={{ fontSize: 13, fontWeight: 600, color: "var(--text-1)", marginBottom: 8 }}>
-            Unused memories ({unusedMemories.length})
+            {t("observability.intelligence.unusedMemories", { count: unusedMemories.length })}
           </h3>
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             {unusedMemories.map((mem) => (
@@ -510,7 +524,7 @@ function IntelligenceTab() {
               >
                 <span style={{ color: "var(--text-0)" }}>{mem.memory_id}</span>
                 <span style={{ color: "var(--text-2)" }}>
-                  {mem.days_since_use} days unused
+                  {t("observability.intelligence.daysUnused", { count: mem.days_since_use })}
                 </span>
               </div>
             ))}
@@ -532,13 +546,14 @@ function StatCard({
   delta?: number;
   trend?: "up" | "neutral" | "down" | null;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="card" style={{ padding: 14, textAlign: "center" }}>
       <div style={{ fontSize: 11, color: "var(--text-2)", marginBottom: 4 }}>{label}</div>
       <div style={{ fontSize: 20, fontWeight: 700, color: "var(--text-0)" }}>{value}</div>
       {delta !== undefined && delta !== 0 && (
         <div style={{ fontSize: 11, color: delta > 0 ? "#10b981" : "#ef4444", marginTop: 2 }}>
-          {delta > 0 ? "+" : ""}{delta} vs last week
+          {t("observability.intelligence.vsLastWeek", { value: (delta > 0 ? "+" : "") + delta })}
         </div>
       )}
       {trend && (
@@ -555,6 +570,7 @@ function StatCard({
 // ─── Optimizations Tab ───
 
 function OptimizationsTab() {
+  const { t } = useTranslation();
   const [optimizations, setOptimizations] = useState<OptimizationRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [lastAnalyzed, setLastAnalyzed] = useState<Date | null>(null);
@@ -601,7 +617,7 @@ function OptimizationsTab() {
   };
 
   const lastAnalyzedLabel = lastAnalyzed
-    ? `Last analyzed ${Math.floor((Date.now() - lastAnalyzed.getTime()) / 60000)}m ago`
+    ? t("observability.optimizations.lastAnalyzed", { value: Math.floor((Date.now() - lastAnalyzed.getTime()) / 60000) })
     : null;
 
   return (
@@ -609,7 +625,7 @@ function OptimizationsTab() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
           <span style={{ fontSize: 13, color: "var(--text-1)" }}>
-            {loading ? "Analyzing…" : `${optimizations.length} pending optimizations`}
+            {loading ? t("observability.optimizations.analyzing") : t("observability.optimizations.pendingOptimizations", { count: optimizations.length })}
           </span>
           {lastAnalyzedLabel && !loading && (
             <span style={{ fontSize: 11, color: "var(--text-2)" }}>{lastAnalyzedLabel}</span>
@@ -634,7 +650,7 @@ function OptimizationsTab() {
           }}
         >
           <RefreshCw size={12} className={loading ? "spin" : ""} />
-          {loading ? "Analyzing…" : "Re-analyze"}
+          {loading ? t("observability.optimizations.analyzing") : t("observability.optimizations.reAnalyze")}
         </button>
       </div>
 
@@ -642,11 +658,11 @@ function OptimizationsTab() {
         const items = grouped[impact];
         if (items.length === 0) return null;
         const impactColors = { high: "#ef4444", medium: "#f59e0b", low: "#71717a" };
-        const impactLabels = { high: "High", medium: "Medium", low: "Low" };
+        
         return (
           <div key={impact}>
             <h3 style={{ fontSize: 12, fontWeight: 700, color: impactColors[impact], marginBottom: 6, textTransform: "uppercase" }}>
-              {impactLabels[impact]} impact ({items.length})
+              {t(`observability.optimizations.impact.${impact}`, { count: items.length })}
             </h3>
             {items.map((opt) => (
               <div key={opt.id} className="card" style={{ padding: 12, marginBottom: 6 }}>
@@ -658,7 +674,7 @@ function OptimizationsTab() {
                     <div style={{ fontSize: 12, color: "var(--text-1)" }}>{opt.description}</div>
                     <div style={{ fontSize: 11, color: "var(--text-2)", marginTop: 4 }}>
                       {opt.evidence}
-                      {opt.estimated_token_saving && ` · ~${opt.estimated_token_saving} tokens saved`}
+                      {opt.estimated_token_saving && t("observability.optimizations.tokenSaving", { count: opt.estimated_token_saving })}
                     </div>
                   </div>
                   <div style={{ display: "flex", gap: 6, flexShrink: 0, marginLeft: 12 }}>
@@ -677,7 +693,7 @@ function OptimizationsTab() {
                         gap: 3,
                       }}
                     >
-                      <Check size={12} /> Apply
+                      <Check size={12} /> {t("observability.optimizations.apply")}
                     </button>
                     <button
                       onClick={() => handleDismiss(opt.id)}
@@ -694,7 +710,7 @@ function OptimizationsTab() {
                         gap: 3,
                       }}
                     >
-                      <X size={12} /> Dismiss
+                      <X size={12} /> {t("observability.optimizations.dismiss")}
                     </button>
                   </div>
                 </div>
@@ -706,13 +722,13 @@ function OptimizationsTab() {
 
       {!loading && optimizations.length === 0 && (
         <div className="card" style={{ padding: 24, textAlign: "center", color: "var(--text-2)", fontSize: 13 }}>
-          No pending optimizations — your context OS looks well-tuned.
+          {t("observability.optimizations.noOptimizations")}
         </div>
       )}
 
       {loading && (
         <div className="card" style={{ padding: 24, textAlign: "center", color: "var(--text-2)", fontSize: 13 }}>
-          Running analysis…
+          {t("observability.optimizations.runningAnalysis")}
         </div>
       )}
     </div>
