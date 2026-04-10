@@ -31,7 +31,6 @@ import { useAppStore } from "../lib/store";
 import { saveMemory, getMemory } from "../lib/tauri";
 import {
   MEMORY_ONTOLOGY_COLORS,
-  MEMORY_ONTOLOGY_LABELS,
   type GraphNode as GNode,
   type GraphEdge,
   type MemoryOntology,
