@@ -41,7 +41,7 @@ pub fn run_onboarding(
 
     // Step 3: Create starter folders only for brand new workspaces.
     if !profile.use_existing_root {
-        create_starter_folders(&root)?;
+        create_starter_folders(&root, &profile.template)?;
     }
 
     // Step 4: Generate perfil-profesional.md
@@ -55,7 +55,7 @@ pub fn run_onboarding(
         _ => {} // "custom" = empty
     }
 
-    // Step 5: Regenerate router
+    // Step 6: Regenerate router
     let config = state.config.read().unwrap().clone();
     let all = crate::core::index::scan_memories(&root);
     let metas: Vec<_> = all.iter().map(|(m, _)| m.clone()).collect();
@@ -106,8 +106,12 @@ fn tool_summary(tools: &[String]) -> String {
     }
 }
 
-fn create_starter_folders(root: &std::path::Path) -> Result<(), String> {
-    for folder in &["identity", "content", "strategy", "operations", "decisions"] {
+fn create_starter_folders(root: &std::path::Path, template: &str) -> Result<(), String> {
+    let mut folders = vec!["identity", "strategy", "operations", "decisions"];
+    if template == "creator" {
+        folders.push("content");
+    }
+    for folder in &folders {
         fs::create_dir_all(root.join(folder))
             .map_err(|e| format!("Failed to create {}: {}", folder, e))?;
     }
@@ -156,13 +160,13 @@ fn create_profile_memory(
 
     let l2 = format!(
         "## Perfil Profesional\n\n\
-        - **Nombre:** {}\n\
-        - **Rol/Profesión:** {}\n\
-        - **Herramientas de IA:** {}\n\
-        - **Idioma principal:** {}\n\
-        - **Template elegido:** {}\n\n\
-        ## Notas\n\n\
-        _Añade aquí información adicional sobre tu perfil, experiencia, objetivos, etc._\n",
+         - **Nombre:** {}\n\
+         - **Rol/Profesión:** {}\n\
+         - **Herramientas de IA:** {}\n\
+         - **Idioma principal:** {}\n\
+         - **Template elegido:** {}\n\n\
+         ## Notas\n\n\
+         _Añade aquí información adicional sobre tu perfil, experiencia, objetivos, etc._\n",
         profile.name, profile.role, tools_label, profile.language, profile.template
     );
 
@@ -219,6 +223,7 @@ fn write_memory_file(
     };
 
     let body = format!("<!-- L1 -->\n{}\n\n<!-- L2 -->\n{}", l1, l2);
+    let body = body.replace("\\n", "\n");
     let content =
         serialize_frontmatter(&meta, &body).map_err(|e| format!("Failed to serialize: {}", e))?;
 
