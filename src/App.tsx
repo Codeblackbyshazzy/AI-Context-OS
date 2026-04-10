@@ -141,6 +141,13 @@ function AppContent() {
       .catch(() => setOnboarded(false));
   }, []);
 
+  // Listen for vault:create-new from SettingsView (avoids prop drilling through routes)
+  useEffect(() => {
+    const handler = () => setShowOnboardingForVault(true);
+    window.addEventListener("vault:create-new", handler);
+    return () => window.removeEventListener("vault:create-new", handler);
+  }, []);
+
   // Sync active vault path on boot (after app has initialized)
   useEffect(() => {
     if (onboarded) {
