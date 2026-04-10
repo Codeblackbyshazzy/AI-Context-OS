@@ -19,6 +19,10 @@ import { VaultSwitcherFooter } from "../vault/VaultSwitcherFooter";
 
 type SidebarKey = "explorer" | "journal" | "tasks" | "graph" | "simulation" | "governance" | "observability" | "connectors";
 
+interface SidebarProps {
+  onCreateVault?: () => void;
+}
+
 const navItems: { to: string; icon: React.ElementType; key: SidebarKey }[] = [
   { to: "/", icon: FolderTree, key: "explorer" },
   { to: "/journal", icon: BookOpen, key: "journal" },
@@ -30,7 +34,7 @@ const navItems: { to: string; icon: React.ElementType; key: SidebarKey }[] = [
   { to: "/connectors", icon: Plug, key: "connectors" },
 ];
 
-export function Sidebar() {
+export function Sidebar({ onCreateVault }: SidebarProps) {
   const { t } = useTranslation();
   const governanceCount = useGovernanceBadge();
   return (
