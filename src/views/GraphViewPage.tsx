@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { clsx } from "clsx";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useAppStore } from "../lib/store";
 import { saveMemory, getMemory } from "../lib/tauri";
 import {
@@ -142,6 +143,7 @@ interface FlowEdge {
 
 function CardsNode({ data }: { data: NodeData }) {
   const { node: gn, colorByCommunity, godMode, godIds } = data;
+  const { t } = useTranslation();
   const [hovered, setHovered] = useState(false);
 
   const isGod = godMode && godIds.has(gn.id);
@@ -179,7 +181,7 @@ function CardsNode({ data }: { data: NodeData }) {
           {gn.label}
         </div>
         <div className="mt-1.5 flex items-center gap-1.5">
-          <span className="text-[10px] text-[color:var(--text-2)]">{MEMORY_ONTOLOGY_LABELS[gn.ontology]}</span>
+          <span className="text-[10px] text-[color:var(--text-2)]">{t(`ontologies.${gn.ontology}`)}</span>
           <span className="ml-auto font-mono text-[10px] text-[color:var(--text-2)]">{gn.importance.toFixed(1)}</span>
         </div>
       </div>
@@ -257,6 +259,7 @@ function CosmosNode({ data }: { data: NodeData }) {
 // ---------------------------------------------------------------------------
 
 function HoverTooltip({ node: gn }: { node: GNode }) {
+  const { t } = useTranslation();
   return (
     <div
       className="pointer-events-none absolute left-1/2 top-full z-50 mt-2 w-60 -translate-x-1/2 rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-3 py-2 shadow-lg"
@@ -266,8 +269,8 @@ function HoverTooltip({ node: gn }: { node: GNode }) {
         {gn.preview}{gn.preview.length >= 160 ? "…" : ""}
       </p>
       <div className="mt-1.5 flex items-center gap-2 text-[9px] text-[color:var(--text-2)]">
-        <span>{MEMORY_ONTOLOGY_LABELS[gn.ontology]}</span>
-        {gn.degree > 0 && <span>{gn.degree} link{gn.degree !== 1 ? "s" : ""}</span>}
+        <span>{t(`ontologies.${gn.ontology}`)}</span>
+        {gn.degree > 0 && <span>{t("graph.links", { count: gn.degree })}</span>}
       </div>
     </div>
   );
@@ -283,6 +286,7 @@ const nodeTypes = {
 // ---------------------------------------------------------------------------
 
 function ViewModeToggle({ mode, onChange }: { mode: ViewMode; onChange: (m: ViewMode) => void }) {
+  const { t } = useTranslation();
   return (
     <div className="flex rounded border border-[var(--border)] overflow-hidden">
       <button
@@ -294,10 +298,10 @@ function ViewModeToggle({ mode, onChange }: { mode: ViewMode; onChange: (m: View
             ? "bg-[color:var(--accent)] text-white"
             : "bg-[color:var(--bg-2)] text-[color:var(--text-2)] hover:text-[color:var(--text-1)]",
         )}
-        title="Cards view"
+        title={t("graph.viewCardsTooltip")}
       >
         <LayoutGrid className="h-3 w-3" />
-        <span>Cards</span>
+        <span>{t("graph.viewCards")}</span>
       </button>
       <button
         type="button"
@@ -308,10 +312,10 @@ function ViewModeToggle({ mode, onChange }: { mode: ViewMode; onChange: (m: View
             ? "bg-[color:var(--accent)] text-white"
             : "bg-[color:var(--bg-2)] text-[color:var(--text-2)] hover:text-[color:var(--text-1)]",
         )}
-        title="Cosmos view (Obsidian-style)"
+        title={t("graph.viewCosmosTooltip")}
       >
         <Orbit className="h-3 w-3" />
-        <span>Cosmos</span>
+        <span>{t("graph.viewCosmos")}</span>
       </button>
     </div>
   );
@@ -322,6 +326,7 @@ function ViewModeToggle({ mode, onChange }: { mode: ViewMode; onChange: (m: View
 // ---------------------------------------------------------------------------
 
 export function GraphViewPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { graphData, loadGraph, selectFile, setError } = useAppStore();
   const [nodes, setNodes, onNodesChange] = useNodesState<FlowNode>([]);
@@ -493,7 +498,7 @@ export function GraphViewPage() {
         <ViewModeToggle mode={viewMode} onChange={handleViewModeChange} />
 
         <span className="text-[11px] text-[color:var(--text-2)]">
-          {filteredData.nodes.length} nodes · {filteredData.edges.length} edges
+          {t("graph.nodesEdges", { nodes: filteredData.nodes.length, edges: filteredData.edges.length })}
         </span>
 
         <div className="ml-auto flex items-center gap-1.5">
@@ -502,9 +507,9 @@ export function GraphViewPage() {
             onChange={(e) => setOntologyFilter(e.target.value as MemoryOntology | "all")}
             className="rounded border border-[var(--border)] bg-[color:var(--bg-2)] px-2 py-1 text-[11px] text-[color:var(--text-1)]"
           >
-            <option value="all">All types</option>
+            <option value="all">{t("graph.filterAll")}</option>
             {(Object.keys(MEMORY_ONTOLOGY_LABELS) as MemoryOntology[]).map((o) => (
-              <option key={o} value={o}>{MEMORY_ONTOLOGY_LABELS[o]}</option>
+              <option key={o} value={o}>{t(`ontologies.${o}`)}</option>
             ))}
           </select>
 
@@ -526,9 +531,9 @@ export function GraphViewPage() {
             onChange={(e) => setEdgeMode(e.target.value as "related" | "requires" | "optional")}
             className="rounded border border-[var(--border)] bg-[color:var(--bg-2)] px-2 py-1 text-[11px] text-[color:var(--text-1)]"
           >
-            <option value="related">related</option>
-            <option value="requires">requires</option>
-            <option value="optional">optional</option>
+            <option value="related">{t("graph.edgeRelated")}</option>
+            <option value="requires">{t("graph.edgeRequires")}</option>
+            <option value="optional">{t("graph.edgeOptional")}</option>
           </select>
 
           <button
@@ -538,7 +543,7 @@ export function GraphViewPage() {
               "flex items-center gap-1 rounded px-1.5 py-1 text-[10px] transition-colors",
               godMode ? "bg-red-500/15 text-red-400" : "text-[color:var(--text-2)] hover:text-[color:var(--text-1)]",
             )}
-            title="Highlight god nodes"
+            title={t("graph.highlightGodNodes")}
           >
             <AlertTriangle className="h-3.5 w-3.5" />
             {godMode && godIds.size > 0 && <span>{godIds.size}</span>}
@@ -553,7 +558,7 @@ export function GraphViewPage() {
                 ? "bg-[color:var(--accent)]/10 text-[color:var(--accent)]"
                 : "text-[color:var(--text-2)] hover:text-[color:var(--text-1)]",
             )}
-            title={colorByCommunity ? "Color by ontology" : "Color by community"}
+            title={colorByCommunity ? t("graph.colorByOntology") : t("graph.colorByCommunity")}
           >
             <Layers className="h-3.5 w-3.5" />
           </button>
@@ -562,7 +567,7 @@ export function GraphViewPage() {
             type="button"
             onClick={() => setLayoutSeed((p) => p + 1)}
             className="rounded p-1 text-[color:var(--text-2)] hover:text-[color:var(--text-1)]"
-            title="Re-layout"
+            title={t("graph.relayout")}
           >
             <RefreshCw className="h-3.5 w-3.5" />
           </button>
@@ -571,6 +576,7 @@ export function GraphViewPage() {
             type="button"
             onClick={() => setShowInspector((p) => !p)}
             className="rounded p-1 text-[color:var(--text-2)] hover:text-[color:var(--text-1)]"
+            title={showInspector ? t("graph.hideInspector") : t("graph.showInspector")}
           >
             {showInspector ? <PanelRightClose className="h-3.5 w-3.5" /> : <PanelRightOpen className="h-3.5 w-3.5" />}
           </button>
@@ -618,7 +624,7 @@ export function GraphViewPage() {
           ) : (
             <div className="flex h-full flex-col items-center justify-center text-[color:var(--text-2)]">
               <Network className="mb-3 h-8 w-8" />
-              <p className="text-xs">No nodes for current filter.</p>
+              <p className="text-xs">{t("graph.noNodes")}</p>
             </div>
           )}
         </div>
@@ -643,7 +649,7 @@ export function GraphViewPage() {
                 />
               ) : (
                 <p className="text-xs text-[color:var(--text-2)]">
-                  Click a node to inspect. Double-click to open.
+                  {t("graph.clickToInspect")}
                 </p>
               )}
             </div>
@@ -653,7 +659,7 @@ export function GraphViewPage() {
 
       {layouting && (
         <div className="pointer-events-none absolute right-8 top-16 rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-2.5 py-1 text-xs text-[color:var(--text-1)]">
-          Calculating layout…
+          {t("graph.calculatingLayout")}
         </div>
       )}
     </div>
@@ -679,6 +685,7 @@ function InspectorPanel({
   onOpenNode: (id: string) => void;
   onSelectNode: (id: string) => void;
 }) {
+  const { t } = useTranslation();
   const color = colorByCommunity
     ? communityColor(node.community)
     : (MEMORY_ONTOLOGY_COLORS[node.ontology] ?? "#64748b");
@@ -695,13 +702,13 @@ function InspectorPanel({
       </div>
 
       <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
-        <NodeMetric label="Ontology" value={MEMORY_ONTOLOGY_LABELS[node.ontology]} />
-        <NodeMetric label="Collection" value={node.folder_category ?? "—"} />
-        <NodeMetric label="Importance" value={node.importance.toFixed(2)} />
-        <NodeMetric label="Decay" value={node.decay_score.toFixed(2)} />
-        <NodeMetric label="Connections" value={String(node.degree)} />
+        <NodeMetric label={t("graph.ontology")} value={t(`ontologies.${node.ontology}`)} />
+        <NodeMetric label={t("graph.collection")} value={node.folder_category ?? "—"} />
+        <NodeMetric label={t("graph.importance")} value={node.importance.toFixed(2)} />
+        <NodeMetric label={t("graph.decay")} value={node.decay_score.toFixed(2)} />
+        <NodeMetric label={t("graph.connections")} value={String(node.degree)} />
         <NodeMetric
-          label="Community"
+          label={t("graph.community")}
           value={node.community !== null ? `#${node.community}` : "—"}
           swatchColor={node.community !== null ? color : undefined}
         />
@@ -721,14 +728,14 @@ function InspectorPanel({
         className="inline-flex w-full items-center justify-center gap-1.5 rounded-md bg-[color:var(--accent)] px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90"
       >
         <ExternalLink className="h-3.5 w-3.5" />
-        Open in Explorer
+        {t("graph.openInExplorer")}
       </button>
 
       {backlinkNodes.length > 0 && (
         <div>
           <div className="mb-1.5 flex items-center gap-1 text-[10px] text-[color:var(--text-2)]">
             <Link2 className="h-3 w-3" />
-            <span>Linked from ({backlinkNodes.length})</span>
+            <span>{t("graph.linkedFrom", { count: backlinkNodes.length })}</span>
           </div>
           <div className="space-y-1">
             {backlinkNodes.map((n) => (
