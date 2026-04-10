@@ -78,6 +78,8 @@ export interface GraphNode {
   importance: number;
   decay_score: number;
   community: number | null;
+  degree: number;
+  preview: string;
 }
 
 export interface GodNode {

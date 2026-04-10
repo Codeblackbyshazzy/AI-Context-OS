@@ -432,4 +432,4 @@ Page, L., Brin, S., Motwani, R., & Winograd, T. (1999). The PageRank citation ra
 
 Matuschak, A. (2020). *Evergreen notes*. https://notes.andymatuschak.org/Evergreen_notes
 
-Ahrens, S. (2017). *How to Take Smart Notes: One Simple Technique to Boost Writing, Learning and Thinking*. CreateSpace.
+Ahrens, S. (2017). *How to Take Smart Notes: One Simple Technique to Boost Writing, Learning and Thinking*. CreateSpace

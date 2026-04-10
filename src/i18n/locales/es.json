@@ -66,8 +66,21 @@
     },
     "location": {
       "title": "Ubicación del espacio de trabajo",
-      "desc": "Se creará una carpeta de trabajo con infraestructura del sistema y directorios de inicio para tu memoria de IA.",
-      "structure": "inbox/ · sources/ · .ai/ (rules, journal, tasks, scratch)"
+      "desc": "Puedes crear un espacio nuevo o apuntar a una carpeta que ya uses, incluido un archivo personal o un vault de Obsidian/Logseq.",
+      "useExisting": "Usar carpeta existente",
+      "useExistingDesc": "Selecciona tu carpeta madre actual y prepara AI Context OS dentro de ella.",
+      "createNew": "Crear carpeta nueva",
+      "createNewDesc": "Empieza con una estructura inicial pensada para AI Context OS.",
+      "chooseFolder": "Elegir carpeta",
+      "existingHint": "Ideal si ya guardas tus notas en carpetas organizadas. La app trabajará desde esa raíz sin forzar una migración previa.",
+      "newHint": "La app creará una raíz nueva y añadirá algunas carpetas de arranque para ayudarte a empezar.",
+      "systemFiles": "AI Context OS añadirá o actualizará sus archivos de sistema si faltan: .ai/, claude.md, .cursorrules, .windsurfrules, inbox/ y sources/.",
+      "compatibility": "Un vault de Obsidian o Logseq puede usarse como raíz. Tus notas seguirán ahí; los archivos Markdown con frontmatter compatible podrán indexarse como memorias.",
+      "structure": "Infraestructura del sistema: inbox/ · sources/ · .ai/ (rules, journal, tasks, scratch)",
+      "modeValue": {
+        "new": "Nueva carpeta",
+        "existing": "Carpeta existente"
+      }
     },
     "profile": {
       "title": "Tu perfil",
@@ -94,13 +107,14 @@
     },
     "confirm": {
       "title": "Resumen",
-      "desc": "El espacio de trabajo se creará con memorias iniciales y archivos de integración autogenerados."
+      "desc": "La app dejará lista esta ubicación para trabajar como workspace de AI Context OS y añadirá su infraestructura base.",
+      "modeLabel": "Modo"
     },
     "actions": {
       "back": "Atrás",
       "next": "Siguiente",
-      "create": "Crear espacio de trabajo",
-      "creating": "Creando..."
+      "create": "Preparar espacio de trabajo",
+      "creating": "Preparando..."
     }
   },
   "explorer": {
