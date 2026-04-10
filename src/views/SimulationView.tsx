@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { Search, Zap, Copy, Check, Clock, Trash2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { simulateContext } from "../lib/tauri";
 import type { ScoredMemory } from "../lib/types";
-import { MEMORY_ONTOLOGY_COLORS, MEMORY_ONTOLOGY_LABELS } from "../lib/types";
+import { MEMORY_ONTOLOGY_COLORS } from "../lib/types";
 
 const HISTORY_KEY = "simulation_history";
 const MAX_HISTORY = 8;
@@ -27,17 +28,8 @@ function saveHistory(runs: SimulationRun[]) {
   localStorage.setItem(HISTORY_KEY, JSON.stringify(runs.slice(0, MAX_HISTORY)));
 }
 
-function timeAgo(ts: number): string {
-  const s = Math.floor((Date.now() - ts) / 1000);
-  if (s < 60) return "just now";
-  const m = Math.floor(s / 60);
-  if (m < 60) return `${m}m ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  return `${Math.floor(h / 24)}d ago`;
-}
-
 export function SimulationView() {
+  const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const [budget, setBudget] = useState(4000);
   const [results, setResults] = useState<ScoredMemory[]>([]);
@@ -45,6 +37,16 @@ export function SimulationView() {
   const [copied, setCopied] = useState(false);
   const [history, setHistory] = useState<SimulationRun[]>(loadHistory);
   const [activeHistoryId, setActiveHistoryId] = useState<string | null>(null);
+
+  const timeAgo = (ts: number): string => {
+    const s = Math.floor((Date.now() - ts) / 1000);
+    if (s < 60) return t("simulation.justNow");
+    const m = Math.floor(s / 60);
+    if (m < 60) return t("simulation.minutesAgo", { count: m });
+    const h = Math.floor(m / 60);
+    if (h < 24) return t("simulation.hoursAgo", { count: h });
+    return t("simulation.daysAgo", { count: Math.floor(h / 24) });
+  };
 
   // Keep history in sync with localStorage
   useEffect(() => {
@@ -97,11 +99,11 @@ export function SimulationView() {
           <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--border)]">
             <span className="flex items-center gap-1.5 text-[11px] font-medium text-[color:var(--text-2)]">
               <Clock className="h-3 w-3" />
-              History
+              {t("simulation.history")}
             </span>
             <button
               onClick={clearHistory}
-              title="Clear history"
+              title={t("simulation.clearHistory")}
               className="rounded p-0.5 text-[color:var(--text-2)] hover:text-[color:var(--danger)]"
             >
               <Trash2 className="h-3 w-3" />
@@ -123,7 +125,7 @@ export function SimulationView() {
                     {run.query}
                   </p>
                   <p className="mt-0.5 text-[10px] text-[color:var(--text-2)]">
-                    {run.results.length} memories · {runTokens}t
+                    {t("simulation.memoriesTokens", { count: run.results.length, tokens: runTokens })}
                   </p>
                   <p className="mt-0.5 text-[10px] text-[color:var(--text-2)]">
                     {timeAgo(run.timestamp)}
@@ -145,7 +147,7 @@ export function SimulationView() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSimulate()}
-              placeholder="Query to simulate context loading..."
+              placeholder={t("simulation.queryPlaceholder")}
               className="flex-1 rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-3 py-1.5 text-sm text-[color:var(--text-0)] placeholder:text-[color:var(--text-2)]"
             />
             <input
@@ -153,7 +155,7 @@ export function SimulationView() {
               value={budget}
               onChange={(e) => setBudget(parseInt(e.target.value) || 4000)}
               className="w-20 rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-2 py-1.5 text-center text-xs text-[color:var(--text-1)]"
-              title="Token budget"
+              title={t("simulation.tokenBudget")}
             />
             <button
               onClick={handleSimulate}
@@ -161,7 +163,7 @@ export function SimulationView() {
               className="flex items-center gap-1.5 rounded-md bg-[color:var(--accent)] px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-30"
             >
               <Search className="h-3.5 w-3.5" />
-              {loading ? "Running…" : "Simulate"}
+              {loading ? t("simulation.running") : t("simulation.simulate")}
             </button>
           </div>
           {/* Example queries — shown when no results yet */}
@@ -185,7 +187,7 @@ export function SimulationView() {
           <div className="flex items-center gap-3 border-b border-[var(--border)] px-4 py-2">
             {activeHistoryId && (
               <span className="rounded border border-[var(--border)] px-1.5 py-0.5 text-[10px] text-[color:var(--text-2)]">
-                from history
+                {t("simulation.fromHistory")}
               </span>
             )}
             <div className="h-1 flex-1 overflow-hidden rounded-full bg-[color:var(--bg-3)]">
@@ -203,7 +205,7 @@ export function SimulationView() {
               />
             </div>
             <span className="shrink-0 font-mono text-[11px] text-[color:var(--text-2)]">
-              {totalTokens}/{budget} tokens · {results.length} loaded
+              {t("simulation.totalLoaded", { tokens: totalTokens, budget, count: results.length })}
             </span>
             <button
               onClick={() => {
@@ -216,10 +218,10 @@ export function SimulationView() {
                 });
               }}
               className="flex items-center gap-1 rounded-md border border-[var(--border)] px-2 py-0.5 text-[10px] text-[color:var(--text-2)] hover:text-[color:var(--text-1)]"
-              title="Copy context to clipboard"
+              title={t("simulation.copyTooltip")}
             >
               {copied ? <Check className="h-3 w-3 text-[color:var(--success)]" /> : <Copy className="h-3 w-3" />}
-              {copied ? "Copied" : "Copy"}
+              {copied ? t("simulation.copied") : t("simulation.copy")}
             </button>
           </div>
         )}
@@ -228,12 +230,12 @@ export function SimulationView() {
         {results.length > 0 && (
           <div className="flex gap-3 border-b border-[var(--border)] px-4 py-1.5">
             {[
-              { label: "Sem", color: "#8b5cf6" },
-              { label: "BM25", color: "#3b82f6" },
-              { label: "Rec", color: "#22c55e" },
-              { label: "Imp", color: "#f59e0b" },
-              { label: "Freq", color: "#ec4899" },
-              { label: "Graph", color: "#06b6d4" },
+              { label: t("simulation.semantic"), color: "#8b5cf6" },
+              { label: t("simulation.bm25"), color: "#3b82f6" },
+              { label: t("simulation.recency"), color: "#22c55e" },
+              { label: t("simulation.importance"), color: "#f59e0b" },
+              { label: t("simulation.frequency"), color: "#ec4899" },
+              { label: t("simulation.graph"), color: "#06b6d4" },
             ].map(({ label, color }) => (
               <span key={label} className="flex items-center gap-1 text-[10px] text-[color:var(--text-2)]">
                 <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: color, opacity: 0.75 }} />
@@ -261,7 +263,7 @@ export function SimulationView() {
                     color: MEMORY_ONTOLOGY_COLORS[r.ontology],
                   }}
                 >
-                  {MEMORY_ONTOLOGY_LABELS[r.ontology]}
+                  {t(`ontologies.${r.ontology}`)}
                 </span>
                 <span className="rounded border border-[var(--border)] px-1 py-0.5 font-mono text-[10px] text-[color:var(--text-2)]">
                   {r.load_level.toUpperCase()}
@@ -277,19 +279,19 @@ export function SimulationView() {
                 </span>
               </div>
               <div className="flex gap-0.5 h-1">
-                <ScoreBar value={r.score.semantic} color="#8b5cf6" label="Semantic" weight={0.3} />
-                <ScoreBar value={r.score.bm25} color="#3b82f6" label="BM25" weight={0.15} />
-                <ScoreBar value={r.score.recency} color="#22c55e" label="Recency" weight={0.15} />
-                <ScoreBar value={r.score.importance} color="#f59e0b" label="Importance" weight={0.2} />
-                <ScoreBar value={r.score.access_frequency} color="#ec4899" label="Frequency" weight={0.1} />
-                <ScoreBar value={r.score.graph_proximity} color="#06b6d4" label="Graph" weight={0.1} />
+                <ScoreBar value={r.score.semantic} color="#8b5cf6" label={t("simulation.semantic")} weight={0.3} />
+                <ScoreBar value={r.score.bm25} color="#3b82f6" label={t("simulation.bm25")} weight={0.15} />
+                <ScoreBar value={r.score.recency} color="#22c55e" label={t("simulation.recency")} weight={0.15} />
+                <ScoreBar value={r.score.importance} color="#f59e0b" label={t("simulation.importance")} weight={0.2} />
+                <ScoreBar value={r.score.access_frequency} color="#ec4899" label={t("simulation.frequency")} weight={0.1} />
+                <ScoreBar value={r.score.graph_proximity} color="#06b6d4" label={t("simulation.graph")} weight={0.1} />
               </div>
             </div>
           ))}
           {results.length === 0 && !loading && (
             <div className="flex flex-col items-center justify-center py-20 text-[color:var(--text-2)]">
               <Zap className="mb-3 h-8 w-8" />
-              <p className="text-xs">Type a query and simulate to see which memories would load.</p>
+              <p className="text-xs">{t("simulation.noResults")}</p>
             </div>
           )}
         </div>
