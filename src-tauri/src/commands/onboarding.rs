@@ -600,52 +600,164 @@ fn create_creator_template(root: &std::path::Path) -> Result<(), String> {
 }
 
 fn create_entrepreneur_template(root: &std::path::Path) -> Result<(), String> {
-    // Skills
+    // ── identity/ ─────────────────────────────────────────────────────────
     write_memory_file(
-        root, ".ai/skills", "strategic-analyzer.md", "strategic-analyzer",
-        MemoryOntology::Concept,
-        "Skill: Análisis estratégico de negocio y mercado",
-        0.85,
-        &["estrategia", "negocio", "análisis", "mercado"],
-        "Analiza oportunidades de negocio, competencia y mercado con frameworks estratégicos.",
-        "## Instrucciones para la IA\n\n### Proceso\n1. Lee el contexto del proyecto/negocio\n2. Aplica el framework adecuado: SWOT, Porter's 5 Forces, Jobs-to-be-Done\n3. Identifica oportunidades y amenazas clave\n4. Proporciona recomendaciones accionables con prioridad\n\n### Formato\n- Framework visual (tabla o lista)\n- Top 3 oportunidades con justificación\n- Top 3 riesgos con mitigación\n- Próximos pasos concretos",
-        &["analizar mercado", "estrategia", "análisis competencia", "SWOT"],
-        &["perfil-profesional"],
-    )?;
-
-    write_memory_file(
-        root, ".ai/skills", "meeting-action-items.md", "meeting-action-items",
-        MemoryOntology::Concept,
-        "Skill: Extractor de action items de reuniones",
-        0.80,
-        &["reuniones", "tareas", "actas", "productividad"],
-        "Extrae decisiones, action items y próximos pasos de notas o transcripciones de reuniones.",
-        "## Instrucciones para la IA\n\n### Proceso\n1. Recibe notas o transcripción de la reunión\n2. Identifica: decisiones tomadas, tareas asignadas, dudas abiertas\n3. Genera resumen estructurado\n4. Appenda action items al backlog.jsonl\n\n### Formato\n- **Decisiones:** lista numerada\n- **Action Items:** tabla con [Quién] [Qué] [Cuándo]\n- **Dudas abiertas:** para resolver en próxima reunión\n- **Resumen ejecutivo:** 3-5 líneas",
-        &["reunión", "meeting", "action items", "acta"],
-        &["perfil-profesional"],
-    )?;
-
-    write_memory_file(
-        root, ".ai/skills", "task-prioritizer.md", "task-prioritizer",
-        MemoryOntology::Concept,
-        "Skill: Priorizador de tareas con matriz Eisenhower",
-        0.80,
-        &["tareas", "priorización", "productividad", "gestión"],
-        "Prioriza tareas usando la matriz Eisenhower (urgente/importante) y sugiere un plan de acción.",
-        "## Instrucciones para la IA\n\n### Proceso\n1. Lee el backlog actual de tareas\n2. Clasifica cada tarea en la matriz:\n   - 🔴 Urgente + Importante → Hacer ahora\n   - 🟡 No urgente + Importante → Planificar\n   - 🟠 Urgente + No importante → Delegar\n   - ⚪ Ni urgente ni importante → Eliminar\n3. Genera plan de acción para hoy y esta semana\n\n### Formato\n- Matriz visual 2x2\n- Plan de hoy: máximo 3 tareas\n- Plan semanal: 5-7 tareas priorizadas",
-        &["priorizar tareas", "qué hacer primero", "plan del día", "organizar tareas"],
+        root, "identity", "bio.md", "founder-bio",
+        MemoryOntology::Entity,
+        "Founder bio: background, ventures, and entrepreneurial identity",
+        0.95,
+        &["bio", "identity", "founder", "background"],
+        "Your entrepreneurial story, past ventures, current focus, and the founder persona you project to investors, partners, and customers.",
+        "## Founder Bio\n\n> **What to put here:** Your ventures past and present, what problems you're obsessed with solving, your background before entrepreneurship, and your founding story.\n\n### One-liner\n_e.g. \"I build [type of company] for [audience] — currently working on [current venture].\"_\n\n### Background\n_What did you do before founding? What made you a founder?_\n\n### Current venture\n_Name, what it does, stage, and your role._\n\n### Founding story\n_The specific moment or problem that made you start. Make it concrete and personal._\n\n---\n## AI Prompt to fill this file\n\n> \"Help me write my founder bio. Ask me one question at a time about: my current venture and what it solves, what I did before founding, a specific moment that made me start this company, my biggest win so far, and how I describe myself in one sentence. Generate a complete bio.md.\"",
+        &["bio", "founder story", "who I am", "about me"],
         &[],
     )?;
 
-    // Rules
     write_memory_file(
-        root, ".ai/rules", "restricciones.md", "restricciones",
+        root, "identity", "brand.md", "founder-brand",
         MemoryOntology::Concept,
-        "Restricciones y directrices generales para la IA",
+        "Company/personal brand: positioning, tone, and messaging pillars",
+        0.90,
+        &["brand", "positioning", "messaging", "identity"],
+        "How your company (or personal brand) speaks, what it stands for, and the consistent message across all channels.",
+        "## Brand\n\n> **What to put here:** Your positioning statement, tagline, tone of voice, key messages, and what makes your brand different. This is loaded whenever AI writes anything customer-facing.\n\n### Positioning\n- **For:** _target customer_\n- **Who:** _problem they have_\n- **We are:** _category_\n- **That:** _key benefit_\n- **Unlike:** _alternative_\n- **We:** _differentiation_\n\n### Tagline\n_..._\n\n### Voice in 3 words\n_e.g. Bold, Direct, Human_\n\n### Key messages\n1. _Core message 1_\n2. _Core message 2_\n3. _Core message 3_\n\n---\n## AI Prompt to fill this file\n\n> \"Help me define my brand. Ask me about: who my ideal customer is and what they struggle with, what my company does that no one else does, the 3 things I always want people to feel when they interact with my brand, and how I describe my company in a sentence. Generate a complete brand.md.\"",
+        &["brand", "positioning", "messaging", "tagline"],
+        &[],
+    )?;
+
+    write_memory_file(
+        root, "identity", "values.md", "founder-values",
+        MemoryOntology::Concept,
+        "Company values and principles that guide decisions and culture",
+        0.85,
+        &["values", "culture", "principles", "company"],
+        "The principles behind how you build: what you optimize for, how you treat people, and what you refuse to compromise.",
+        "## Company Values\n\n> **What to put here:** 3-5 values that actually guide decisions (not just wall poster material). What each means in practice, and decisions you've made because of them.\n\n### Values\n1. **[Value 1]** — _What it looks like in practice_\n2. **[Value 2]** — _e.g. Default to transparency: we share numbers with the team_\n3. **[Value 3]** — _..._\n\n### Lines we don't cross\n- _e.g. We don't grow through dark patterns_\n- _e.g. We don't ship things we wouldn't use ourselves_\n\n---\n## AI Prompt to fill this file\n\n> \"Help me define my company values. Ask me: a hard decision I made that cost us money but felt right, something we refuse to do even if it would help us grow faster, how I describe our culture to candidates, and the one thing I want our team to be known for. Generate a values.md.\"",
+        &["values", "culture", "principles", "what we believe"],
+        &[],
+    )?;
+
+    // ── strategy/ ─────────────────────────────────────────────────────────
+    write_memory_file(
+        root, "strategy", "roadmap.md", "founder-roadmap",
+        MemoryOntology::Entity,
+        "Company roadmap: milestones, fundraising timeline, and product direction",
+        0.85,
+        &["roadmap", "milestones", "strategy", "product"],
+        "Where the company is going: product milestones, fundraising goals, hiring plan, and the bets you're making.",
+        "## Company Roadmap\n\n> **What to put here:** Your 12-month vision, key product milestones, revenue targets, fundraising timeline, and the 2-3 big bets you're making.\n\n### Current stage\n_Pre-seed / Seed / Series A / etc. — and what that means for your priorities_\n\n### 12-month milestones\n| Milestone | Target | Status |\n|-----------|--------|--------|\n| _e.g. 100 paying customers_ | Q3 2025 | 🔄 |\n| _e.g. Raise seed round_ | Q4 2025 | ⬜ |\n\n### The big bets\n_The 2-3 hypotheses you're betting the company on this year._\n\n---\n## AI Prompt to fill this file\n\n> \"Help me build my company roadmap. Ask me: what stage we're at, the single metric that matters most right now, our 3 most important milestones for the next 12 months, our fundraising plans, and the 2 biggest assumptions we're trying to validate. Generate a roadmap.md with a milestone table.\"",
+        &["roadmap", "milestones", "product plan", "company goals"],
+        &[],
+    )?;
+
+    write_memory_file(
+        root, "strategy", "competition.md", "founder-competition",
+        MemoryOntology::Entity,
+        "Competitive landscape: alternatives, market position, and moat",
+        0.75,
+        &["competition", "market", "positioning", "landscape"],
+        "Who you compete with, how customers solve the problem today, your differentiation, and how you're building a moat.",
+        "## Competitive Landscape\n\n> **What to put here:** Direct and indirect competitors, how customers solve the problem without you, your defensible advantages, and how the competitive map might shift.\n\n### The problem space\n_How do customers solve this today? What are the main alternatives?_\n\n### Competitors\n| Company | Approach | Weakness | Our edge |\n|---------|----------|----------|----------|\n| _Name_ | _..._ | _..._ | _..._ |\n\n### Our moat\n_What will be hard to copy in 3 years?_\n\n---\n## AI Prompt to fill this file\n\n> \"Help me map my competitive landscape. Ask me: who the 5 companies fighting for the same customer are, how customers solve the problem today without any of us, what I think is genuinely hard about what we're building, and the one thing I'm most afraid a competitor could copy. Generate a competition.md.\"",
+        &["competition", "competitors", "market", "positioning", "moat"],
+        &[],
+    )?;
+
+    write_memory_file(
+        root, "strategy", "goals.md", "founder-goals",
+        MemoryOntology::Entity,
+        "Quarterly OKRs: focus, targets, and what you're not doing",
+        0.90,
+        &["goals", "OKRs", "quarterly", "focus"],
+        "This quarter's objectives, key results, and explicit deprioritizations — your operating contract with yourself.",
+        "## Quarterly Goals\n\n> **What to put here:** 2-3 objectives for this quarter, with measurable key results. Include what you're NOT doing — it's as important as what you are.\n\n### This quarter's theme\n_One word or phrase that captures the quarter's focus._\n\n### Objectives & Key Results\n**O1: [Objective]**\n- KR1: _Measurable result_\n- KR2: _Measurable result_\n\n**O2: [Objective]**\n- KR1: _..._\n\n### Not doing this quarter\n- _Explicit deprioritization 1_\n- _Explicit deprioritization 2_\n\n---\n## AI Prompt to fill this file\n\n> \"Help me set my quarterly OKRs. Ask me: the current date, what I'm most worried about for this quarter, the 2-3 outcomes that would make it a success, and 2 things I'm deliberately not doing. Format as OKRs and generate a complete goals.md.\"",
+        &["goals", "OKRs", "this quarter", "focus", "priorities"],
+        &["founder-roadmap"],
+    )?;
+
+    // ── operations/ ───────────────────────────────────────────────────────
+    write_memory_file(
+        root, "operations", "sops.md", "founder-sops",
+        MemoryOntology::Concept,
+        "Founder SOPs: hiring, investor updates, sales process, and weekly cadence",
+        0.75,
+        &["sops", "process", "workflows", "operations"],
+        "Repeatable playbooks for your most important recurring operations: weekly reviews, investor updates, hiring loops, customer calls.",
+        "## Operating Playbooks\n\n> **What to put here:** Step-by-step processes for the things you do over and over. The goal is to make them consistent, delegatable, and improvable.\n\n### Weekly CEO review (30 min)\n- [ ] Review key metrics dashboard\n- [ ] Read customer feedback from the week\n- [ ] Update goals.md progress\n- [ ] 3 priorities for next week\n\n### Investor update (monthly)\n- [ ] Metrics: MRR, growth, burn, runway\n- [ ] Wins: 2-3 things that went well\n- [ ] Challenges: 1-2 honest problems\n- [ ] Asks: specific help needed\n\n### Sales / discovery call\n- [ ] Research prospect before call (5 min)\n- [ ] Open with their problem, not your product\n- [ ] Ask: what have you tried before?\n- [ ] Qualify: timeline, budget, decision maker\n- [ ] Clear next step agreed before hanging up\n\n---\n## AI Prompt to fill this file\n\n> \"Help me document my founder SOPs. Ask me about: how I run my weekly review, how I structure investor updates, my sales call process, and one process that's currently messy that I want to systematize. Generate a sops.md with formatted playbooks.\"",
+        &["sops", "process", "playbook", "how to run", "checklist"],
+        &[],
+    )?;
+
+    write_memory_file(
+        root, "operations", "email-templates.md", "founder-email-templates",
+        MemoryOntology::Entity,
+        "Email templates for fundraising, sales, partnerships, and hiring",
+        0.75,
+        &["email", "outreach", "templates", "fundraising"],
+        "Reusable emails for your highest-leverage situations: investor intros, cold outreach, partnership proposals, rejection responses.",
+        "## Email Templates\n\n> **What to put here:** Templates for emails you send repeatedly. Good templates save hours and ensure you never send a mediocre version of an important email.\n\n### Investor cold outreach\n**Subject:** _[Company] — [1-line traction hook]_\n```\n[Template]\n```\n\n### Warm intro request\n```\n[Template]\n```\n\n### Customer discovery outreach\n```\n[Template]\n```\n\n### Partnership proposal\n```\n[Template]\n```\n\n### Graceful no (to inbound requests)\n```\n[Template]\n```\n\n---\n## AI Prompt to fill this file\n\n> \"Help me build an email template library. Ask me: the 3 types of emails I send most often, a fundraising or sales email that got a great response and why I think it worked, my company's traction in one sentence, and my preferred tone in professional outreach. Generate 5 templates tailored to my stage and business.\"",
+        &["email", "cold outreach", "investor email", "templates"],
+        &["founder-brand"],
+    )?;
+
+    // ── decisions/ ────────────────────────────────────────────────────────
+    write_memory_file(
+        root, "decisions", "decision-log.md", "founder-decision-log",
+        MemoryOntology::Entity,
+        "Founder episodic memory: pivots, hires, strategy calls, and their outcomes",
+        0.85,
+        &["decisions", "log", "history", "pivots"],
+        "A record of your most important founder decisions — pivots, key hires, pricing changes, partnership calls — with reasoning and outcomes.",
+        "## Decision Log\n\n> **What to put here:** Major decisions with the full context: what you knew at the time, what you chose, what you rejected, and what actually happened. Invaluable for board prep, co-founder alignment, and your own learning.\n\n### Format\n```\n### [YYYY-MM-DD] [Decision title]\n**Context:** What situation forced this decision\n**Options:** A vs B vs C\n**Chosen:** X\n**Reasoning:** Why — what did you believe at the time?\n**Rejected because:** Why you didn't pick the others\n**Outcome:** [fill in 3-6 months later]\n```\n\n---\n## AI Prompt to fill this file\n\n> \"Help me start my founder decision log. Ask me about 3 significant decisions I've made in the last year: a product pivot or scope cut, a key hire or firing decision, and a strategic call about pricing, market, or fundraising. Capture each with full context and generate a decision-log.md.\"",
+        &["decisions", "pivots", "why I chose", "founder history"],
+        &[],
+    )?;
+
+    // ── .ai/skills/ ───────────────────────────────────────────────────────
+    write_memory_file(
+        root, ".ai/skills", "strategic-analyzer.md", "skill-strategic-analyzer",
+        MemoryOntology::Concept,
+        "Skill: Strategic analysis with SWOT, market opportunity, and actionable recommendations",
+        0.85,
+        &["strategy", "business", "analysis", "market"],
+        "Analyzes business and market opportunities using strategic frameworks with prioritized recommendations.",
+        "## Instructions for AI\n\n### Process\n1. Load `founder-competition` and `founder-roadmap` for context\n2. Apply the right framework: SWOT, Porter's 5 Forces, or Jobs-to-be-Done\n3. Identify key opportunities and threats\n4. Provide actionable recommendations with priority\n\n### Output format\n- Visual framework (table or 2x2)\n- Top 3 opportunities with justification\n- Top 3 risks with mitigation\n- Concrete next steps",
+        &["analyze market", "strategy", "competitive analysis", "SWOT", "business analysis"],
+        &["founder-competition", "founder-roadmap"],
+    )?;
+
+    write_memory_file(
+        root, ".ai/skills", "meeting-action-items.md", "skill-meeting-action-items",
+        MemoryOntology::Concept,
+        "Skill: Extract decisions and action items from meeting notes",
+        0.80,
+        &["meetings", "action items", "notes", "productivity"],
+        "Takes raw meeting notes or transcripts and extracts structured decisions, action items, and open questions.",
+        "## Instructions for AI\n\n### Process\n1. Receive notes or meeting transcript\n2. Identify: decisions made, tasks assigned, open questions\n3. Generate structured summary\n\n### Output format\n- **Decisions:** numbered list\n- **Action Items:** table with [Who] [What] [By when]\n- **Open questions:** to resolve in next meeting\n- **Executive summary:** 3-5 lines",
+        &["meeting", "action items", "extract tasks", "meeting notes"],
+        &[],
+    )?;
+
+    write_memory_file(
+        root, ".ai/skills", "task-prioritizer.md", "skill-task-prioritizer",
+        MemoryOntology::Concept,
+        "Skill: Prioritize tasks using Eisenhower matrix with daily and weekly plan",
+        0.80,
+        &["tasks", "prioritization", "productivity", "planning"],
+        "Prioritizes a task list using the Eisenhower matrix and produces a today plan and weekly plan.",
+        "## Instructions for AI\n\n### Process\n1. Load current tasks or receive a task dump\n2. Classify each task:\n   - 🔴 Urgent + Important → Do now\n   - 🟡 Not urgent + Important → Schedule\n   - 🟠 Urgent + Not important → Delegate\n   - ⚪ Neither → Eliminate\n3. Generate today's plan (max 3 tasks) and weekly plan (5-7 tasks)\n\n### Output format\n- Visual 2x2 matrix\n- Today: 3 tasks max\n- This week: 5-7 prioritized tasks\n- Delegation suggestions",
+        &["prioritize tasks", "what to do first", "daily plan", "organize tasks"],
+        &[],
+    )?;
+
+    // ── .ai/rules/ ────────────────────────────────────────────────────────
+    write_memory_file(
+        root, ".ai/rules", "business-rules.md", "founder-business-rules",
+        MemoryOntology::Concept,
+        "Rules loaded on every task: tone, decision authority, and confidentiality",
         0.95,
-        &["restricciones", "reglas", "límites"],
-        "Reglas que la IA debe respetar siempre al trabajar contigo.",
-        "## Restricciones Generales\n\n_Personaliza según tus preferencias:_\n\n- **Idioma:** Responder siempre en español salvo que se pida otro idioma\n- **Formato:** Preferir bullets sobre párrafos largos\n- **Decisiones:** No tomar decisiones de negocio sin confirmación explícita\n- **Datos sensibles:** No incluir datos financieros reales en outputs compartibles\n- **Tono:** Profesional pero no formal. Tutear al usuario.\n- **Extensión:** Ser conciso. Si la respuesta puede ser corta, que lo sea.",
+        &["rules", "guardrails", "business", "confidentiality"],
+        "Non-negotiable rules applied to all AI work: what decisions need confirmation, what stays confidential, tone standards.",
+        "## Business Rules\n\n_Applied to every task. Customize to your preferences._\n\n- **Language:** Match the user's language in every response\n- **Format:** Prefer bullets over long paragraphs\n- **Decisions:** Do not make business decisions (hires, pivots, pricing) without explicit confirmation\n- **Confidential data:** Never include real financial figures, customer names, or sensitive data in outputs intended to be shared\n- **Tone:** Professional but direct. First-name basis with the user.\n- **Length:** Be concise. If it fits in a bullet list, don't write a paragraph.",
         &[],
         &[],
     )?;
