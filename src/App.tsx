@@ -180,13 +180,21 @@ function AppContent() {
     );
   }
 
-  if (!onboarded) {
+  if (!onboarded || showOnboardingForVault) {
     return (
       <Suspense fallback={<FullscreenSpinner />}>
         <OnboardingWizard
           onComplete={() => {
-            setOnboarded(true);
-            initialize();
+            if (showOnboardingForVault) {
+              setShowOnboardingForVault(false);
+              // The onboarding already called run_onboarding which set_root —
+              // just reload app state and vault list
+              initialize();
+              void loadVaults();
+            } else {
+              setOnboarded(true);
+              initialize();
+            }
           }}
         />
       </Suspense>
@@ -194,6 +202,11 @@ function AppContent() {
   }
 
   return (
+    <>
+      {/* Vault overlays — rendered above everything */}
+      <VaultConfirmDialog />
+      <VaultSwitchScreen />
+
     <div className="flex h-screen flex-col overflow-hidden bg-[color:var(--bg-0)]">
       <div 
         ref={titlebarRef}
@@ -232,7 +245,7 @@ function AppContent() {
       </div>
 
       <div className="obs-app-shell flex flex-1 overflow-hidden">
-        <Sidebar />
+        <Sidebar onCreateVault={() => setShowOnboardingForVault(true)} />
         <main className="relative flex-1 overflow-hidden">
           <div className="h-full overflow-hidden bg-[color:var(--bg-1)]">
             <Suspense fallback={<RouteFallback />}>
@@ -256,6 +269,7 @@ function AppContent() {
         <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />
       </Suspense>
     </div>
+    </>
   );
 }
 
