@@ -4,18 +4,19 @@ import { Database, FolderOpen, Plus, Trash2, Check } from "lucide-react";
 import { clsx } from "clsx";
 import { useTranslation } from "react-i18next";
 import { useVaultStore } from "../../lib/vaultStore";
-import { useAppStore } from "../../lib/store";
-import type { VaultEntry } from "../../lib/types";
+import { getConfig } from "../../lib/tauri";
+import type { Config, VaultEntry } from "../../lib/types";
 
 export function VaultSettingsSection({ onCreateNew }: { onCreateNew: () => void }) {
   const { t } = useTranslation();
   const { vaults, activeVaultPath, loadVaults, requestSwitch, removeVault } =
     useVaultStore();
-  const config = useAppStore((s) => s.config);
+  const [config, setConfig] = useState<Config | null>(null);
   const [removeConfirm, setRemoveConfirm] = useState<string | null>(null);
 
   useEffect(() => {
     void loadVaults();
+    getConfig().then(setConfig).catch(() => {});
   }, [loadVaults]);
 
   const activeVault = vaults.find((v) => v.path === activeVaultPath);
