@@ -191,6 +191,23 @@ pub fn switch_vault(
     Ok(())
 }
 
+/// Upsert a vault entry with a known template. Called after onboarding to persist the template choice.
+pub fn register_vault_with_template(root: &std::path::Path, template: &str) -> Result<(), String> {
+    let mut vf = load_registry();
+    if let Some(entry) = vf.vaults.iter_mut().find(|v| expand_home(&v.path) == root) {
+        entry.template = template.to_string();
+    } else {
+        vf.vaults.push(VaultEntry {
+            name: vault_name_from_path(root),
+            path: root.to_string_lossy().to_string(),
+            last_accessed: Utc::now().to_rfc3339(),
+            template: template.to_string(),
+            memory_count: 0,
+        });
+    }
+    save_registry(&vf)
+}
+
 /// Update the display name of a vault in the registry.
 #[tauri::command]
 pub fn rename_vault(path: String, name: String) -> Result<(), String> {
