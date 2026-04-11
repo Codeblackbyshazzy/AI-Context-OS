@@ -6,6 +6,7 @@ import { clsx } from "clsx";
 import { useAppStore } from "../../lib/store";
 import { FrontmatterForm } from "./FrontmatterForm";
 import { TipTapEditor } from "./TipTapEditor";
+import { HybridMarkdownEditor } from "./HybridMarkdownEditor";
 import type { Memory, MemoryMeta, MemoryOntology, RawFileDocument } from "../../lib/types";
 
 type InspectorTab = "properties" | "links" | "history";
@@ -357,10 +358,9 @@ export function MemoryEditor() {
               {` · ${t("memoryEditor.meta.l2Content")} · v${meta.version}`}
             </p>
 
-            {/* L2 — Main content */}
-            <TipTapEditor
+            {/* L2 — Main content (Obsidian-style live preview) */}
+            <HybridMarkdownEditor
               key={`${activeMemory.meta.id}-l2`}
-              documentKey={`${activeMemory.meta.id}-l2`}
               content={l2}
               onChange={(val) => {
                 setL2(val);
