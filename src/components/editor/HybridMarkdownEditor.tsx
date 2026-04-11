@@ -340,7 +340,50 @@ const domHandlers = EditorView.domEventHandlers({
       return false;
     }
   },
-  
+
+  click(event, view) {
+    const pos = view.posAtCoords({ x: event.clientX, y: event.clientY });
+    if (pos === null) return false;
+
+    // Check if the cursor is already on this line (edit mode).
+    // If so, let the click just move the cursor — never navigate.
+    const clickedLine = view.state.doc.lineAt(pos).number;
+    for (const range of view.state.selection.ranges) {
+      if (view.state.doc.lineAt(range.head).number === clickedLine) {
+        return false; // Edit mode: don't navigate
+      }
+    }
+
+    // Preview mode: if click lands on a Link node, navigate to its URL.
+    let node = syntaxTree(view.state).resolveInner(pos, 1);
+    let urlNode = null;
+    let curr: typeof node | null = node;
+    while (curr && curr.name !== "Document") {
+      if (curr.name === "URL") { urlNode = curr; break; }
+      if (curr.name === "Link" || curr.name === "LinkText") {
+        // Find the URL child
+        let c = curr.name === "LinkText" ? curr.node.parent?.firstChild : curr.firstChild;
+        while (c) {
+          if (c.name === "URL") { urlNode = c; break; }
+          c = c.nextSibling;
+        }
+        break;
+      }
+      curr = curr.parent;
+    }
+
+    if (urlNode) {
+      let urlText = view.state.sliceDoc(urlNode.from, urlNode.to);
+      urlText = urlText.replace(/^[\(\<]/, '').replace(/[\)\>]$/, '');
+      if (urlText) {
+        open(urlText).catch(e => console.error("Failed to open URL:", e));
+        event.preventDefault();
+        return true;
+      }
+    }
+
+    return false;
+  },
 });
 
 /**
