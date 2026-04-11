@@ -5,8 +5,9 @@ import { languages } from "@codemirror/language-data";
 import { EditorView } from "@codemirror/view";
 import { tags as t } from "@lezer/highlight";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
-import { keymap } from "@codemirror/view";
+import { keymap, KeyBinding } from "@codemirror/view";
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
+import { StateCommand, EditorSelection } from "@codemirror/state";
 
 interface Props {
   content: string;
@@ -72,6 +73,94 @@ const markdownHighlightStyle = HighlightStyle.define([
   { tag: [t.processingInstruction, t.meta, t.punctuation], color: "var(--text-2)" }, // markdown markup characters (#, **, etc)
 ]);
 
+// Helper to toggle a formatting string around the selection
+function toggleMark(mark: string): StateCommand {
+  return ({ state, dispatch }) => {
+    const changes = state.changeByRange((range) => {
+      // If empty selection, assume we want to just insert formatting marks and put cursor inside
+      if (range.empty) {
+        const isInside = 
+          range.from >= mark.length &&
+          range.to <= state.doc.length - mark.length &&
+          state.sliceDoc(range.from - mark.length, range.from) === mark &&
+          state.sliceDoc(range.to, range.to + mark.length) === mark;
+
+        if (isInside) {
+          // just move cursor past the mark
+          return {
+            range: EditorSelection.range(range.anchor + mark.length, range.head + mark.length),
+          };
+        } else {
+          return {
+            changes: [{ from: range.from, insert: mark + mark }],
+            range: EditorSelection.range(range.anchor + mark.length, range.head + mark.length),
+          };
+        }
+      }
+      
+      const isMarked = 
+        range.from >= mark.length &&
+        range.to <= state.doc.length - mark.length &&
+        state.sliceDoc(range.from - mark.length, range.from) === mark &&
+        state.sliceDoc(range.to, range.to + mark.length) === mark;
+
+      if (isMarked) {
+        return {
+          changes: [
+            { from: range.from - mark.length, to: range.from },
+            { from: range.to, to: range.to + mark.length },
+          ],
+          range: EditorSelection.range(range.anchor - mark.length, range.head - mark.length),
+        };
+      } else {
+        return {
+          changes: [
+            { from: range.from, insert: mark },
+            { from: range.to, insert: mark },
+          ],
+          range: EditorSelection.range(range.anchor + mark.length, range.head + mark.length),
+        };
+      }
+    });
+
+    dispatch(state.update(changes, { scrollIntoView: true, userEvent: "input" }));
+    return true;
+  };
+}
+
+// Helper to wrap the selection when typing characters like '*', '_', '`'
+function wrapWith(mark: string): StateCommand {
+  return ({ state, dispatch }) => {
+    // Only intercept if we have at least one non-empty selection
+    if (state.selection.ranges.every(r => r.empty)) return false;
+
+    const changes = state.changeByRange((range) => {
+      if (range.empty) return { range };
+      
+      return {
+        changes: [
+          { from: range.from, insert: mark },
+          { from: range.to, insert: mark },
+        ],
+        range: EditorSelection.range(range.anchor + mark.length, range.head + mark.length),
+      };
+    });
+    dispatch(state.update(changes, { scrollIntoView: true, userEvent: "input" }));
+    return true;
+  };
+}
+
+const markdownKeymap: KeyBinding[] = [
+  { key: "Mod-b", run: toggleMark("**") },
+  { key: "Mod-i", run: toggleMark("*") },
+  { key: "Mod-e", run: toggleMark("`") },
+  { key: "Mod-Shift-x", run: toggleMark("~~") },
+  { key: "*", run: wrapWith("*") },
+  { key: "_", run: wrapWith("_") },
+  { key: "`", run: wrapWith("`") },
+  { key: "~", run: wrapWith("~") },
+];
+
 /**
  * Obsidian-like CodeMirror 6 markdown editor.
  */
@@ -89,6 +178,7 @@ export function HybridMarkdownEditor({
     customTheme,
     syntaxHighlighting(markdownHighlightStyle),
     history(),
+    keymap.of(markdownKeymap),
     keymap.of([...defaultKeymap, ...historyKeymap]),
   ];
 
