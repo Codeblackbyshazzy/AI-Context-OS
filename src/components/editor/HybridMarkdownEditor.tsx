@@ -345,6 +345,15 @@ const domHandlers = EditorView.domEventHandlers({
     const pos = view.posAtCoords({ x: event.clientX, y: event.clientY });
     if (pos === null) return false;
 
+    // If the clicked line is already the active (editing) line, don't navigate —
+    // just let the cursor land there so the user can edit the raw markdown.
+    const clickedLineNum = view.state.doc.lineAt(pos).number;
+    for (const range of view.state.selection.ranges) {
+      if (view.state.doc.lineAt(range.head).number === clickedLineNum) {
+        return false;
+      }
+    }
+
     let node = syntaxTree(view.state).resolveInner(pos, 1);
     
     let urlNode = null;
