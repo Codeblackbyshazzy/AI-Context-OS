@@ -5,7 +5,6 @@ import { FileText, PanelRightClose, PanelRightOpen, Trash2, ChevronRight } from 
 import { clsx } from "clsx";
 import { useAppStore } from "../../lib/store";
 import { FrontmatterForm } from "./FrontmatterForm";
-import { TipTapEditor } from "./TipTapEditor";
 import { HybridMarkdownEditor } from "./HybridMarkdownEditor";
 import type { Memory, MemoryMeta, MemoryOntology, RawFileDocument } from "../../lib/types";
 
@@ -390,19 +389,18 @@ export function MemoryEditor() {
               </button>
               {l1Open && (
                 <div className="mt-2">
-                  <TipTapEditor
-                    key={`${activeMemory.meta.id}-l1`}
-                    documentKey={`${activeMemory.meta.id}-l1`}
-                    content={l1}
-                    onChange={(val) => {
-                      setL1(val);
+                  <textarea
+                    value={l1}
+                    onChange={(e) => {
+                      setL1(e.target.value);
                       setDirty(true);
                       setSaveStatus("dirty");
                     }}
                     onBlur={() => void handleSave()}
-                    className="min-h-[120px]"
+                    readOnly={isProtected}
                     placeholder={t("memoryEditor.placeholders.l1Summary")}
-                    editable={!isProtected}
+                    rows={3}
+                    className="w-full resize-y rounded-md border border-[var(--border)] bg-[color:var(--bg-1)] px-3 py-2 text-sm leading-relaxed text-[color:var(--text-1)] placeholder:text-[color:var(--text-2)]/40 focus:outline-none"
                   />
                 </div>
               )}
