@@ -58,6 +58,7 @@ const customTheme = EditorView.theme({
   ".cm-line.cm-h4": { fontSize: "1.1em", fontWeight: "700" },
   ".cm-line.cm-h5": { fontSize: "1em", fontWeight: "700" },
   ".cm-line.cm-h6": { fontSize: "1em", fontWeight: "700", color: "var(--text-2)" },
+  ".cm-link-preview": { cursor: "pointer" },
 });
 
 // A custom highlighting style to mimic Obsidian's markdown highlight 
@@ -72,7 +73,7 @@ const markdownHighlightStyle = HighlightStyle.define([
   { tag: t.strong, fontWeight: "bold" },
   { tag: t.emphasis, fontStyle: "italic" },
   { tag: t.strikethrough, textDecoration: "line-through" },
-  { tag: t.link, color: "var(--accent)", textDecoration: "underline", cursor: "pointer" },
+  { tag: t.link, color: "var(--accent)", textDecoration: "underline" },
   { tag: t.url, color: "var(--text-2)" },
   { tag: t.monospace, fontFamily: "monospace", color: "var(--text-0)", backgroundColor: "color-mix(in srgb, var(--bg-2) 60%, transparent)", borderRadius: "3px" },
   { tag: t.keyword, color: "var(--accent)" },
@@ -165,6 +166,7 @@ const livePreviewPlugin = ViewPlugin.fromClass(class {
     }
 
     const hideDeco = Decoration.replace({});
+    const linkPreviewMark = Decoration.mark({ class: "cm-link-preview" });
     const decos: {from: number, to: number, deco: Decoration}[] = [];
 
     for (const {from, to} of view.visibleRanges) {
@@ -191,6 +193,17 @@ const livePreviewPlugin = ViewPlugin.fromClass(class {
                 to: node.to, 
                 deco: Decoration.replace({ widget: new LinkIconWidget(urlText) }) 
               });
+            } else if (node.name === "Link") {
+              // Add pointer cursor to the visible link text in preview mode
+              const firstChild = node.node.firstChild;
+              const lastChild = node.node.lastChild;
+              if (firstChild && lastChild) {
+                const textFrom = firstChild.to; // after first LinkMark '['
+                const textTo = firstChild.nextSibling?.name === "LinkMark" ? firstChild.nextSibling.from : lastChild.from;
+                if (textTo > textFrom) {
+                  decos.push({ from: textFrom, to: textTo, deco: linkPreviewMark });
+                }
+              }
             }
           }
         }
