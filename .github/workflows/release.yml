@@ -56,6 +56,6 @@ jobs:
           tagName: v__VERSION__
           releaseName: 'AI Context OS v__VERSION__'
           releaseBody: 'See the assets to download and install this version.'
-          releaseDraft: false
-          prerelease: false
+          releaseDraft: true
+          prerelease: true
           args: ${{ matrix.args }}
