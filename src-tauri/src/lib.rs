@@ -5,7 +5,7 @@ mod state;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 
 use state::AppState;
 
