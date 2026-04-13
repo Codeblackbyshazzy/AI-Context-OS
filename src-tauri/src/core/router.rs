@@ -26,7 +26,7 @@ pub fn generate_router_content(memories: &[MemoryMeta], config: &Config) -> Stri
     // ── Section 2: System overview (minimal) ──
     out.push_str("# How This Workspace Works\n\n");
     out.push_str("AI Context OS workspace. Knowledge lives in `.md` files with YAML frontmatter.\n");
-    out.push_str("If MCP tools are available (get_context, save_memory, etc.), prefer them over reading files directly.\n\n");
+    out.push_str("**IMPORTANT**: If MCP tools are available (`get_context`, `save_memory`, `get_skill`, `log_session`), you MUST use them instead of reading/writing files directly. They handle scoring, formatting, and persistence. Only fall back to direct file access if MCP is not connected.\n\n");
 
     // ── Section 3: Reading rules ──
     out.push_str("# Reading Memories\n\n");
