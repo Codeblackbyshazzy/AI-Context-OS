@@ -44,26 +44,25 @@ fn default_budget() -> u32 {
 
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct SaveMemoryParams {
-    /// Unique memory ID (e.g. "mi-memoria-nueva")
+    /// Unique memory ID in kebab-case. Becomes the filename (e.g. "project-roadmap" → project-roadmap.md)
     pub id: String,
-    /// Memory ontology: source, entity, concept, synthesis
+    /// Ontology type: "source" (reference material), "entity" (people/projects/tools), "concept" (ideas/patterns), "synthesis" (analysis/decisions)
     pub ontology: String,
-    /// One-line summary (L0)
+    /// One-line summary shown in the memory index. Keep it under 80 chars.
     pub l0: String,
-    /// Importance from 0.0 to 1.0
+    /// Importance score: 0.3=low, 0.5=normal, 0.7=high, 0.9=critical
     #[serde(default = "default_importance")]
     pub importance: f64,
-    /// Tags for categorization
+    /// Tags for search and categorization
     #[serde(default)]
     pub tags: Vec<String>,
-    /// Main content (L1)
+    /// Brief summary (50-150 words). Loaded first; should be enough for most tasks.
     #[serde(default)]
     pub l1_content: String,
-    /// Extended detail content (L2)
+    /// Full detail, examples, extended context. Loaded only when L1 is insufficient.
     #[serde(default)]
     pub l2_content: String,
-    /// Optional destination folder relative to the workspace root, for example
-    /// `inbox`, `.ai/skills`, or `.ai/rules`. Defaults to `inbox`.
+    /// Destination folder relative to workspace root. Valid: "inbox" (default), ".ai/skills", ".ai/rules", or any user folder.
     pub folder: Option<String>,
 }
 
@@ -167,7 +166,7 @@ impl AiContextMcpServer {
 impl AiContextMcpServer {
     #[tool(
         name = "get_context",
-        description = "Load relevant AI context for a task. Returns rules, scored memories at appropriate detail levels, and a list of available but unloaded memories. Use this at the start of every task."
+        description = "Load relevant AI context for a task. Call this at the start of every task. Returns: workspace rules, scored memories at L1/L2 detail levels based on relevance, and a list of available but unloaded memories you can request later."
     )]
     async fn get_context(&self, Parameters(params): Parameters<GetContextParams>) -> String {
         let root = self.state.root_dir.read().unwrap().clone();
@@ -233,7 +232,7 @@ impl AiContextMcpServer {
 
     #[tool(
         name = "save_memory",
-        description = "Create or update a memory in the AI Context OS workspace. Memories persist knowledge for future AI sessions."
+        description = "Create or update a memory file. Provide: id (kebab-case, becomes filename), ontology (source|entity|concept|synthesis), l0 (one-line summary), importance (0.0-1.0), l1_content (brief summary, 50-150 words), l2_content (full detail, optional). Saves to folder (default: inbox/)."
     )]
     async fn save_memory(&self, Parameters(params): Parameters<SaveMemoryParams>) -> String {
         let root = self.state.root_dir.read().unwrap().clone();
