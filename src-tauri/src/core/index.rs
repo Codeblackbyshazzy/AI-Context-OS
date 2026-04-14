@@ -1,6 +1,7 @@
 use std::fs;
 use std::path::Path;
 
+use crate::core::folder_contract::{check_required_fields, load_folder_contract};
 use crate::core::frontmatter::parse_frontmatter;
 use crate::core::paths::{enrich_memory_meta, AI_DIR, AI_SKIP_SUBDIRS, SCAN_SKIP_DIRS};
 use crate::core::types::MemoryMeta;
@@ -53,6 +54,22 @@ fn scan_dir_recursive(
                         enrich_memory_meta(&mut meta, &path, root);
                         let meta_id = meta.id.clone();
                         apply_usage(&mut meta, usage.get(&meta_id));
+
+                        // Warn if the memory violates its folder contract.
+                        // Non-fatal: existing workspaces and migrations are not broken.
+                        if let Some(parent) = path.parent() {
+                            if let Some(contract) = load_folder_contract(parent) {
+                                for violation in check_required_fields(&meta, &contract) {
+                                    log::warn!(
+                                        "Memory '{}' violates folder contract (role: {}): {}",
+                                        meta_id,
+                                        contract.role,
+                                        violation
+                                    );
+                                }
+                            }
+                        }
+
                         results.push((meta, path.to_string_lossy().to_string()));
                     }
                     Err(_) => {

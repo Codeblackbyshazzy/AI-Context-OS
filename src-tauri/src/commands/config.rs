@@ -67,6 +67,9 @@ pub fn create_workspace_structure(root: &Path, active_tools: &[String]) -> Resul
     fs::write(paths.catalog_md(), crate::core::router::render_catalog_markdown(&manifest))
         .map_err(|e| format!("Failed to write catalog.md: {}", e))?;
 
+    // Create folder contracts for system directories
+    write_folder_contracts(&paths)?;
+
     // Create inbox ingestion protocol
     let ingest_instructions = r#"# Ingestion Instructions — AI Context OS
 
@@ -176,6 +179,67 @@ pub fn sync_workspace_runtime(
             }
         } else {
             state.replace_watcher(None);
+        }
+    }
+
+    Ok(())
+}
+
+/// Write .folder.yaml contracts for system directories.
+/// Uses write_if_not_exists so manual edits in existing workspaces are preserved.
+fn write_folder_contracts(paths: &SystemPaths) -> Result<(), String> {
+    let contracts: &[(&std::path::PathBuf, &str)] = &[
+        (
+            &paths.inbox_dir(),
+            "role: inbox\n\
+             description: Staging area for unprocessed incoming memories\n\
+             lifecycle: transient\n\
+             scannable: true\n\
+             writable_by_mcp: true\n\
+             required_fields: [id, type, l0, status]\n\
+             optional_fields: [derived_from, tags, importance]\n\
+             default_values:\n\
+             \x20 status: unprocessed\n\
+             \x20 importance: 0.3\n",
+        ),
+        (
+            &paths.sources_dir(),
+            "role: source\n\
+             description: Original reference materials — not modified after ingestion\n\
+             lifecycle: immutable\n\
+             scannable: true\n\
+             writable_by_mcp: false\n\
+             required_fields: [id, type, l0]\n\
+             optional_fields: [confidence, derived_from, tags]\n",
+        ),
+        (
+            &paths.skills_dir(),
+            "role: skill\n\
+             description: Executable skills with trigger-based activation\n\
+             lifecycle: permanent\n\
+             scannable: true\n\
+             writable_by_mcp: true\n\
+             required_fields: [id, type, l0, triggers]\n\
+             optional_fields: [requires, optional, output_format, tags]\n",
+        ),
+        (
+            &paths.rules_dir(),
+            "role: rule\n\
+             description: Workspace rules loaded into the router\n\
+             lifecycle: permanent\n\
+             scannable: true\n\
+             writable_by_mcp: true\n\
+             required_fields: [id, type, l0]\n\
+             optional_fields: [tags]\n",
+        ),
+    ];
+
+    for (dir, content) in contracts {
+        let contract_path = dir.join(".folder.yaml");
+        if !contract_path.exists() {
+            fs::write(&contract_path, content).map_err(|e| {
+                format!("Failed to write {}: {}", contract_path.display(), e)
+            })?;
         }
     }
 

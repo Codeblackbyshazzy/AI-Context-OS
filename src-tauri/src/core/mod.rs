@@ -1,6 +1,7 @@
 pub mod compat;
 pub mod decay;
 pub mod engine;
+pub mod folder_contract;
 pub mod frontmatter;
 pub mod governance;
 pub mod graph;
