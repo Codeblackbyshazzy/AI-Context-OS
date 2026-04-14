@@ -236,6 +236,7 @@ fn main() {
             std::fs::write(root.join("claude.md"), &claude_md).unwrap();
             let index_yaml = generate_index_yaml(&manifest).unwrap();
             let paths = core::paths::SystemPaths::new(&root);
+            std::fs::create_dir_all(paths.ai_dir()).unwrap();
             std::fs::write(paths.index_yaml(), &index_yaml).unwrap();
             std::fs::write(paths.catalog_md(), render_catalog_markdown(&manifest)).unwrap();
 

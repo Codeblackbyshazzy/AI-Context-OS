@@ -36,6 +36,8 @@ pub(crate) fn regenerate_router_files(
 
     // Generate rich catalog/index artifacts (independent of adapters)
     let paths = crate::core::paths::SystemPaths::new(root);
+    fs::create_dir_all(paths.ai_dir())
+        .map_err(|e| format!("Failed to create .ai directory: {}", e))?;
     let index_yaml = generate_index_yaml(&manifest)?;
     fs::write(paths.index_yaml(), &index_yaml)
         .map_err(|e| format!("Failed to write index.yaml: {}", e))?;
