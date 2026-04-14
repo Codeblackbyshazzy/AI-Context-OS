@@ -168,7 +168,6 @@ mod tests {
                 ontology: MemoryOntology::Concept,
                 l0: String::new(),
                 importance: 0.5,
-                always_load: false,
                 decay_rate: 0.998,
                 last_access: Utc::now(),
                 access_count: 0,

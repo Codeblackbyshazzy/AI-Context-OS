@@ -78,7 +78,6 @@ This is the complete content.
             ontology: crate::core::types::MemoryOntology::Concept,
             l0: "Serialized memory".to_string(),
             importance: 0.5,
-            always_load: false,
             decay_rate: 0.998,
             last_access: chrono::Utc::now(),
             access_count: 0,
