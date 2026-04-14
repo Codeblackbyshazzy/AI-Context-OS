@@ -7,12 +7,22 @@ It is designed for two audiences at the same time:
 - humans who need to understand the product, review decisions, and evolve the system
 - future AI agents that need a reliable explanation of how the workspace, memory model, routing, ontology, and ingestion strategy are supposed to work
 
-## Recommended reading order
+## Folder Structure
 
-1. [Architecture And Operating Model](./architecture-and-operating-model.md)
-2. [Technical Paper](./paper.md)
-3. [Technical Whitepaper](./whitepaper.md)
-4. [Current State, Implemented Changes, And Roadmap](./current-state-and-roadmap.md)
+The documentation is now divided into two main areas:
+
+### 1. `Memm wiki/`
+Contains the core documentation, architecture specs, and whitepapers:
+- [Architecture And Operating Model](./Memm%20wiki/architecture-and-operating-model.md)
+- [Technical Paper](./Memm%20wiki/paper.md)
+- [Technical Whitepaper](./Memm%20wiki/whitepaper.md)
+- [Current Architecture Router](./Memm%20wiki/ARQUITECTURA-ACTUAL-ROUTER-CONTEXTO-Y-MEMORIAS.md)
+
+### 2. `roadmap/`
+Contains development plans, technical reviews, and upcoming features:
+- [Current State, Implemented Changes, And Roadmap](./roadmap/current-state-and-roadmap.md)
+- [Pending Features](./roadmap/FEATURES-PENDIENTES.md)
+- [Technical Alignment Review](./roadmap/REVISION-TECNICA-ALINEACION-2026-03-29.md)
 
 ## Scope of this folder
 
@@ -29,15 +39,6 @@ These docs intentionally go deeper than the root README:
 - what is still planned
 - constraints and invariants that should not be broken casually
 
-## Source documents that informed this folder
-
-- [README.md](../README.md)
-- [README.es.md](../README.es.md)
-- [AGENT.md](../AGENT.md)
-- [AGENTS.md](../AGENTS.md)
-- [REVISION-TECNICA-ALINEACION-2026-03-29.md](../REVISION-TECNICA-ALINEACION-2026-03-29.md)
-- files under `roadmap/`
-
 ## Maintenance rule
 
-When core architecture changes, update this folder in the same change whenever possible.
+When core architecture changes, update this folder and the corresponding subdirectories in the same change whenever possible.

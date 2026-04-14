@@ -1,4 +1,4 @@
-# AI Context OS — Landing Page Blueprint
+ # AI Context OS — Landing Page Blueprint
 
 *Messaging keys, copy hooks, and section structure for the landing page.*
 *Tone: confident, technical, direct. No fluff. Audience: senior engineers who use AI tools daily.*
