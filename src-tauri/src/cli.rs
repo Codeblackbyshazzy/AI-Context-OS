@@ -10,7 +10,7 @@ use core::compat::{render_claude_adapter, render_cursor_adapter, render_windsurf
 use core::graph::get_community_map_for_scoring;
 use core::index::scan_memories;
 use core::memory::read_memory;
-use core::router::{generate_index_yaml, generate_router_content};
+use core::router::{build_router_manifest, generate_index_yaml, render_catalog_markdown, render_static_router};
 use core::scoring::compute_score;
 use core::types::{Config, Memory};
 
@@ -107,7 +107,14 @@ fn load_all_memories(root: &PathBuf) -> Vec<Memory> {
     let scanned = scan_memories(root);
     scanned
         .iter()
-        .filter_map(|(_meta, path)| read_memory(root, std::path::Path::new(path)).ok())
+        .filter_map(|(meta, path)| {
+            read_memory(root, std::path::Path::new(path))
+                .ok()
+                .map(|mut memory| {
+                    memory.meta = meta.clone();
+                    memory
+                })
+        })
         .collect()
 }
 
@@ -142,12 +149,13 @@ fn main() {
             let paths = core::paths::SystemPaths::new(&root);
             let yaml = serde_yaml::to_string(&config).unwrap();
             std::fs::write(paths.config_yaml(), yaml).unwrap();
-            std::fs::write(
-                paths.claude_md(),
-                "# AI Context OS — Router\n\nInitialized.\n",
-            )
-            .unwrap();
-            std::fs::write(paths.index_yaml(), "memories: []\n").unwrap();
+            let manifest = build_router_manifest(&[], &root, &config);
+            let neutral = render_static_router(&manifest);
+            std::fs::write(paths.claude_md(), render_claude_adapter(&neutral)).unwrap();
+            std::fs::write(paths.cursorrules(), render_cursor_adapter(&neutral)).unwrap();
+            std::fs::write(paths.windsurfrules(), render_windsurf_adapter(&neutral)).unwrap();
+            std::fs::write(paths.index_yaml(), generate_index_yaml(&manifest).unwrap()).unwrap();
+            std::fs::write(paths.catalog_md(), render_catalog_markdown(&manifest)).unwrap();
 
             println!("Workspace initialized at {}", root.display());
         }
@@ -222,15 +230,15 @@ fn main() {
         Commands::Regenerate => {
             let config = load_config(&root);
             let scanned = scan_memories(&root);
-            let metas: Vec<_> = scanned.iter().map(|(m, _)| m.clone()).collect();
-
-            let neutral = generate_router_content(&metas, &config);
+            let manifest = build_router_manifest(&scanned, &root, &config);
+            let neutral = render_static_router(&manifest);
             let claude_md = render_claude_adapter(&neutral);
             std::fs::write(root.join("claude.md"), &claude_md).unwrap();
-
-            let index_yaml = generate_index_yaml(&metas);
+            let index_yaml = generate_index_yaml(&manifest).unwrap();
             let paths = core::paths::SystemPaths::new(&root);
+            std::fs::create_dir_all(paths.ai_dir()).unwrap();
             std::fs::write(paths.index_yaml(), &index_yaml).unwrap();
+            std::fs::write(paths.catalog_md(), render_catalog_markdown(&manifest)).unwrap();
 
             let cursorrules = render_cursor_adapter(&neutral);
             std::fs::write(root.join(".cursorrules"), &cursorrules).ok();
@@ -238,8 +246,8 @@ fn main() {
             std::fs::write(root.join(".windsurfrules"), &windsurfrules).ok();
 
             println!(
-                "Regenerated: claude.md, .ai/index.yaml, .cursorrules, .windsurfrules ({} memories)",
-                metas.len()
+                "Regenerated: claude.md, .ai/index.yaml, .ai/catalog.md, .cursorrules, .windsurfrules ({} memories)",
+                scanned.len()
             );
         }
 

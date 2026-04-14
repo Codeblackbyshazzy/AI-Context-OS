@@ -1,22 +1,27 @@
 use std::fs;
 use std::path::Path;
 
-use chrono::Utc;
-
-use crate::core::frontmatter::{parse_frontmatter, serialize_frontmatter};
+use crate::core::folder_contract::{check_required_fields, load_folder_contract};
+use crate::core::frontmatter::parse_frontmatter;
 use crate::core::paths::{enrich_memory_meta, AI_DIR, AI_SKIP_SUBDIRS, SCAN_SKIP_DIRS};
-use crate::core::types::{MemoryMeta, MemoryOntology};
+use crate::core::types::MemoryMeta;
+use crate::core::usage::{apply_usage, load_usage_map};
 
 /// Scan the entire workspace recursively and collect all memory metadata.
 /// Files are identified as memories by having valid YAML frontmatter with a `type` field.
 /// Skips .git, node_modules, .cache, and files starting with `_`.
 pub fn scan_memories(root: &Path) -> Vec<(MemoryMeta, String)> {
     let mut results = Vec::new();
-    scan_dir_recursive(root, root, &mut results);
+    let usage = load_usage_map(root);
+    scan_dir_recursive(root, root, &usage, &mut results);
     results
 }
-
-fn scan_dir_recursive(root: &Path, dir: &Path, results: &mut Vec<(MemoryMeta, String)>) {
+fn scan_dir_recursive(
+    root: &Path,
+    dir: &Path,
+    usage: &std::collections::HashMap<String, crate::core::usage::MemoryUsageEntry>,
+    results: &mut Vec<(MemoryMeta, String)>,
+) {
     let entries = match fs::read_dir(dir) {
         Ok(e) => e,
         Err(_) => return,
@@ -37,7 +42,7 @@ fn scan_dir_recursive(root: &Path, dir: &Path, results: &mut Vec<(MemoryMeta, St
             {
                 continue;
             }
-            scan_dir_recursive(root, &path, results);
+            scan_dir_recursive(root, &path, usage, results);
         } else if path.extension().map_or(false, |ext| ext == "md") {
             // Skip files starting with _ (like _project.md templates)
             if name.starts_with('_') {
@@ -47,49 +52,29 @@ fn scan_dir_recursive(root: &Path, dir: &Path, results: &mut Vec<(MemoryMeta, St
                 match parse_frontmatter(&content) {
                     Ok((mut meta, _)) => {
                         enrich_memory_meta(&mut meta, &path, root);
+                        let meta_id = meta.id.clone();
+                        apply_usage(&mut meta, usage.get(&meta_id));
+
+                        // Warn if the memory violates its folder contract.
+                        // Non-fatal: existing workspaces and migrations are not broken.
+                        if let Some(parent) = path.parent() {
+                            if let Some(contract) = load_folder_contract(parent) {
+                                for violation in check_required_fields(&meta, &contract) {
+                                    log::warn!(
+                                        "Memory '{}' violates folder contract (role: {}): {}",
+                                        meta_id,
+                                        contract.role,
+                                        violation
+                                    );
+                                }
+                            }
+                        }
+
                         results.push((meta, path.to_string_lossy().to_string()));
                     }
                     Err(_) => {
-                        // Bare .md file (no frontmatter) — auto-inject minimal frontmatter
-                        // so the app recognizes it as an editable Memory instead of raw TEXT.
-                        if let Some(stem) = path.file_stem() {
-                            let raw_stem = stem.to_string_lossy();
-                            let id = raw_stem
-                                .to_lowercase()
-                                .chars()
-                                .map(|c| if c.is_alphanumeric() || c == '-' { c } else { '-' })
-                                .collect::<String>();
-                            let mut meta = MemoryMeta {
-                                id,
-                                ontology: MemoryOntology::Entity,
-                                l0: raw_stem.to_string(),
-                                importance: 0.5,
-                                always_load: false,
-                                decay_rate: 0.998,
-                                last_access: Utc::now(),
-                                access_count: 0,
-                                confidence: 0.9,
-                                tags: vec![],
-                                related: vec![],
-                                created: Utc::now(),
-                                modified: Utc::now(),
-                                version: 1,
-                                triggers: vec![],
-                                requires: vec![],
-                                optional: vec![],
-                                output_format: None,
-                                status: None,
-                                protected: false,
-                                derived_from: vec![],
-                                folder_category: None,
-                                system_role: None,
-                            };
-                            if let Ok(new_content) = serialize_frontmatter(&meta, &content) {
-                                let _ = fs::write(&path, &new_content);
-                            }
-                            enrich_memory_meta(&mut meta, &path, root);
-                            results.push((meta, path.to_string_lossy().to_string()));
-                        }
+                        // Bare markdown files are left untouched. They remain regular documents
+                        // until the user explicitly converts them into canonical memories.
                     }
                 }
             }

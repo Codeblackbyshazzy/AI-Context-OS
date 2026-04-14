@@ -504,6 +504,8 @@
       "inactive": "inactivo"
     },
     "tiers": {
+      "nativeMcp": "MCP Nativo",
+      "remoteMcp": "MCP Remoto",
       "localNative": "Nativo Local",
       "bridge": "Puente Manual"
     },
@@ -523,15 +525,27 @@
       },
       "cursor": {
         "name": "Cursor",
-        "description": "HTTP MCP (requiere app abierta) + .cursorrules estático siempre disponible.",
-        "cap1": "HTTP MCP en puerto 3847 (mismas 4 herramientas, requiere app abierta)",
-        "cap2": ".cursorrules autogenerado con reglas y contexto base"
+        "description": "MCP HTTP remoto con la app abierta, más fallback estático vía .cursorrules cuando no hay MCP.",
+        "cap1": "HTTP MCP en puerto 3847 / SSE (mismas 4 herramientas, requiere app abierta)",
+        "cap2": ".cursorrules autogenerado para fallback estático y uso sin MCP"
       },
       "windsurf": {
         "name": "Windsurf",
-        "description": "HTTP MCP (requiere app abierta) + .windsurfrules estático siempre disponible.",
-        "cap1": "HTTP MCP en puerto 3847 (requiere app abierta)",
-        "cap2": ".windsurfrules autogenerado con reglas y contexto base"
+        "description": "MCP HTTP remoto con la app abierta, más fallback estático vía .windsurfrules cuando no hay MCP.",
+        "cap1": "HTTP MCP en puerto 3847 / SSE (requiere app abierta)",
+        "cap2": ".windsurfrules autogenerado para fallback estático y uso sin MCP"
+      },
+      "codexCli": {
+        "name": "Codex CLI",
+        "description": "stdio MCP nativo para flujos OpenAI/Codex en terminal.",
+        "cap1": "stdio MCP vía Codex CLI (get_context, save_memory, get_skill, log_session)",
+        "cap2": "Trabaja directamente en la raíz del workspace con acceso local a archivos"
+      },
+      "chatgptWeb": {
+        "name": "ChatGPT Web",
+        "description": "Sin MCP ni acceso local a archivos. Usa snapshots manuales y archivos handoff.",
+        "cap1": "Copiar contexto optimizado al portapapeles",
+        "cap2": "Generar handoff.md para un chat nuevo"
       },
       "chatgpt": {
         "name": "ChatGPT / Codex",
@@ -548,15 +562,15 @@
       },
       "geminiWeb": {
         "name": "Gemini Web",
-        "description": "Sin integración nativa. Transferencia manual de contexto óptimo.",
+        "description": "Sin MCP ni acceso local a archivos. Transferencia manual de contexto optimizado.",
         "cap1": "Copiar contexto optimizado al portapapeles",
         "cap2": "Generar handoff.md con resumen estructurado"
       },
       "copilot": {
         "name": "GitHub Copilot",
-        "description": "Sin MCP nativo. Usa .cursorrules como contexto estático si el editor lo soporta.",
-        "cap1": "Contexto estático vía .cursorrules (en editores compatibles)",
-        "cap2": "Copiar contexto optimizado al portapapeles"
+        "description": "Sin MCP nativo. El fallback estático solo aplica cuando Copilot se usa dentro de editores que ya leen archivos de reglas generados.",
+        "cap1": "Contexto estático vía archivos de reglas generados en editores compatibles",
+        "cap2": "Copiar contexto optimizado al portapapeles para chats aislados"
       }
     },
     "sections": {

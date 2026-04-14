@@ -44,6 +44,9 @@ impl SystemPaths {
     pub fn index_yaml(&self) -> PathBuf {
         self.root.join(".ai/index.yaml")
     }
+    pub fn catalog_md(&self) -> PathBuf {
+        self.root.join(".ai/catalog.md")
+    }
 
     pub fn rules_dir(&self) -> PathBuf {
         self.root.join(".ai/rules")
@@ -71,6 +74,10 @@ impl SystemPaths {
 
     pub fn scratch_dir(&self) -> PathBuf {
         self.root.join(".ai/scratch")
+    }
+
+    pub fn usage_json(&self) -> PathBuf {
+        self.root.join(".cache/memory-usage.json")
     }
 
     // ── Root-level files ──
@@ -136,6 +143,18 @@ pub fn folder_category(path: &Path, root: &Path) -> Option<String> {
 }
 
 pub fn system_role(path: &Path, root: &Path) -> Option<SystemRole> {
+    // Primary: read the role from .folder.yaml in the parent directory.
+    if let Some(parent) = path.parent() {
+        if let Some(contract) = crate::core::folder_contract::load_folder_contract(parent) {
+            return match contract.role.as_str() {
+                "skill" => Some(SystemRole::Skill),
+                "rule" => Some(SystemRole::Rule),
+                _ => None,
+            };
+        }
+    }
+
+    // Fallback: hardcoded path-based detection for workspaces without .folder.yaml.
     let relative = path.strip_prefix(root).ok()?;
     let mut components = relative.components();
     let first = components.next()?.as_os_str().to_string_lossy();

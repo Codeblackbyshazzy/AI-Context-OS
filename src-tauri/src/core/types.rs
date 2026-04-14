@@ -32,13 +32,11 @@ pub struct MemoryMeta {
     pub l0: String,
     #[serde(default = "default_importance")]
     pub importance: f64,
-    #[serde(default)]
-    pub always_load: bool,
     #[serde(default = "default_decay_rate")]
     pub decay_rate: f64,
-    #[serde(default = "Utc::now")]
+    #[serde(default = "Utc::now", skip_serializing)]
     pub last_access: DateTime<Utc>,
-    #[serde(default)]
+    #[serde(default, skip_serializing)]
     pub access_count: u32,
     #[serde(default = "default_confidence")]
     pub confidence: f64,

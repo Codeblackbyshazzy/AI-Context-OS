@@ -5,19 +5,21 @@ use tauri::{AppHandle, Emitter, State};
 
 use crate::core::compat::{render_claude_adapter, render_cursor_adapter, render_windsurf_adapter};
 use crate::core::index::scan_memories;
-use crate::core::router::{generate_index_yaml, generate_router_content};
+use crate::core::router::{
+    build_router_manifest, generate_index_yaml, render_catalog_markdown, render_static_router,
+};
 use crate::core::types::{Config, MemoryMeta};
 use crate::state::AppState;
 
-fn regenerate_router_files(
+pub(crate) fn regenerate_router_files(
     root: &Path,
     config: &Config,
 ) -> Result<(String, Vec<(MemoryMeta, String)>), String> {
     let all = scan_memories(root);
-    let metas: Vec<_> = all.iter().map(|(m, _)| m.clone()).collect();
+    let manifest = build_router_manifest(&all, root, config);
 
-    // Generate neutral router content (source of truth)
-    let neutral = generate_router_content(&metas, config);
+    // Generate static adapter bootstrap from the manifest
+    let neutral = render_static_router(&manifest);
 
     // Write adapter artifacts from neutral content
     let claude_md = render_claude_adapter(&neutral);
@@ -32,11 +34,16 @@ fn regenerate_router_files(
     fs::write(root.join(".windsurfrules"), &windsurfrules)
         .map_err(|e| format!("Failed to write .windsurfrules: {}", e))?;
 
-    // Generate index.yaml (independent of adapters)
+    // Generate rich catalog/index artifacts (independent of adapters)
     let paths = crate::core::paths::SystemPaths::new(root);
-    let index_yaml = generate_index_yaml(&metas);
+    fs::create_dir_all(paths.ai_dir())
+        .map_err(|e| format!("Failed to create .ai directory: {}", e))?;
+    let index_yaml = generate_index_yaml(&manifest)?;
     fs::write(paths.index_yaml(), &index_yaml)
         .map_err(|e| format!("Failed to write index.yaml: {}", e))?;
+    let catalog_md = render_catalog_markdown(&manifest);
+    fs::write(paths.catalog_md(), &catalog_md)
+        .map_err(|e| format!("Failed to write catalog.md: {}", e))?;
 
     Ok((claude_md, all))
 }

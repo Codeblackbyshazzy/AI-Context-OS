@@ -1,6 +1,7 @@
 pub mod compat;
 pub mod decay;
 pub mod engine;
+pub mod folder_contract;
 pub mod frontmatter;
 pub mod governance;
 pub mod graph;
@@ -20,4 +21,5 @@ pub mod scoring;
 pub mod search;
 pub mod tasks;
 pub mod types;
+pub mod usage;
 pub mod watcher;
