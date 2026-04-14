@@ -37,8 +37,7 @@ import {
   renamePath,
   showInFileManager,
 } from "../../lib/tauri";
-import type { Conflict, FileNode, MemoryOntology } from "../../lib/types";
-import { MEMORY_ONTOLOGY_COLORS } from "../../lib/types";
+import type { Conflict, FileNode } from "../../lib/types";
 
 interface ContextMenuState {
   x: number;
@@ -174,11 +173,6 @@ function ContextMenu({
       ))}
     </div>
   );
-}
-
-function getFileOntologyColor(ontology: MemoryOntology | undefined): string | undefined {
-  if (!ontology) return undefined;
-  return MEMORY_ONTOLOGY_COLORS[ontology];
 }
 
 function defaultOntologyForDirectory(path: string): "source" | "entity" | "concept" | "synthesis" {
@@ -394,7 +388,7 @@ function TreeNode({
                 <GripVertical className="h-3 w-3 text-[color:var(--text-2)] opacity-70 transition-opacity group-hover:opacity-100" />
               ) : null}
             </span>
-            <FileText className="h-3.5 w-3.5 shrink-0" style={{ color: getFileOntologyColor(memoryMeta?.type ?? memoryMeta?.ontology) ?? "var(--text-2)" }} />
+            <FileText className="h-3.5 w-3.5 shrink-0 text-[color:var(--text-2)]" />
           </>
         )}
 
