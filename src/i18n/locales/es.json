@@ -156,7 +156,9 @@
     "errorReserved": "Esta carpeta está reservada para contenido del sistema o protegido",
     "errorNoWorkspace": "No hay espacio de trabajo configurado",
     "errorNoFolder": "No hay carpeta de memoria disponible",
-    "errorCopyPath": "No se pudo copiar la ruta al portapapeles"
+    "errorCopyPath": "No se pudo copiar la ruta al portapapeles",
+    "folderColor": "Color",
+    "clearColor": "Sin color"
   },
   "tasks": {
     "filterAllStatuses": "Todos los estados",

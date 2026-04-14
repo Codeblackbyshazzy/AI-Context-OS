@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { clsx } from "clsx";
 import { useAppStore } from "../../lib/store";
-import { useSettingsStore } from "../../lib/settingsStore";
+import { useSettingsStore, type SettingsStore } from "../../lib/settingsStore";
 import { open } from "@tauri-apps/plugin-dialog";
 import {
   createDirectory,

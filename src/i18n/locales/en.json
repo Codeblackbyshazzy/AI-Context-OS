@@ -156,7 +156,9 @@
     "errorReserved": "This folder is reserved for system or protected content",
     "errorNoWorkspace": "No workspace configured",
     "errorNoFolder": "No memory folder available",
-    "errorCopyPath": "Could not copy path to clipboard"
+    "errorCopyPath": "Could not copy path to clipboard",
+    "folderColor": "Color",
+    "clearColor": "No color"
   },
   "tasks": {
     "filterAllStatuses": "All statuses",
