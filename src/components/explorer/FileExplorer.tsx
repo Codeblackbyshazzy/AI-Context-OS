@@ -539,6 +539,7 @@ function isRawViewerSupported(name: string): boolean {
 const PROTECTED_FILE_NAMES = new Set([
   "config.yaml",
   "index.yaml",
+  "catalog.md",
   "claude.md",
   ".cursorrules",
   ".windsurfrules",
