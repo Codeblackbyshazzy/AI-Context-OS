@@ -394,7 +394,7 @@ function TreeNode({
                 <GripVertical className="h-3 w-3 text-[color:var(--text-2)] opacity-70 transition-opacity group-hover:opacity-100" />
               ) : null}
             </span>
-            <FileText className="h-3.5 w-3.5 shrink-0" style={{ color: getFileOntologyColor(memoryMeta?.ontology) ?? "var(--text-2)" }} />
+            <FileText className="h-3.5 w-3.5 shrink-0" style={{ color: getFileOntologyColor(memoryMeta?.type ?? memoryMeta?.ontology) ?? "var(--text-2)" }} />
           </>
         )}
 

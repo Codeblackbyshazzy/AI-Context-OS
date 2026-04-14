@@ -6,7 +6,9 @@ export type MemoryStatus = "unprocessed" | "processed";
 
 export interface MemoryMeta {
   id: string;
+  /** Rust serializes this field as "type" (serde rename). Use `type` to read the value. */
   ontology: MemoryOntology;
+  type: MemoryOntology;
   l0: string;
   importance: number;
   decay_rate: number;
