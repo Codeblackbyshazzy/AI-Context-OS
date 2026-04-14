@@ -10,12 +10,15 @@ export interface SettingsStore {
   expertModeEnabled: boolean;
   showSystemFiles: boolean;
   language: Language;
+  folderColors: Record<string, string>;
   setTheme: (theme: Theme) => void;
   setExpertModeEnabled: (enabled: boolean) => void;
   toggleExpertModeEnabled: () => void;
   setShowSystemFiles: (show: boolean) => void;
   toggleShowSystemFiles: () => void;
   setLanguage: (lang: Language) => void;
+  setFolderColor: (folderPath: string, color: string) => void;
+  clearFolderColor: (folderPath: string) => void;
 }
 
 export const useSettingsStore = create<SettingsStore>()(
@@ -25,6 +28,7 @@ export const useSettingsStore = create<SettingsStore>()(
       expertModeEnabled: false,
       showSystemFiles: false,
       language: "en",
+      folderColors: {},
       setTheme: (theme) => set({ theme }),
       setExpertModeEnabled: (expertModeEnabled) =>
         set((state) => ({
@@ -43,6 +47,15 @@ export const useSettingsStore = create<SettingsStore>()(
       toggleShowSystemFiles: () =>
         set((state) => ({ showSystemFiles: !state.showSystemFiles })),
       setLanguage: (language) => set({ language }),
+      setFolderColor: (folderPath, color) =>
+        set((state) => ({
+          folderColors: { ...state.folderColors, [folderPath]: color },
+        })),
+      clearFolderColor: (folderPath) =>
+        set((state) => {
+          const { [folderPath]: _, ...rest } = state.folderColors;
+          return { folderColors: rest };
+        }),
     }),
     {
       name: "obs-settings",
