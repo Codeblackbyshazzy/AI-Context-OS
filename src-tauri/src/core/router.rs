@@ -1,161 +1,302 @@
+use std::cmp::Ordering;
 use std::collections::BTreeMap;
+use std::path::Path;
 
-use crate::core::types::{Config, MemoryMeta, MemoryOntology, SystemRole};
+use serde::Serialize;
 
-/// Generate the neutral router content.
-/// Order follows attention positioning: RULES at top, L0 index at bottom.
-/// This output is consumed by adapters in compat.rs to produce tool-specific files.
-pub fn generate_router_content(memories: &[MemoryMeta], config: &Config) -> String {
+use crate::core::types::{Config, Memory, MemoryMeta, MemoryOntology, MemoryStatus, SystemRole};
+
+#[derive(Debug, Clone, Serialize)]
+pub struct RouterManifest {
+    pub root_dir: String,
+    pub total_memories: usize,
+    pub rules: Vec<RouterMemoryEntry>,
+    pub skills: Vec<RouterMemoryEntry>,
+    pub collections: Vec<RouterCollection>,
+    pub memories: Vec<RouterMemoryEntry>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct RouterCollection {
+    pub name: String,
+    pub memories: Vec<RouterMemoryEntry>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct RouterMemoryEntry {
+    pub id: String,
+    pub path: String,
+    pub l0: String,
+    pub ontology: MemoryOntology,
+    pub importance: f64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub folder_category: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub system_role: Option<SystemRole>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub tags: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub related: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub derived_from: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub triggers: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub requires: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub optional: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub output_format: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub status: Option<MemoryStatus>,
+    #[serde(skip_serializing_if = "is_false")]
+    pub protected: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct RouterIndex {
+    pub root_dir: String,
+    pub total_memories: usize,
+    pub memories: Vec<RouterMemoryEntry>,
+}
+
+pub fn build_router_manifest(
+    entries: &[(MemoryMeta, String)],
+    root: &Path,
+    config: &Config,
+) -> RouterManifest {
+    let mut rules = Vec::new();
+    let mut skills = Vec::new();
+    let mut collections: BTreeMap<String, Vec<RouterMemoryEntry>> = BTreeMap::new();
+    let mut memories = Vec::new();
+
+    for (meta, path) in entries {
+        let entry = RouterMemoryEntry::from_meta(meta, path, root);
+        match entry.system_role {
+            Some(SystemRole::Rule) => rules.push(entry.clone()),
+            Some(SystemRole::Skill) => skills.push(entry.clone()),
+            None => {
+                let key = entry
+                    .folder_category
+                    .clone()
+                    .unwrap_or_else(|| "uncategorized".to_string());
+                collections.entry(key).or_default().push(entry.clone());
+            }
+        }
+        memories.push(entry);
+    }
+
+    rules.sort_by(memory_entry_cmp);
+    skills.sort_by(memory_entry_cmp);
+    memories.sort_by(memory_entry_cmp);
+
+    let mut grouped = collections
+        .into_iter()
+        .map(|(name, mut memories)| {
+            memories.sort_by(memory_entry_cmp);
+            RouterCollection { name, memories }
+        })
+        .collect::<Vec<_>>();
+    grouped.sort_by(collection_cmp);
+
+    RouterManifest {
+        root_dir: config.root_dir.clone(),
+        total_memories: memories.len(),
+        rules,
+        skills,
+        collections: grouped,
+        memories,
+    }
+}
+
+pub fn build_router_manifest_from_memories(
+    memories: &[Memory],
+    root: &Path,
+    config: &Config,
+) -> RouterManifest {
+    let entries = memories
+        .iter()
+        .map(|memory| (memory.meta.clone(), memory.file_path.clone()))
+        .collect::<Vec<_>>();
+    build_router_manifest(&entries, root, config)
+}
+
+pub fn render_static_router(manifest: &RouterManifest) -> String {
     let mut out = String::with_capacity(8192);
 
-    // ── Section 1: Rules (highest attention position) ──
     out.push_str("# RULES\n\n");
-    let rules: Vec<&MemoryMeta> = memories
-        .iter()
-        .filter(|m| m.system_role == Some(SystemRole::Rule))
-        .collect();
-    if rules.is_empty() {
-        out.push_str("_No rules defined yet. Add rules in .ai/rules/_\n\n");
+    if manifest.rules.is_empty() {
+        out.push_str("_No rules defined yet. Add rules in `.ai/rules/`._\n\n");
     } else {
-        for rule in &rules {
-            out.push_str(&format!("- **{}**: {}\n", rule.id, rule.l0));
+        for rule in &manifest.rules {
+            out.push_str(&format!("- [{}] {} — `{}`\n", rule.id, rule.l0, rule.path));
         }
         out.push('\n');
     }
 
-    // ── Section 2: System overview (minimal) ──
     out.push_str("# How This Workspace Works\n\n");
-    out.push_str("AI Context OS workspace. Knowledge lives in `.md` files with YAML frontmatter.\n");
-    out.push_str("**IMPORTANT**: If MCP tools are available (`get_context`, `save_memory`, `get_skill`, `log_session`), you MUST use them instead of reading/writing files directly. They handle scoring, formatting, and persistence. Only fall back to direct file access if MCP is not connected.\n\n");
+    out.push_str("AI Context OS workspace. Canonical knowledge lives in Markdown memories with YAML frontmatter plus `<!-- L1 -->` / `<!-- L2 -->` markers.\n");
+    out.push_str("If MCP is available, use the MCP tools first. If MCP is not available, use this file as the discovery map and then open only the canonical files you actually need.\n\n");
 
-    // ── Section 3: Reading rules ──
     out.push_str("# Reading Memories\n\n");
-    out.push_str("1. Only read files needed for the current task\n");
-    out.push_str("2. Start with L1 (summary). Load L2 (full) only if L1 lacks detail\n");
-    out.push_str("3. Max 5 L2 files per query. For simple tasks, 2-3 L1 files suffice\n");
-    out.push_str("4. Priority: rules > inbox > sources > user collections > skills\n");
-    out.push_str("5. Memories with `always_load: true` are always included\n");
-    out.push_str("6. If output exceeds 2000 tokens, write to `.ai/scratch/`\n\n");
+    out.push_str("1. Start from the compact L0 index in this file.\n");
+    out.push_str("2. Open only the memories relevant to the current task.\n");
+    out.push_str("3. Read L1 first. Open L2 only if L1 is insufficient.\n");
+    out.push_str("4. Use the path shown beside each memory to open the right canonical file directly.\n");
+    out.push_str("5. If you need richer metadata (links, provenance, dependencies), open `.ai/catalog.md` or `.ai/index.yaml`.\n");
+    out.push_str("6. If output gets too large, write scratch output to `.ai/scratch/`.\n\n");
 
-    // ── Section 5: Writing rules (the critical fix) ──
     out.push_str("# Writing Memories\n\n");
-    out.push_str("Every memory is a `.md` file with YAML frontmatter + body with level markers.\n\n");
-    out.push_str("## Required frontmatter fields\n\n");
-    out.push_str("```yaml\n");
-    out.push_str("---\n");
-    out.push_str("id: my-memory-name          # kebab-case, must match filename (without .md)\n");
-    out.push_str("type: concept               # ontology: source | entity | concept | synthesis\n");
-    out.push_str("l0: \"One-line description\"   # ultra-brief summary (shown in index)\n");
-    out.push_str("importance: 0.6             # 0.0-1.0 (0.3=low, 0.5=normal, 0.7=high, 0.9=critical)\n");
-    out.push_str("tags: [tag1, tag2]          # for search and categorization\n");
-    out.push_str("version: 1                  # increment on each edit\n");
-    out.push_str("created: 2026-01-15T10:00:00Z\n");
-    out.push_str("modified: 2026-01-15T10:00:00Z\n");
-    out.push_str("---\n");
-    out.push_str("```\n\n");
-    out.push_str("## Ontology types\n\n");
-    out.push_str("- **source**: reference material, docs, articles (often protected)\n");
-    out.push_str("- **entity**: people, projects, tools, organizations\n");
-    out.push_str("- **concept**: ideas, patterns, principles, technical concepts\n");
-    out.push_str("- **synthesis**: analysis, decisions, summaries derived from other memories\n\n");
-    out.push_str("## Body structure (L1 + L2)\n\n");
-    out.push_str("```markdown\n");
-    out.push_str("<!-- L1 -->\n");
-    out.push_str("Brief summary (50-150 words). Enough to decide if L2 is needed.\n");
-    out.push_str("\n");
-    out.push_str("<!-- L2 -->\n");
-    out.push_str("Full detail. Extended content, examples, data, deep context.\n");
-    out.push_str("```\n\n");
-    out.push_str("## Where to save\n\n");
-    out.push_str("- New memories: `inbox/` (default staging area)\n");
-    out.push_str("- Rules: `.ai/rules/` (AI behavior directives)\n");
-    out.push_str("- Skills: `.ai/skills/` (reusable skills with triggers)\n");
-    out.push_str("- User collections: any folder you create at the root level\n");
-    out.push_str("- Temporary outputs: `.ai/scratch/` (auto-cleaned after 7 days)\n\n");
-    out.push_str("## Key rules\n\n");
-    out.push_str("- `id` in frontmatter MUST match the filename (e.g., `id: my-note` → `my-note.md`)\n");
-    out.push_str("- Always include both `<!-- L1 -->` and `<!-- L2 -->` markers, even if L2 is empty\n");
-    out.push_str("- Increment `version` and update `modified` timestamp when editing existing memories\n");
-    out.push_str("- Protected files (`protected: true`) must NOT be edited without explicit user unlock\n");
-    out.push_str("- Folder/category is derived automatically from the file path — do not set it manually\n\n");
+    out.push_str("Every memory is a `.md` file with YAML frontmatter and body markers.\n\n");
+    out.push_str("Required fields:\n");
+    out.push_str("- `id`: kebab-case and must match the filename\n");
+    out.push_str("- `type`: ontology (`source`, `entity`, `concept`, `synthesis`)\n");
+    out.push_str("- `l0`: one-line summary\n");
+    out.push_str("- `importance`: 0.0-1.0\n");
+    out.push_str("- `created`, `modified`, `version`\n\n");
+    out.push_str("Key rules:\n");
+    out.push_str("- Always keep both `<!-- L1 -->` and `<!-- L2 -->` markers\n");
+    out.push_str("- Increment `version` and update `modified` when editing\n");
+    out.push_str("- `protected: true` memories must be unlocked before editing or deleting\n");
+    out.push_str("- Folder meaning is human-oriented; ontology lives in frontmatter\n\n");
 
-    // ── Section 6: Ingestion ──
-    out.push_str("# Ingestion\n\n");
-    out.push_str("Files in `inbox/` are staging. Read `inbox/_INGEST.md` first if it exists.\n\n");
-
-    // ── Section 7: Workspace structure ──
     out.push_str("# Workspace Structure\n\n");
-    out.push_str("```\n");
-    out.push_str(&format!("{}/\n", config.root_dir));
-    out.push_str("├── inbox/                  ← staging area for new memories\n");
-    out.push_str("├── sources/                ← accepted reference material (protected)\n");
-    out.push_str("├── claude.md               ← THIS FILE (master router, auto-generated)\n");
-    out.push_str("├── .cursorrules            ← Cursor adapter (auto-generated)\n");
-    out.push_str("├── .windsurfrules          ← Windsurf adapter (auto-generated)\n");
-    out.push_str("├── .ai/                    ← system infrastructure\n");
-    out.push_str("│   ├── config.yaml         ← workspace configuration\n");
-    out.push_str("│   ├── index.yaml          ← L0 index of all memories (auto-generated)\n");
-    out.push_str("│   ├── rules/              ← AI behavior directives\n");
-    out.push_str("│   ├── skills/             ← reusable skills with triggers\n");
-    out.push_str("│   ├── journal/            ← daily logs and session notes\n");
-    out.push_str("│   ├── tasks/              ← task tracking files\n");
-    out.push_str("│   └── scratch/            ← temporary AI outputs (TTL: 7 days)\n");
-    out.push_str("└── [your folders]/         ← any structure you want\n");
+    out.push_str("```text\n");
+    out.push_str(&format!("{}/\n", manifest.root_dir));
+    out.push_str("├── inbox/\n");
+    out.push_str("├── sources/\n");
+    out.push_str("├── claude.md\n");
+    out.push_str("├── .cursorrules\n");
+    out.push_str("├── .windsurfrules\n");
+    out.push_str("├── .ai/\n");
+    out.push_str("│   ├── config.yaml\n");
+    out.push_str("│   ├── index.yaml      # rich structured index\n");
+    out.push_str("│   ├── catalog.md      # human-readable catalog with metadata\n");
+    out.push_str("│   ├── rules/\n");
+    out.push_str("│   ├── skills/\n");
+    out.push_str("│   ├── journal/\n");
+    out.push_str("│   ├── tasks/\n");
+    out.push_str("│   └── scratch/\n");
+    out.push_str("└── [your folders]/\n");
     out.push_str("```\n\n");
 
-    // ── Section 8: Session compaction ──
-    out.push_str("# Session Compaction\n\n");
-    out.push_str("After 15+ turns: write summary to `.ai/journal/sessions/YYYY-MM-DD-summary.md` (decisions, facts, pending tasks).\n");
-    out.push_str("For long outputs: write to `.ai/scratch/` and reference the path in conversation.\n\n");
-
-    // ── Section 9: Memory index (L0) ──
-    out.push_str("# Memory Index\n\n");
-    let mut grouped: BTreeMap<String, Vec<&MemoryMeta>> = BTreeMap::new();
-    for memory in memories {
-        let key = memory
-            .folder_category
-            .clone()
-            .unwrap_or_else(|| "uncategorized".to_string());
-        grouped.entry(key).or_default().push(memory);
-    }
-
-    if grouped.is_empty() {
+    out.push_str("# Compact Memory Index\n\n");
+    if manifest.total_memories == 0 {
         out.push_str("_No memories yet. Create your first memory in `inbox/`._\n\n");
     } else {
-        for (category, group) in grouped {
-            out.push_str(&format!("## {}\n", category));
-            for m in group {
-                let sticky = if m.always_load { " [pinned]" } else { "" };
-                let role = m
-                    .system_role
-                    .as_ref()
-                    .map(system_role_label)
-                    .unwrap_or("-");
+        if !manifest.skills.is_empty() {
+            out.push_str("## Skills\n");
+            for skill in &manifest.skills {
                 out.push_str(&format!(
-                    "- [{}] {} (imp:{:.1}, ont:{}, role:{}){}\n",
-                    m.id,
-                    m.l0,
-                    m.importance,
-                    ontology_label(&m.ontology),
-                    role,
-                    sticky
+                    "- [{}] {} — `{}` ({})\n",
+                    skill.id,
+                    skill.l0,
+                    skill.path,
+                    ontology_label(&skill.ontology)
+                ));
+            }
+            out.push('\n');
+        }
+
+        for collection in &manifest.collections {
+            out.push_str(&format!("## {}\n", collection.name));
+            for memory in &collection.memories {
+                out.push_str(&format!(
+                    "- [{}] {} — `{}` ({})\n",
+                    memory.id,
+                    memory.l0,
+                    memory.path,
+                    ontology_label(&memory.ontology)
                 ));
             }
             out.push('\n');
         }
     }
 
-    // ── Section 10: Skill triggers ──
-    let skills: Vec<&MemoryMeta> = memories
+    let triggered_skills = manifest
+        .skills
         .iter()
-        .filter(|m| m.system_role == Some(SystemRole::Skill) && !m.triggers.is_empty())
-        .collect();
-
-    if !skills.is_empty() {
+        .filter(|skill| !skill.triggers.is_empty())
+        .collect::<Vec<_>>();
+    if !triggered_skills.is_empty() {
         out.push_str("# Skill Triggers\n\n");
-        for skill in &skills {
+        for skill in triggered_skills {
             out.push_str(&format!(
-                "- When user says: {} → load skill [{}]\n",
+                "- {} → [{}]\n",
+                skill.triggers.join(", "),
+                skill.id
+            ));
+        }
+        out.push('\n');
+    }
+
+    out.push_str("# Rich Catalog\n\n");
+    out.push_str("For paths, tags, links, provenance, dependencies, and protection state, open `.ai/catalog.md` or `.ai/index.yaml`.\n");
+
+    out
+}
+
+pub fn render_catalog_markdown(manifest: &RouterManifest) -> String {
+    let mut out = String::with_capacity(8192);
+    out.push_str("# AI Context OS — Catalog\n\n");
+    out.push_str("Rich catalog generated from canonical memories. Use this when the compact router index is not enough.\n\n");
+
+    if !manifest.rules.is_empty() {
+        out.push_str("## Rules\n\n");
+        for rule in &manifest.rules {
+            render_catalog_entry(&mut out, rule);
+        }
+    }
+
+    if !manifest.skills.is_empty() {
+        out.push_str("## Skills\n\n");
+        for skill in &manifest.skills {
+            render_catalog_entry(&mut out, skill);
+        }
+    }
+
+    for collection in &manifest.collections {
+        out.push_str(&format!("## {}\n\n", collection.name));
+        for memory in &collection.memories {
+            render_catalog_entry(&mut out, memory);
+        }
+    }
+
+    if manifest.total_memories == 0 {
+        out.push_str("_No memories yet._\n");
+    }
+
+    out
+}
+
+pub fn render_mcp_prelude(manifest: &RouterManifest) -> String {
+    let mut out = String::with_capacity(2048);
+    out.push_str("# MCP WORKSPACE RULES\n\n");
+    out.push_str("You are already connected to AI Context OS via MCP.\n");
+    out.push_str("Use `get_context` at the start of the task, `save_memory` for canonical memory writes, `get_skill` for skill dependency loading, and `log_session` for session events.\n");
+    out.push_str("Canonical memories remain Markdown files with YAML frontmatter plus `<!-- L1 -->` / `<!-- L2 -->` markers.\n");
+    out.push_str("Protected memories and generated router artifacts must not be edited directly.\n\n");
+
+    if manifest.rules.is_empty() {
+        out.push_str("## Active Rules\n\n_No rules defined yet._\n\n");
+    } else {
+        out.push_str("## Active Rules\n\n");
+        for rule in &manifest.rules {
+            out.push_str(&format!("- [{}] {}\n", rule.id, rule.l0));
+        }
+        out.push('\n');
+    }
+
+    let triggered_skills = manifest
+        .skills
+        .iter()
+        .filter(|skill| !skill.triggers.is_empty())
+        .collect::<Vec<_>>();
+    if !triggered_skills.is_empty() {
+        out.push_str("## Skill Triggers\n\n");
+        for skill in triggered_skills {
+            out.push_str(&format!(
+                "- {} → [{}]\n",
                 skill.triggers.join(", "),
                 skill.id
             ));
@@ -166,23 +307,111 @@ pub fn generate_router_content(memories: &[MemoryMeta], config: &Config) -> Stri
     out
 }
 
-pub fn generate_index_yaml(memories: &[MemoryMeta]) -> String {
-    let mut out = String::from(
-        "# AI Context OS — Index L0 (autogenerated)\n# Do not edit manually\n\nmemories:\n",
-    );
-    for m in memories {
+pub fn generate_index_yaml(manifest: &RouterManifest) -> Result<String, String> {
+    let index = RouterIndex {
+        root_dir: manifest.root_dir.clone(),
+        total_memories: manifest.total_memories,
+        memories: manifest.memories.clone(),
+    };
+
+    let yaml = serde_yaml::to_string(&index)
+        .map_err(|e| format!("Failed to serialize router index: {}", e))?;
+    Ok(format!(
+        "# AI Context OS — Rich Index (autogenerated)\n# Do not edit manually\n\n{}",
+        yaml
+    ))
+}
+
+impl RouterMemoryEntry {
+    fn from_meta(meta: &MemoryMeta, path: &str, root: &Path) -> Self {
+        Self {
+            id: meta.id.clone(),
+            path: relative_path(root, path),
+            l0: meta.l0.clone(),
+            ontology: meta.ontology.clone(),
+            importance: meta.importance,
+            folder_category: meta.folder_category.clone(),
+            system_role: meta.system_role.clone(),
+            tags: meta.tags.clone(),
+            related: meta.related.clone(),
+            derived_from: meta.derived_from.clone(),
+            triggers: meta.triggers.clone(),
+            requires: meta.requires.clone(),
+            optional: meta.optional.clone(),
+            output_format: meta.output_format.clone(),
+            status: meta.status.clone(),
+            protected: meta.protected,
+        }
+    }
+}
+
+fn render_catalog_entry(out: &mut String, memory: &RouterMemoryEntry) {
+    out.push_str(&format!("- [{}] {} — `{}`\n", memory.id, memory.l0, memory.path));
+    out.push_str(&format!(
+        "  - ontology: {} | importance: {:.2}\n",
+        ontology_label(&memory.ontology),
+        memory.importance
+    ));
+    if let Some(role) = &memory.system_role {
+        out.push_str(&format!("  - role: {}\n", system_role_label(role)));
+    }
+    if memory.protected {
+        out.push_str("  - protected: true\n");
+    }
+    if let Some(status) = &memory.status {
+        out.push_str(&format!("  - status: {}\n", status_label(status)));
+    }
+    if !memory.tags.is_empty() {
+        out.push_str(&format!("  - tags: {}\n", memory.tags.join(", ")));
+    }
+    if !memory.related.is_empty() {
+        out.push_str(&format!("  - related: {}\n", memory.related.join(", ")));
+    }
+    if !memory.derived_from.is_empty() {
         out.push_str(&format!(
-            "  - id: {}\n    type: {}\n    folder_category: {}\n    system_role: {}\n    l0: \"{}\"\n    importance: {}\n    tags: [{}]\n",
-            m.id,
-            ontology_label(&m.ontology),
-            m.folder_category.as_deref().unwrap_or(""),
-            m.system_role.as_ref().map(system_role_label).unwrap_or(""),
-            m.l0.replace('"', "\\\""),
-            m.importance,
-            m.tags.join(", ")
+            "  - derived_from: {}\n",
+            memory.derived_from.join(", ")
         ));
     }
-    out
+    if !memory.triggers.is_empty() {
+        out.push_str(&format!("  - triggers: {}\n", memory.triggers.join(", ")));
+    }
+    if !memory.requires.is_empty() {
+        out.push_str(&format!("  - requires: {}\n", memory.requires.join(", ")));
+    }
+    if !memory.optional.is_empty() {
+        out.push_str(&format!("  - optional: {}\n", memory.optional.join(", ")));
+    }
+    if let Some(output_format) = &memory.output_format {
+        out.push_str(&format!("  - output_format: {}\n", output_format));
+    }
+    out.push('\n');
+}
+
+fn relative_path(root: &Path, path: &str) -> String {
+    let path = Path::new(path);
+    path.strip_prefix(root)
+        .ok()
+        .map(|relative| relative.to_string_lossy().to_string())
+        .unwrap_or_else(|| path.to_string_lossy().to_string())
+}
+
+fn collection_cmp(a: &RouterCollection, b: &RouterCollection) -> Ordering {
+    collection_rank(&a.name)
+        .cmp(&collection_rank(&b.name))
+        .then_with(|| a.name.cmp(&b.name))
+}
+
+fn collection_rank(name: &str) -> usize {
+    match name {
+        "inbox" => 0,
+        "sources" => 1,
+        _ => 2,
+    }
+}
+
+fn memory_entry_cmp(a: &RouterMemoryEntry, b: &RouterMemoryEntry) -> Ordering {
+    a.path.cmp(&b.path).then_with(|| a.id.cmp(&b.id))
 }
 
 fn ontology_label(ontology: &MemoryOntology) -> &str {
@@ -199,4 +428,15 @@ fn system_role_label(role: &SystemRole) -> &str {
         SystemRole::Rule => "rule",
         SystemRole::Skill => "skill",
     }
+}
+
+fn status_label(status: &MemoryStatus) -> &str {
+    match status {
+        MemoryStatus::Unprocessed => "unprocessed",
+        MemoryStatus::Processed => "processed",
+    }
+}
+
+fn is_false(value: &bool) -> bool {
+    !*value
 }
