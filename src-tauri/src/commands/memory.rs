@@ -163,7 +163,6 @@ pub fn get_memory(id: String, state: State<AppState>) -> Result<Memory, String> 
     let root = state.get_root();
     let index = state.memory_index.read().unwrap();
     let (meta, path) = index
-    let (_meta, path) = index
         .get(&id)
         .ok_or_else(|| format!("Memory not found: {}", id))?;
 
