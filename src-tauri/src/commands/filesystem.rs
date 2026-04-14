@@ -4,6 +4,8 @@ use std::process::Command;
 
 use tauri::State;
 
+use crate::core::index::scan_memories;
+use crate::core::paths::SystemPaths;
 use crate::core::types::FileNode;
 use crate::state::AppState;
 
