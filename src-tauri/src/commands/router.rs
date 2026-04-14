@@ -11,7 +11,7 @@ use crate::core::router::{
 use crate::core::types::{Config, MemoryMeta};
 use crate::state::AppState;
 
-fn regenerate_router_files(
+pub(crate) fn regenerate_router_files(
     root: &Path,
     config: &Config,
 ) -> Result<(String, Vec<(MemoryMeta, String)>), String> {
