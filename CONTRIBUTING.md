@@ -120,4 +120,44 @@ Describe how to test these changes:
 - [ ] All tests pass
 ```
 
+## Issue Guidelines
+
+### Bug Reports
+Please provide:
+
+**Environment**
+- Node.js version
+- Rust / Tauri version
+- AI Context OS version
+- Operating system
+
+**Steps to Reproduce**
+- Detailed steps
+- Code snippets (if applicable)
+- Expected vs Actual Behavior
+- Error Logs (if any)
+
+### Feature Requests
+Please describe:
+- **Problem:** What problem are you trying to solve?
+- **Solution:** What solution do you propose?
+- **Alternatives:** Have you considered other approaches?
+
+## Documentation
+
+Documentation is in Markdown format under the `docs/` directory.
+
+### Documentation Guidelines
+- Code examples must be runnable.
+- Keep documentation in sync with code.
+- Use clear, concise language.
+
+## Code of Conduct
+
+By participating in this project, you agree to:
+- **Be respectful:** Maintain a friendly and professional attitude.
+- **Be inclusive:** Welcome contributors from all backgrounds.
+- **Be constructive:** Provide helpful feedback.
+- **Stay focused:** Keep discussions technical.
+
 We look forward to reviewing your PRs!
