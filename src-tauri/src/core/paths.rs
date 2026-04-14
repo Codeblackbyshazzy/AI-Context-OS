@@ -44,6 +44,9 @@ impl SystemPaths {
     pub fn index_yaml(&self) -> PathBuf {
         self.root.join(".ai/index.yaml")
     }
+    pub fn catalog_md(&self) -> PathBuf {
+        self.root.join(".ai/catalog.md")
+    }
 
     pub fn rules_dir(&self) -> PathBuf {
         self.root.join(".ai/rules")
@@ -71,6 +74,10 @@ impl SystemPaths {
 
     pub fn scratch_dir(&self) -> PathBuf {
         self.root.join(".ai/scratch")
+    }
+
+    pub fn usage_json(&self) -> PathBuf {
+        self.root.join(".cache/memory-usage.json")
     }
 
     // ── Root-level files ──
