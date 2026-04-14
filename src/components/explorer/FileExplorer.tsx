@@ -176,17 +176,6 @@ function ContextMenu({
   );
 }
 
-const DEFAULT_FOLDER_COLORS: Record<string, string> = {
-  inbox: "#f59e0b",    // amber — transient, attention-worthy
-  sources: "#0ea5e9",  // cyan — reference material
-  ".ai": "#8b5cf6",    // purple — system/config
-  docs: "#10b981",     // green — documentation
-};
-
-function getFolderColor(node: FileNode): string | undefined {
-  return DEFAULT_FOLDER_COLORS[node.name];
-}
-
 function getFileOntologyColor(ontology: MemoryOntology | undefined): string | undefined {
   if (!ontology) return undefined;
   return MEMORY_ONTOLOGY_COLORS[ontology];
@@ -388,11 +377,11 @@ function TreeNode({
               <ChevronRight className="h-3 w-3 shrink-0 text-[color:var(--text-2)]" />
             )}
             {isInboxNode(node) ? (
-              <Inbox className="h-3.5 w-3.5 shrink-0" style={{ color: getFolderColor(node) ?? "var(--text-2)" }} />
+              <Inbox className="h-3.5 w-3.5 shrink-0 text-[color:var(--text-2)]" />
             ) : isSourcesNode(node) ? (
-              <BookOpen className="h-3.5 w-3.5 shrink-0" style={{ color: getFolderColor(node) ?? "var(--text-2)" }} />
+              <BookOpen className="h-3.5 w-3.5 shrink-0 text-[color:var(--text-2)]" />
             ) : (
-              <Folder className="h-3.5 w-3.5 shrink-0" style={{ color: getFolderColor(node) ?? "var(--text-0)" }} />
+              <Folder className="h-3.5 w-3.5 shrink-0 text-[color:var(--text-2)]" />
             )}
           </>
         ) : (
