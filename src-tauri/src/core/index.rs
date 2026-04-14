@@ -53,7 +53,8 @@ fn scan_dir_recursive(
                 match parse_frontmatter(&content) {
                     Ok((mut meta, _)) => {
                         enrich_memory_meta(&mut meta, &path, root);
-                        apply_usage(&mut meta, usage.get(&meta.id));
+                        let meta_id = meta.id.clone();
+                        apply_usage(&mut meta, usage.get(&meta_id));
                         results.push((meta, path.to_string_lossy().to_string()));
                     }
                     Err(_) => {
@@ -94,7 +95,8 @@ fn scan_dir_recursive(
                                 let _ = fs::write(&path, &new_content);
                             }
                             enrich_memory_meta(&mut meta, &path, root);
-                            apply_usage(&mut meta, usage.get(&meta.id));
+                            let meta_id = meta.id.clone();
+                            apply_usage(&mut meta, usage.get(&meta_id));
                             results.push((meta, path.to_string_lossy().to_string()));
                         }
                     }
