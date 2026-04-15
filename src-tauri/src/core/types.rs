@@ -71,6 +71,16 @@ pub struct MemoryMeta {
     pub system_role: Option<SystemRole>,
 }
 
+impl MemoryMeta {
+    /// All explicit outgoing links (related + requires + optional).
+    pub fn explicit_links(&self) -> impl Iterator<Item = &String> {
+        self.related
+            .iter()
+            .chain(self.requires.iter())
+            .chain(self.optional.iter())
+    }
+}
+
 fn default_importance() -> f64 {
     0.5
 }

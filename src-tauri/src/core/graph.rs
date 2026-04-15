@@ -161,10 +161,10 @@ fn collect_typed_edges(memories: &[Memory]) -> Vec<TypedEdge> {
     }
 
     pair_best
-        .into_iter()
-        .map(|((s, t), kind)| TypedEdge {
-            source: s,
-            target: t,
+        .into_values()
+        .map(|(src, tgt, kind)| TypedEdge {
+            source: src,
+            target: tgt,
             kind,
         })
         .collect()
