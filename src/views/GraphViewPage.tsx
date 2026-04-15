@@ -11,7 +11,7 @@ import {
   addEdge,
   type Connection,
   type ReactFlowInstance,
-  type NodeDragHandler,
+  type OnNodeDrag,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import * as d3 from "d3-force";
@@ -518,7 +518,7 @@ export function GraphViewPage() {
   }, [flowInstance, nodes.length, layouting]);
 
   // --- Interactive drag: pin dragged node, reheat simulation, update positions ---
-  const onNodeDragStart: NodeDragHandler<FlowNode> = useCallback((_event, node) => {
+  const onNodeDragStart: OnNodeDrag<FlowNode> = useCallback((_event, node) => {
     const sim = simulationRef.current;
     if (!sim) return;
     const simNode = simNodesRef.current.find((n) => n.id === node.id);
