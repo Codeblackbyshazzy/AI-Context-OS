@@ -1,6 +1,6 @@
 [package]
 name = "ai-context-os"
-version = "0.1.22-beta"
+version = "0.1.23-beta"
 edition = "2021"
 default-run = "ai-context-os"
 
