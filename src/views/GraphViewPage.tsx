@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useMemo, useState } from "react";
+import { useEffect, useCallback, useMemo, useRef, useState } from "react";
 import {
   ReactFlow,
   Background,
@@ -11,6 +11,7 @@ import {
   addEdge,
   type Connection,
   type ReactFlowInstance,
+  type NodeDragHandler,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import * as d3 from "d3-force";
