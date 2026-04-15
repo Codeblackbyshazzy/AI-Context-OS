@@ -54,6 +54,9 @@ impl EdgeKind {
 }
 
 /// A typed, weighted edge between two memory indices.
+/// `source` and `target` preserve the original directionality declared by the
+/// user (e.g. A requires B → source=A, target=B) so the frontend can render
+/// animated arrows in the correct direction.
 struct TypedEdge {
     source: usize,
     target: usize,
@@ -95,17 +98,19 @@ fn collect_typed_edges(memories: &[Memory]) -> Vec<TypedEdge> {
         .map(|(i, m)| (m.meta.id.as_str(), i))
         .collect();
 
-    // Track existing pairs to avoid duplicates (keep highest-weight edge)
-    let mut pair_best: HashMap<(usize, usize), EdgeKind> = HashMap::new();
+    // Track existing pairs to avoid duplicates (keep highest-weight edge).
+    // The canonical key is (min, max) for dedup, but we store the original
+    // (source, target) direction so the frontend can render arrows correctly.
+    let mut pair_best: HashMap<(usize, usize), (usize, usize, EdgeKind)> = HashMap::new();
 
     let mut try_add = |src: usize, tgt: usize, kind: EdgeKind| {
         if src == tgt {
             return;
         }
         let key = if src < tgt { (src, tgt) } else { (tgt, src) };
-        let entry = pair_best.entry(key).or_insert(kind);
-        if kind.weight() > entry.weight() {
-            *entry = kind;
+        let entry = pair_best.entry(key).or_insert((src, tgt, kind));
+        if kind.weight() > entry.2.weight() {
+            *entry = (src, tgt, kind);
         }
     };
 
