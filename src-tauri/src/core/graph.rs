@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use chrono::Utc;
 use petgraph::graph::{Graph, NodeIndex};
@@ -170,8 +170,32 @@ fn collect_typed_edges(memories: &[Memory]) -> Vec<TypedEdge> {
         .collect()
 }
 
+fn explicit_degree_counts(memories: &[Memory]) -> Vec<usize> {
+    let idx_map: HashMap<&str, usize> = memories
+        .iter()
+        .enumerate()
+        .map(|(i, m)| (m.meta.id.as_str(), i))
+        .collect();
+    let mut neighbors: Vec<HashSet<usize>> = vec![HashSet::new(); memories.len()];
+
+    for (i, memory) in memories.iter().enumerate() {
+        for linked_id in memory.meta.explicit_links() {
+            let Some(&j) = idx_map.get(linked_id.as_str()) else {
+                continue;
+            };
+            if i == j {
+                continue;
+            }
+            neighbors[i].insert(j);
+            neighbors[j].insert(i);
+        }
+    }
+
+    neighbors.into_iter().map(|set| set.len()).collect()
+}
+
 /// Build an undirected petgraph from all typed edges.
-/// Used for frontend visualization and god-node degree computation.
+/// Used for structural graph operations that need typed/inferred edges.
 pub fn build_graph(memories: &[Memory]) -> Graph<String, String, Undirected> {
     let mut graph = Graph::<String, String, Undirected>::new_undirected();
     let mut node_indices: Vec<NodeIndex> = Vec::with_capacity(memories.len());
@@ -283,35 +307,24 @@ pub fn compute_god_nodes(memories: &[Memory]) -> Vec<GodNode> {
         return Vec::new();
     }
 
-    let graph = build_graph(memories);
-
-    // Build node index → memory lookup
-    let id_map: HashMap<&str, &Memory> =
-        memories.iter().map(|m| (m.meta.id.as_str(), m)).collect();
-
-    let max_degree = graph
-        .node_indices()
-        .map(|n| graph.neighbors(n).count())
+    let degrees = explicit_degree_counts(memories);
+    let max_degree = degrees
+        .iter()
+        .copied()
         .max()
         .unwrap_or(1)
         .max(1);
 
     let mut god_nodes: Vec<GodNode> = Vec::new();
 
-    for node_idx in graph.node_indices() {
-        let id = graph[node_idx].as_str();
-        let degree = graph.neighbors(node_idx).count();
-
-        let Some(memory) = id_map.get(id) else {
-            continue;
-        };
-
+    for (i, memory) in memories.iter().enumerate() {
+        let degree = degrees[i];
         let normalized_degree = degree as f64 / max_degree as f64;
         let mismatch_score = normalized_degree - memory.meta.importance;
 
         if mismatch_score > 0.2 || degree >= 2 {
             god_nodes.push(GodNode {
-                memory_id: id.to_string(),
+                memory_id: memory.meta.id.clone(),
                 l0: memory.meta.l0.clone(),
                 ontology: memory.meta.ontology.clone(),
                 folder_category: memory.meta.folder_category.clone(),
@@ -337,46 +350,39 @@ pub fn compute_god_nodes(memories: &[Memory]) -> Vec<GodNode> {
 /// Convert the petgraph graph + memories into serializable GraphData for the frontend.
 /// Includes community assignment computed via weighted LPA.
 pub fn to_graph_data(memories: &[Memory], _decay_threshold: f64) -> GraphData {
-    let graph = build_graph(memories);
     let community_map = compute_community_map(memories);
     let typed_edges = collect_typed_edges(memories);
-
-    let id_map: HashMap<&str, &Memory> =
-        memories.iter().map(|m| (m.meta.id.as_str(), m)).collect();
+    let degrees = explicit_degree_counts(memories);
 
     let mut nodes = Vec::new();
     let mut edges = Vec::new();
 
-    for node_idx in graph.node_indices() {
-        let id = graph[node_idx].as_str();
-        if let Some(memory) = id_map.get(id) {
-            let days_since_last_access =
-                (Utc::now() - memory.meta.last_access).num_hours() as f64 / 24.0;
-            let degree = graph.neighbors(node_idx).count();
-            let preview: String = memory
-                .l1_content
-                .chars()
-                .take(160)
-                .collect::<String>()
-                .trim()
-                .to_string();
-            nodes.push(GraphNode {
-                id: id.to_string(),
-                label: memory.meta.l0.clone(),
-                ontology: memory.meta.ontology.clone(),
-                folder_category: memory.meta.folder_category.clone(),
-                system_role: memory.meta.system_role.clone(),
-                importance: memory.meta.importance,
-                decay_score: decay_score(
-                    memory.meta.decay_rate,
-                    memory.meta.access_count,
-                    days_since_last_access.max(0.0),
-                ),
-                community: community_map.get(id).copied(),
-                degree,
-                preview,
-            });
-        }
+    for (i, memory) in memories.iter().enumerate() {
+        let days_since_last_access =
+            (Utc::now() - memory.meta.last_access).num_hours() as f64 / 24.0;
+        let preview: String = memory
+            .l1_content
+            .chars()
+            .take(160)
+            .collect::<String>()
+            .trim()
+            .to_string();
+        nodes.push(GraphNode {
+            id: memory.meta.id.clone(),
+            label: memory.meta.l0.clone(),
+            ontology: memory.meta.ontology.clone(),
+            folder_category: memory.meta.folder_category.clone(),
+            system_role: memory.meta.system_role.clone(),
+            importance: memory.meta.importance,
+            decay_score: decay_score(
+                memory.meta.decay_rate,
+                memory.meta.access_count,
+                days_since_last_access.max(0.0),
+            ),
+            community: community_map.get(memory.meta.id.as_str()).copied(),
+            degree: degrees[i],
+            preview,
+        });
     }
 
     // Use typed edges to include weight for frontend layout/rendering
@@ -667,14 +673,15 @@ mod tests {
 /// Get the count of connections for a memory (undirected graph degree, explicit links only).
 #[allow(dead_code)]
 pub fn connection_count(memory_id: &str, memories: &[Memory]) -> usize {
-    let graph = build_graph(memories);
-    let idx_map: HashMap<&str, NodeIndex> = graph
-        .node_indices()
-        .map(|n| (graph[n].as_str(), n))
+    let degrees = explicit_degree_counts(memories);
+    let idx_map: HashMap<&str, usize> = memories
+        .iter()
+        .enumerate()
+        .map(|(i, memory)| (memory.meta.id.as_str(), i))
         .collect();
 
     idx_map
         .get(memory_id)
-        .map(|&n| graph.neighbors(n).count())
+        .map(|&i| degrees[i])
         .unwrap_or(0)
 }
