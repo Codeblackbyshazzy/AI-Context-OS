@@ -162,6 +162,7 @@ function CardsNode({ data }: { data: NodeData }) {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
+      <Handle type="target" position={Position.Top} className="!bg-transparent !border-0 !w-2 !h-2" />
       <div
         className="rounded border border-[var(--border)] bg-[color:var(--bg-1)] px-2.5 py-2"
         style={isGod ? { borderColor: "#ef4444", boxShadow: "0 0 0 1px #ef444440" } : {}}
@@ -190,6 +191,7 @@ function CardsNode({ data }: { data: NodeData }) {
           <span className="ml-auto font-mono text-[10px] text-[color:var(--text-2)]">{gn.importance.toFixed(1)}</span>
         </div>
       </div>
+      <Handle type="source" position={Position.Bottom} className="!bg-transparent !border-0 !w-2 !h-2" />
 
       {hovered && gn.preview && (
         <HoverTooltip node={gn} />
