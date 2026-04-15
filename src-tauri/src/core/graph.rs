@@ -554,6 +554,59 @@ mod tests {
         let pos_b = god_nodes.iter().position(|g| g.memory_id == "hub-b").unwrap();
         assert!(pos_a < pos_b);
     }
+
+    // --- collect_typed_edges / weighted LPA ---
+
+    #[test]
+    fn requires_edge_has_highest_weight() {
+        // When both `related` and `requires` exist between same pair,
+        // the higher-weight `requires` should win.
+        let mut a = make_memory("mem-a", vec!["mem-b"], vec![], "");
+        a.meta.requires = vec!["mem-b".to_string()];
+        let b = make_memory("mem-b", vec![], vec![], "");
+        let graph = build_graph(&[a, b]);
+        // collect_typed_edges keeps only 1 edge per pair (highest weight)
+        assert_eq!(graph.edge_count(), 1);
+        // The edge label should be "requires" (weight 1.0 > related 0.7)
+        let edge_idx = graph.edge_indices().next().unwrap();
+        assert_eq!(graph[edge_idx], "requires");
+    }
+
+    #[test]
+    fn single_shared_tag_creates_weak_edge() {
+        let a = make_memory("mem-a", vec![], vec!["rust"], "");
+        let b = make_memory("mem-b", vec![], vec!["rust"], "");
+        let graph = build_graph(&[a, b]);
+        assert_eq!(graph.edge_count(), 1);
+        let edge_idx = graph.edge_indices().next().unwrap();
+        assert_eq!(graph[edge_idx], "tag");
+    }
+
+    #[test]
+    fn two_shared_tags_creates_strong_tag_edge() {
+        let a = make_memory("mem-a", vec![], vec!["rust", "backend"], "");
+        let b = make_memory("mem-b", vec![], vec!["rust", "backend"], "");
+        let graph = build_graph(&[a, b]);
+        assert_eq!(graph.edge_count(), 1);
+        // TagStrong weight (0.3) > TagWeak (0.1)
+        let edge_idx = graph.edge_indices().next().unwrap();
+        assert_eq!(graph[edge_idx], "tag");
+    }
+
+    #[test]
+    fn weighted_lpa_requires_dominates_over_weak_tags() {
+        // A-requires->B should cluster them together even when
+        // A has a weak tag connection to C and no tag connection to B.
+        let mut a = make_memory("mem-a", vec![], vec!["common"], "");
+        a.meta.requires = vec!["mem-b".to_string()];
+        let b = make_memory("mem-b", vec![], vec![], "");
+        let c = make_memory("mem-c", vec![], vec!["common"], "");
+
+        let map = compute_community_map(&[a, b, c]);
+        // A and B should share community via requires (1.0)
+        assert_eq!(map["mem-a"], map["mem-b"]);
+        // C might or might not join; but A-B bond is what matters
+    }
 }
 
 /// Get the count of connections for a memory (undirected graph degree, explicit links only).

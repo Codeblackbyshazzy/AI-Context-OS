@@ -87,14 +87,14 @@ function layoutWithForce(
     const nodeSet = new Set(gnodes.map((n) => n.id));
     const simLinks = gedges
       .filter((e) => nodeSet.has(e.source) && nodeSet.has(e.target))
-      .map((e) => ({ source: e.source, target: e.target }));
+      .map((e) => ({ source: e.source, target: e.target, weight: e.weight ?? 0.5 }));
 
     const linkDist  = mode === "cosmos" ? 90  : 150;
     const charge    = mode === "cosmos" ? -220 : -380;
     const collide   = mode === "cosmos" ? 52  : 95;
 
     d3.forceSimulation(simNodes)
-      .force("link",    d3.forceLink(simLinks).id((d) => (d as { id: string }).id).distance(linkDist).strength(0.45))
+      .force("link",    d3.forceLink(simLinks).id((d) => (d as { id: string }).id).distance(linkDist).strength((l) => 0.25 + 0.35 * ((l as unknown as { weight: number }).weight ?? 0.5)))
       .force("charge",  d3.forceManyBody().strength(charge))
       .force("center",  d3.forceCenter(0, 0))
       .force("collide", d3.forceCollide(collide))
@@ -420,7 +420,9 @@ export function GraphViewPage() {
         animated: edge.edge_type === "requires",
         style: {
           stroke: EDGE_COLORS[edge.edge_type] ?? "#6b7280",
-          strokeWidth: viewMode === "cosmos" ? 1 : edge.edge_type === "tag" ? 1 : 1.5,
+          strokeWidth: viewMode === "cosmos"
+            ? Math.max(0.5, (edge.weight ?? 0.5) * 2)
+            : Math.max(0.8, (edge.weight ?? 0.5) * 2.5),
           strokeDasharray: edge.edge_type === "tag" ? "4 3" : undefined,
         },
         labelStyle: { fill: "#8b9cb4", fontSize: 9 },
