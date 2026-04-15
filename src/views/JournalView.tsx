@@ -413,12 +413,12 @@ function LinkedReferences({ date, memories }: { date: string; memories: MemoryMe
           >
             <span
               className="h-1.5 w-1.5 shrink-0 rounded-full"
-              style={{ backgroundColor: MEMORY_ONTOLOGY_COLORS[m.ontology] }}
+              style={{ backgroundColor: MEMORY_ONTOLOGY_COLORS[m.type] }}
             />
             <span className="text-[11px] font-medium text-[color:var(--text-1)]">{m.id}</span>
             <span className="flex-1 truncate text-[10px] text-[color:var(--text-2)]">{m.l0}</span>
             <span className="shrink-0 text-[10px] text-[color:var(--text-2)]">
-              {t(`ontologies.${m.ontology}`)}
+              {t(`ontologies.${m.type}`)}
             </span>
           </div>
         ))}

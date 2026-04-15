@@ -6,7 +6,7 @@ export type MemoryStatus = "unprocessed" | "processed";
 
 export interface MemoryMeta {
   id: string;
-  ontology: MemoryOntology;
+  type: MemoryOntology;
   l0: string;
   importance: number;
   decay_rate: number;

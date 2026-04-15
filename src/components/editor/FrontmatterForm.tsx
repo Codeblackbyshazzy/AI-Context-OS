@@ -129,8 +129,8 @@ export function FrontmatterForm({ meta, onChange, readonly = false }: Frontmatte
 
       <Field label={t("memoryEditor.frontmatter.type")}>
         <select
-          value={meta.ontology}
-          onChange={(e) => update({ ontology: e.target.value as MemoryOntology })}
+          value={meta.type}
+          onChange={(e) => update({ type: e.target.value as MemoryOntology })}
           disabled={readonly}
           className="w-full rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-2 py-1.5 text-xs text-[color:var(--text-1)]"
         >

@@ -249,7 +249,7 @@ export function MemoryEditor() {
       results.push({
         id: item.id,
         l0: item.l0,
-        ontology: item.ontology,
+        ontology: item.type,
         kinds,
       });
     }
@@ -348,7 +348,7 @@ export function MemoryEditor() {
               className="mb-1 w-full bg-transparent text-2xl font-semibold text-[color:var(--text-0)] placeholder:text-[color:var(--text-2)]/40 focus:outline-none"
             />
             <p className="mb-6 font-mono text-[11px] text-[color:var(--text-2)]">
-              {meta.ontology}
+              {meta.type}
               {meta.system_role && ` · ${meta.system_role}`}
               {meta.folder_category && ` · ${meta.folder_category}`}
               {meta.importance >= 0.7 ? ` · ${t("memoryEditor.meta.high")}` : meta.importance >= 0.4 ? "" : ` · ${t("memoryEditor.meta.low")}`}
@@ -891,7 +891,7 @@ function hasDerivedMemoryChanges(previous: Memory, next: MemoryMeta) {
 function toComparableMemoryMeta(meta: MemoryMeta) {
   return {
     id: meta.id,
-    ontology: meta.ontology,
+    ontology: meta.type,
     l0: meta.l0,
     importance: meta.importance,
     decay_rate: meta.decay_rate,

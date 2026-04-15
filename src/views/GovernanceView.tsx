@@ -159,7 +159,7 @@ export function GovernanceView() {
 
   const typeGroups = memories.reduce(
     (acc, m) => {
-      acc[m.ontology] = (acc[m.ontology] || 0) + 1;
+      acc[m.type] = (acc[m.type] || 0) + 1;
       return acc;
     },
     {} as Record<string, number>,

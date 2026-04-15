@@ -96,12 +96,12 @@ export function SearchModal({ open, onClose }: { open: boolean; onClose: () => v
             >
               <span
                 className="h-2 w-2 shrink-0 rounded-full"
-                style={{ backgroundColor: MEMORY_ONTOLOGY_COLORS[m.ontology] }}
+                style={{ backgroundColor: MEMORY_ONTOLOGY_COLORS[m.type] }}
               />
               <span className="flex-1 truncate text-xs font-medium">{m.id}</span>
               <span className="max-w-[180px] truncate text-[10px] text-[color:var(--text-2)]">{m.l0}</span>
               <span className="shrink-0 text-[10px] text-[color:var(--text-2)]">
-                {t(`ontologies.${m.ontology}` as const)}
+                {t(`ontologies.${m.type}` as const)}
               </span>
             </button>
           ))}
