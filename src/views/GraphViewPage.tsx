@@ -420,7 +420,9 @@ export function GraphViewPage() {
         animated: edge.edge_type === "requires",
         style: {
           stroke: EDGE_COLORS[edge.edge_type] ?? "#6b7280",
-          strokeWidth: viewMode === "cosmos" ? 1 : edge.edge_type === "tag" ? 1 : 1.5,
+          strokeWidth: viewMode === "cosmos"
+            ? Math.max(0.5, (edge.weight ?? 0.5) * 2)
+            : Math.max(0.8, (edge.weight ?? 0.5) * 2.5),
           strokeDasharray: edge.edge_type === "tag" ? "4 3" : undefined,
         },
         labelStyle: { fill: "#8b9cb4", fontSize: 9 },
