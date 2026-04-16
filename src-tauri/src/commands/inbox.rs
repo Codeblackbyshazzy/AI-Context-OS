@@ -965,6 +965,7 @@ async fn health_check(config: &InferenceProviderConfig) -> Result<String, String
                 &normalized,
                 &ChatCompletionRequest {
                     system_prompt: Some("Reply with OK.".to_string()),
+                    context_prompt: None,
                     model: Some(normalized.model.clone()),
                     messages: vec![ChatMessage {
                         role: "user".to_string(),
@@ -1230,6 +1231,7 @@ async fn infer_proposal(
         &config,
         &ChatCompletionRequest {
             system_prompt: Some(system_prompt.to_string()),
+            context_prompt: None,
             model: Some(config.model.clone()),
             messages: vec![ChatMessage {
                 role: "user".to_string(),
