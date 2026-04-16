@@ -92,7 +92,9 @@
       "discovering": "Escaneando...",
       "modelsAvailable": "modelos",
       "connect": "Conectar",
-      "loadModels": "Cargar modelos disponibles"
+      "loadModels": "Cargar modelos disponibles",
+      "connectionOk": "Conectado",
+      "connectionFailed": "Conexión fallida"
     }
   },
   "search": {
@@ -267,7 +269,9 @@
     "ai": {
       "title": "Motor de proposals",
       "hint": "Funciona con heurísticas o con tu IA",
-      "heuristic": "Modo heurístico"
+      "heuristic": "Modo heurístico",
+      "inferring": "IA pensando...",
+      "working": "IA trabajando"
     }
   },
   "tasks": {

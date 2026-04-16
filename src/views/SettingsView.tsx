@@ -615,22 +615,58 @@ export function SettingsView() {
             </div>
           </button>
 
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div className="mt-4 flex flex-wrap items-center gap-2">
             <button
               onClick={() => void handleSaveProvider()}
               disabled={providerBusy !== "idle"}
-              className="rounded-md bg-[color:var(--accent)] px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-md bg-[color:var(--accent)] px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
             >
+              {providerBusy === "saving" && <Loader2 className="h-4 w-4 animate-spin" />}
               {providerBusy === "saving" ? t("settings.inference.saving") : t("settings.inference.save")}
             </button>
             <button
               onClick={() => void handleTestProvider()}
               disabled={providerBusy !== "idle"}
-              className="rounded-md border border-[color:var(--border)] bg-[color:var(--bg-0)] px-4 py-2 text-sm font-medium text-[color:var(--text-1)] disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-md border border-[color:var(--border)] bg-[color:var(--bg-0)] px-4 py-2 text-sm font-medium text-[color:var(--text-1)] disabled:opacity-60"
             >
+              {providerBusy === "testing" && <Loader2 className="h-4 w-4 animate-spin" />}
               {providerBusy === "testing" ? t("settings.inference.testing") : t("settings.inference.test")}
             </button>
+
+            {/* Connection result badge */}
+            {providerBusy === "idle" && providerStatus?.configured && (
+              <span
+                className={clsx(
+                  "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium",
+                  providerStatus.healthy
+                    ? "bg-green-500/10 text-green-600"
+                    : "bg-red-500/10 text-red-500",
+                )}
+              >
+                <span
+                  className={clsx(
+                    "h-1.5 w-1.5 rounded-full",
+                    providerStatus.healthy ? "bg-green-500" : "bg-red-500",
+                  )}
+                />
+                {providerStatus.healthy
+                  ? t("settings.inference.connectionOk")
+                  : t("settings.inference.connectionFailed")}
+              </span>
+            )}
           </div>
+
+          {/* Show test result message */}
+          {providerBusy === "idle" && providerStatus?.message && providerStatus.configured && (
+            <p className={clsx(
+              "mt-2 rounded-md px-3 py-2 text-xs",
+              providerStatus.healthy
+                ? "bg-green-500/5 text-green-600"
+                : "bg-red-500/5 text-red-500",
+            )}>
+              {providerStatus.message}
+            </p>
+          )}
         </section>
 
         {/* Updates */}

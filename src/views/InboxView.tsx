@@ -64,6 +64,12 @@ export function InboxView() {
   const [draftL2, setDraftL2] = useState("");
   const [statusMessage, setStatusMessage] = useState<string>("");
   const [providerMessage, setProviderMessage] = useState<string>("");
+  const [inferenceActivity, setInferenceActivity] = useState<{
+    phase: string;
+    item_title?: string;
+    current?: number;
+    total?: number;
+  } | null>(null);
   const loadMemories = useAppStore((s) => s.loadMemories);
   const loadGraph = useAppStore((s) => s.loadGraph);
   const loadFileTree = useAppStore((s) => s.loadFileTree);
@@ -216,6 +222,22 @@ export function InboxView() {
     const unlisten = listen<string>("inference-error", (event) => {
       setStatusMessage(`Inference error: ${event.payload}`);
     });
+    return () => {
+      void unlisten.then((fn) => fn());
+    };
+  }, []);
+
+  useEffect(() => {
+    const unlisten = listen<{ phase: string; item_title?: string; current?: number; total?: number }>(
+      "inference-progress",
+      (event) => {
+        if (event.payload.phase === "done") {
+          setInferenceActivity(null);
+        } else {
+          setInferenceActivity(event.payload);
+        }
+      },
+    );
     return () => {
       void unlisten.then((fn) => fn());
     };
@@ -443,14 +465,48 @@ export function InboxView() {
 
       <section className="min-h-0 flex-1 overflow-y-auto p-6">
         <div className="mx-auto max-w-4xl space-y-5">
-          <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--bg-0)] p-5">
+          <div className={clsx(
+            "rounded-2xl border p-5 transition-colors",
+            inferenceActivity
+              ? "border-[color:var(--accent)]/40 bg-[color:var(--accent-muted)]"
+              : "border-[color:var(--border)] bg-[color:var(--bg-0)]",
+          )}>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <h2 className="text-base font-semibold text-[color:var(--text-0)]">{t("inbox.ai.title")}</h2>
-                <p className="mt-1 text-sm text-[color:var(--text-2)]">{providerMessage}</p>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base font-semibold text-[color:var(--text-0)]">{t("inbox.ai.title")}</h2>
+                  {inferenceActivity && (
+                    <Loader2 className="h-4 w-4 animate-spin text-[color:var(--accent)]" />
+                  )}
+                </div>
+                {inferenceActivity ? (
+                  <div className="mt-1.5">
+                    <p className="text-sm font-medium text-[color:var(--accent)]">
+                      {t("inbox.ai.inferring")}
+                      {inferenceActivity.total && inferenceActivity.total > 1
+                        ? ` (${inferenceActivity.current}/${inferenceActivity.total})`
+                        : ""}
+                    </p>
+                    {inferenceActivity.item_title && (
+                      <p className="mt-0.5 text-xs text-[color:var(--text-2)]">
+                        {inferenceActivity.item_title}
+                      </p>
+                    )}
+                    {inferenceActivity.total && inferenceActivity.total > 1 && (
+                      <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[color:var(--bg-3)]">
+                        <div
+                          className="h-full rounded-full bg-[color:var(--accent)] transition-all duration-300"
+                          style={{ width: `${((inferenceActivity.current ?? 0) / inferenceActivity.total) * 100}%` }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <p className="mt-1 text-sm text-[color:var(--text-2)]">{providerMessage}</p>
+                )}
               </div>
               <div className="rounded-full bg-[color:var(--bg-2)] px-3 py-1 text-xs text-[color:var(--text-1)]">
-                {t("inbox.ai.hint")}
+                {inferenceActivity ? t("inbox.ai.working") : t("inbox.ai.hint")}
               </div>
             </div>
           </div>

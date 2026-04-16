@@ -92,7 +92,9 @@
       "discovering": "Scanning...",
       "modelsAvailable": "models",
       "connect": "Connect",
-      "loadModels": "Load available models"
+      "loadModels": "Load available models",
+      "connectionOk": "Connected",
+      "connectionFailed": "Connection failed"
     }
   },
   "search": {
@@ -267,7 +269,9 @@
     "ai": {
       "title": "Proposal engine",
       "hint": "Works with heuristics or BYO AI",
-      "heuristic": "Heuristic mode"
+      "heuristic": "Heuristic mode",
+      "inferring": "AI is thinking...",
+      "working": "AI working"
     }
   },
   "tasks": {
