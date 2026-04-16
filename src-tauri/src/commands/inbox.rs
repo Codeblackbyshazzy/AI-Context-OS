@@ -2183,4 +2183,49 @@ mod tests {
             .contains("Yo soy alex dc"));
         assert_eq!(messages[2].get("content").and_then(|v| v.as_str()), Some("como me llamo?"));
     }
+
+    #[test]
+    fn build_anthropic_messages_includes_context_as_first_user_turn() {
+        let messages = build_anthropic_messages(&ChatCompletionRequest {
+            messages: vec![ChatMessage {
+                role: "user".to_string(),
+                content: "como me llamo?".to_string(),
+            }],
+            system_prompt: Some("system rules".to_string()),
+            context_prompt: Some("## [quien-soy-yo] Yo soy alex dc".to_string()),
+            model: None,
+        });
+
+        assert_eq!(messages.len(), 2);
+        assert_eq!(messages[0].get("role").and_then(|v| v.as_str()), Some("user"));
+        let ctx_text = messages[0]
+            .pointer("/content/0/text")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default();
+        assert!(ctx_text.contains("Yo soy alex dc"));
+
+        assert_eq!(messages[1].get("role").and_then(|v| v.as_str()), Some("user"));
+        let user_text = messages[1]
+            .pointer("/content/0/text")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default();
+        assert_eq!(user_text, "como me llamo?");
+    }
+
+    #[test]
+    fn build_anthropic_messages_without_context_only_emits_history() {
+        let messages = build_anthropic_messages(&ChatCompletionRequest {
+            messages: vec![
+                ChatMessage { role: "user".to_string(), content: "hola".to_string() },
+                ChatMessage { role: "assistant".to_string(), content: "hey".to_string() },
+            ],
+            system_prompt: None,
+            context_prompt: None,
+            model: None,
+        });
+
+        assert_eq!(messages.len(), 2);
+        assert_eq!(messages[0].get("role").and_then(|v| v.as_str()), Some("user"));
+        assert_eq!(messages[1].get("role").and_then(|v| v.as_str()), Some("assistant"));
+    }
 }
