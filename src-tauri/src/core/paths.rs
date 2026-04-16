@@ -22,7 +22,7 @@ pub const SCAN_SKIP_DIRS: &[&str] = &[".git", "node_modules", ".cache"];
 
 /// `.ai/` subdirectories that are system-managed and should NOT be indexed as memories.
 /// Rules, skills, and context subdirs ARE scannable (they contain user-authored memory files).
-pub const AI_SKIP_SUBDIRS: &[&str] = &["tasks", "scratch", "journal"];
+pub const AI_SKIP_SUBDIRS: &[&str] = &["tasks", "scratch", "journal", "ingest", "proposals"];
 
 impl SystemPaths {
     pub fn new(root: &Path) -> Self {
@@ -76,6 +76,26 @@ impl SystemPaths {
         self.root.join(".ai/scratch")
     }
 
+    pub fn ingest_dir(&self) -> PathBuf {
+        self.root.join(".ai/ingest")
+    }
+
+    pub fn ingest_manifest(&self) -> PathBuf {
+        self.root.join(".ai/ingest/manifest.json")
+    }
+
+    pub fn proposals_dir(&self) -> PathBuf {
+        self.root.join(".ai/proposals")
+    }
+
+    pub fn inference_provider_json(&self) -> PathBuf {
+        self.root.join(".ai/inference-provider.json")
+    }
+
+    pub fn inbox_attachments_dir(&self) -> PathBuf {
+        self.root.join("inbox/_attachments")
+    }
+
     pub fn usage_json(&self) -> PathBuf {
         self.root.join(".cache/memory-usage.json")
     }
@@ -114,6 +134,9 @@ impl SystemPaths {
             self.sessions_dir(),
             self.tasks_dir(),
             self.scratch_dir(),
+            self.ingest_dir(),
+            self.proposals_dir(),
+            self.inbox_attachments_dir(),
         ]
     }
 }

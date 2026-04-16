@@ -3,7 +3,7 @@ use std::path::Path;
 
 use crate::core::folder_contract::{check_required_fields, load_folder_contract};
 use crate::core::frontmatter::parse_frontmatter;
-use crate::core::paths::{enrich_memory_meta, AI_DIR, AI_SKIP_SUBDIRS, SCAN_SKIP_DIRS};
+use crate::core::paths::{enrich_memory_meta, AI_DIR, AI_SKIP_SUBDIRS, INBOX_DIR, SCAN_SKIP_DIRS};
 use crate::core::types::MemoryMeta;
 use crate::core::usage::{apply_usage, load_usage_map};
 
@@ -34,6 +34,11 @@ fn scan_dir_recursive(
         if path.is_dir() {
             // Skip directories that should never be scanned
             if SCAN_SKIP_DIRS.iter().any(|skip| *skip == name.as_ref()) {
+                continue;
+            }
+            // Inbox is a transient capture surface and does not participate
+            // in canonical memory retrieval until explicit promotion.
+            if dir == root && name.as_ref() == INBOX_DIR {
                 continue;
             }
             // Skip system-managed .ai/ subdirs that don't contain memory files

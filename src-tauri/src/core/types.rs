@@ -353,3 +353,252 @@ pub struct MemoryFilter {
     pub tags: Option<Vec<String>>,
     pub min_importance: Option<f64>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum InboxItemKind {
+    Text,
+    Link,
+    File,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum InboxItemStatus {
+    New,
+    Normalized,
+    ProposalReady,
+    Processed,
+    Promoted,
+    Discarded,
+    Error,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ProposalAction {
+    PromoteMemory,
+    RouteToSources,
+    UpdateMemory,
+    Discard,
+    NeedsReview,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum ProposalState {
+    Pending,
+    Approved,
+    Rejected,
+    Applied,
+    Error,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum InferenceProviderKind {
+    Anthropic,
+    OpenAiCompatible,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum InferenceProviderPreset {
+    Custom,
+    OpenAi,
+    OpenRouter,
+    Ollama,
+    LmStudio,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[serde(rename_all = "lowercase")]
+pub enum InferenceCapability {
+    Proposal,
+    Classification,
+    Summary,
+    Vision,
+    Chat,
+    Streaming,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct InboxAttachment {
+    pub path: String,
+    pub original_name: String,
+    pub mime: Option<String>,
+    pub size: u64,
+    pub hash: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct InboxItem {
+    pub id: String,
+    pub kind: InboxItemKind,
+    pub status: InboxItemStatus,
+    pub capture_state: String,
+    pub proposal_state: ProposalState,
+    pub content_hash: String,
+    pub created: DateTime<Utc>,
+    pub modified: DateTime<Utc>,
+    pub path: String,
+    pub title: String,
+    pub summary: String,
+    #[serde(default)]
+    pub l1_content: String,
+    #[serde(default)]
+    pub l2_content: String,
+    #[serde(default)]
+    pub source_url: Option<String>,
+    #[serde(default)]
+    pub original_file: Option<String>,
+    #[serde(default)]
+    pub mime: Option<String>,
+    #[serde(default)]
+    pub tags: Vec<String>,
+    #[serde(default)]
+    pub derived_from: Vec<String>,
+    #[serde(default)]
+    pub needs_extraction: bool,
+    #[serde(default)]
+    pub needs_inference: bool,
+    #[serde(default)]
+    pub attachments: Vec<InboxAttachment>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct IngestProposal {
+    pub id: String,
+    pub item_id: String,
+    pub item_path: String,
+    pub action: ProposalAction,
+    pub state: ProposalState,
+    pub confidence: f64,
+    pub rationale: String,
+    pub created: DateTime<Utc>,
+    pub modified: DateTime<Utc>,
+    #[serde(default)]
+    pub destination: Option<String>,
+    #[serde(default)]
+    pub ontology: Option<MemoryOntology>,
+    #[serde(default)]
+    pub l0: Option<String>,
+    #[serde(default)]
+    pub l1_content: Option<String>,
+    #[serde(default)]
+    pub l2_content: Option<String>,
+    #[serde(default)]
+    pub tags: Vec<String>,
+    #[serde(default)]
+    pub derived_from: Vec<String>,
+    #[serde(default)]
+    pub inference_provider: Option<InferenceProviderKind>,
+    #[serde(default)]
+    pub inference_preset: Option<InferenceProviderPreset>,
+    pub origin: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct InferenceProviderConfig {
+    pub enabled: bool,
+    pub kind: InferenceProviderKind,
+    pub preset: InferenceProviderPreset,
+    pub model: String,
+    #[serde(default)]
+    pub base_url: Option<String>,
+    #[serde(default)]
+    pub api_key: Option<String>,
+    #[serde(default)]
+    pub capabilities: Vec<InferenceCapability>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct InferenceProviderStatus {
+    pub configured: bool,
+    pub enabled: bool,
+    pub healthy: bool,
+    #[serde(default)]
+    pub kind: Option<InferenceProviderKind>,
+    #[serde(default)]
+    pub preset: Option<InferenceProviderPreset>,
+    #[serde(default)]
+    pub base_url: Option<String>,
+    #[serde(default)]
+    pub model: Option<String>,
+    #[serde(default)]
+    pub capabilities: Vec<InferenceCapability>,
+    pub message: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateInboxTextInput {
+    pub title: String,
+    #[serde(default)]
+    pub content: String,
+    #[serde(default)]
+    pub tags: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateInboxLinkInput {
+    pub url: String,
+    #[serde(default)]
+    pub title: Option<String>,
+    #[serde(default)]
+    pub notes: Option<String>,
+    #[serde(default)]
+    pub tags: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateInboxItemInput {
+    pub id: String,
+    #[serde(default)]
+    pub title: Option<String>,
+    #[serde(default)]
+    pub l1_content: Option<String>,
+    #[serde(default)]
+    pub l2_content: Option<String>,
+    #[serde(default)]
+    pub tags: Option<Vec<String>>,
+    #[serde(default)]
+    pub status: Option<InboxItemStatus>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ApplyIngestProposalInput {
+    pub proposal_id: String,
+    #[serde(default)]
+    pub destination_dir: Option<String>,
+    #[serde(default)]
+    pub memory_id_override: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RecentOperationalContext {
+    pub recent_daily_entries: Vec<DailyEntry>,
+    pub pending_proposals: Vec<IngestProposal>,
+    pub recently_promoted: Vec<IngestProposal>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ChatMessage {
+    pub role: String,
+    pub content: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ChatCompletionRequest {
+    pub messages: Vec<ChatMessage>,
+    #[serde(default)]
+    pub system_prompt: Option<String>,
+    #[serde(default)]
+    pub model: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ChatCompletionResponse {
+    pub text: String,
+    #[serde(default)]
+    pub model: Option<String>,
+}

@@ -98,6 +98,9 @@ fn validate_memory_directory(root: &Path, dir: &Path) -> Result<PathBuf, String>
     if normalized_dir == paths.sources_dir() {
         return Err("Cannot store memories inside sources/".to_string());
     }
+    if normalized_dir == paths.inbox_dir() {
+        return Err("Cannot store canonical memories inside inbox/".to_string());
+    }
     if normalized_dir == paths.ai_dir() {
         return Err("Cannot store memories in the .ai/ system directory".to_string());
     }
@@ -185,7 +188,8 @@ pub fn get_memory(id: String, state: State<AppState>) -> Result<Memory, String> 
     Ok(memory)
 }
 
-/// Create a new memory file. Defaults to inbox/ as landing zone.
+/// Create a new memory file. Kept for compatibility with older flows.
+/// New UI paths should use `create_memory_at_path` explicitly.
 #[tauri::command]
 pub fn create_memory(
     input: CreateMemoryInput,

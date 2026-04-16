@@ -194,10 +194,10 @@ fn write_folder_contracts(paths: &SystemPaths) -> Result<(), String> {
             "role: inbox\n\
              description: Staging area for unprocessed incoming memories\n\
              lifecycle: transient\n\
-             scannable: true\n\
+             scannable: false\n\
              writable_by_mcp: true\n\
-             required_fields: [id, type, l0, status]\n\
-             optional_fields: [derived_from, tags, importance]\n\
+             required_fields: [id, kind, status]\n\
+             optional_fields: [derived_from, tags, importance, source_url, original_file]\n\
              default_values:\n\
              \x20 status: unprocessed\n\
              \x20 importance: 0.3\n",
