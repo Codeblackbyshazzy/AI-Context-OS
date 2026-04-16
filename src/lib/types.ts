@@ -399,6 +399,7 @@ export interface ChatMessage {
 export interface ChatCompletionRequest {
   messages: ChatMessage[];
   system_prompt?: string | null;
+  context_prompt?: string | null;
   model?: string | null;
 }
 

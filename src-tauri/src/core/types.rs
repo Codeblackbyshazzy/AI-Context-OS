@@ -603,6 +603,8 @@ pub struct ChatCompletionRequest {
     #[serde(default)]
     pub system_prompt: Option<String>,
     #[serde(default)]
+    pub context_prompt: Option<String>,
+    #[serde(default)]
     pub model: Option<String>,
 }
 

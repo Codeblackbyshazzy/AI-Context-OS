@@ -2095,4 +2095,27 @@ mod tests {
 
         assert_eq!(load_calls.load(Ordering::SeqCst), 1);
     }
+
+    #[test]
+    fn build_openai_messages_includes_context_as_conversation_message() {
+        let messages = build_openai_messages(&ChatCompletionRequest {
+            messages: vec![ChatMessage {
+                role: "user".to_string(),
+                content: "como me llamo?".to_string(),
+            }],
+            system_prompt: Some("system rules".to_string()),
+            context_prompt: Some("## [quien-soy-yo] Yo soy alex dc".to_string()),
+            model: None,
+        });
+
+        assert_eq!(messages.len(), 3);
+        assert_eq!(messages[0].get("role").and_then(|v| v.as_str()), Some("system"));
+        assert_eq!(messages[1].get("role").and_then(|v| v.as_str()), Some("user"));
+        assert!(messages[1]
+            .get("content")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default()
+            .contains("Yo soy alex dc"));
+        assert_eq!(messages[2].get("content").and_then(|v| v.as_str()), Some("como me llamo?"));
+    }
 }

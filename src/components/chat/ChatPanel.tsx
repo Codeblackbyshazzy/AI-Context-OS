@@ -91,14 +91,14 @@ export function ChatPanel() {
     setSending(true);
 
     try {
-      let systemPrompt = SYSTEM_PROMPT;
+      let contextPrompt = "";
       let contextIds: string[] = [];
 
       if (useVaultContext) {
         try {
           const chatContext = await buildChatContext(text, DEFAULT_TOKEN_BUDGET);
           if (chatContext.prompt_context.trim()) {
-            systemPrompt = `${SYSTEM_PROMPT}\n\n---\n${chatContext.prompt_context}`;
+            contextPrompt = chatContext.prompt_context;
             contextIds = chatContext.memory_ids;
           }
         } catch {
@@ -114,7 +114,8 @@ export function ChatPanel() {
 
       const response = await chatCompletion({
         messages: history,
-        system_prompt: systemPrompt,
+        system_prompt: SYSTEM_PROMPT,
+        context_prompt: contextPrompt || null,
         model: providerConfig?.model ?? null,
       });
 
