@@ -793,6 +793,33 @@ pub(super) fn build_openai_messages(request: &ChatCompletionRequest) -> Vec<Valu
     messages
 }
 
+/// Builds the `messages` array for Anthropic's `/v1/messages` endpoint.
+///
+/// Anthropic takes the system prompt as a top-level `system` field (handled by
+/// the caller), so this function only emits conversation turns. Layout:
+///   1. `user` turn — from `request.context_prompt`, injected as loaded vault
+///      context so the model treats it as background knowledge (if any)
+///   2. All `request.messages` in order, normalized to `user`/`assistant`
+pub(super) fn build_anthropic_messages(request: &ChatCompletionRequest) -> Vec<Value> {
+    let mut messages: Vec<Value> = Vec::new();
+
+    if let Some(ctx) = &request.context_prompt {
+        messages.push(json!({
+            "role": "user",
+            "content": [{ "type": "text", "text": ctx }]
+        }));
+    }
+
+    messages.extend(request.messages.iter().map(|message| {
+        json!({
+            "role": if message.role == "assistant" { "assistant" } else { "user" },
+            "content": [{ "type": "text", "text": message.content }]
+        })
+    }));
+
+    messages
+}
+
 async fn openai_compatible_chat(
     config: &InferenceProviderConfig,
     request: &ChatCompletionRequest,
