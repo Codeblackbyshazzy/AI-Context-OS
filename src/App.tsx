@@ -17,6 +17,9 @@ import { PanelLeft } from "lucide-react";
 const ExplorerView = lazy(() =>
   import("./views/ExplorerView").then((module) => ({ default: module.ExplorerView })),
 );
+const InboxView = lazy(() =>
+  import("./views/InboxView").then((module) => ({ default: module.InboxView })),
+);
 const GraphViewPage = lazy(() =>
   import("./views/GraphViewPage").then((module) => ({ default: module.GraphViewPage })),
 );
@@ -274,6 +277,7 @@ function AppContent() {
             <Suspense fallback={<RouteFallback />}>
               <Routes>
                 <Route path="/" element={<ExplorerView />} />
+                <Route path="/inbox" element={<InboxView />} />
                 <Route path="/journal" element={<JournalView />} />
                 <Route path="/tasks" element={<TaskView />} />
                 <Route path="/graph" element={<GraphViewPage />} />

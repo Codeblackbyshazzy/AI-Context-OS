@@ -4,6 +4,7 @@ pub mod daily;
 pub mod filesystem;
 pub mod governance;
 pub mod graph;
+pub mod inbox;
 pub mod journal;
 pub mod memory;
 pub mod observability;

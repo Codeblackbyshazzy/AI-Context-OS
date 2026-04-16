@@ -2,6 +2,7 @@ import React from "react";
 import { NavLink } from "react-router-dom";
 import {
   FolderTree,
+  Inbox,
   Network,
   FlaskConical,
   Shield,
@@ -17,7 +18,7 @@ import { useTranslation } from "react-i18next";
 import { useGovernanceBadge } from "../../lib/useGovernanceBadge";
 import { VaultSwitcherFooter } from "../vault/VaultSwitcherFooter";
 
-type SidebarKey = "explorer" | "journal" | "tasks" | "graph" | "simulation" | "governance" | "observability" | "connectors";
+type SidebarKey = "explorer" | "inbox" | "journal" | "tasks" | "graph" | "simulation" | "governance" | "observability" | "connectors";
 
 interface SidebarProps {
   onCreateVault?: () => void;
@@ -25,6 +26,7 @@ interface SidebarProps {
 
 const navItems: { to: string; icon: React.ElementType; key: SidebarKey }[] = [
   { to: "/", icon: FolderTree, key: "explorer" },
+  { to: "/inbox", icon: Inbox, key: "inbox" },
   { to: "/journal", icon: BookOpen, key: "journal" },
   { to: "/tasks", icon: ListTodo, key: "tasks" },
   { to: "/graph", icon: Network, key: "graph" },

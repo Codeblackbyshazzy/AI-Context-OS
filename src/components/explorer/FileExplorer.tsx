@@ -676,7 +676,7 @@ function isAdvancedOnlyFile(node: FileNode): boolean {
 
 function canStoreMemoryInDirectory(node: FileNode): boolean {
   if (!node.is_dir) return false;
-  if (isSourcesNode(node) || isAiRootNode(node)) return false;
+  if (isInboxNode(node) || isSourcesNode(node) || isAiRootNode(node)) return false;
   return !isAiSystemSubdir(node);
 }
 
@@ -1149,7 +1149,7 @@ export function FileExplorer() {
         }
       })();
     } else {
-      // Toolbar file → selected folder or first workspace folder
+      // Toolbar file → selected folder or first user workspace folder
       const findTargetDir = (): FileNode | null => {
         if (selectedPath) {
           const sel = findNodeByPath(fileTree, selectedPath);
@@ -1157,9 +1157,7 @@ export function FileExplorer() {
           const parent = findNodeByPath(fileTree, getParentPath(selectedPath));
           if (parent?.is_dir && canStoreMemoryInDirectory(parent)) return parent;
         }
-        // Zero Gravity: any directory works, prefer inbox as default
-        return fileTree.find((n) => n.is_dir && n.name === "inbox")
-          ?? fileTree.find((n) => n.is_dir && canStoreMemoryInDirectory(n))
+        return fileTree.find((n) => n.is_dir && canStoreMemoryInDirectory(n))
           ?? null;
       };
       const targetDir = findTargetDir();
