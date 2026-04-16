@@ -10,6 +10,7 @@
 use std::path::PathBuf;
 
 use ai_context_os::core::engine::{assemble_chat_context_package, execute_context_query};
+use ai_context_os::core::frontmatter::parse_frontmatter;
 use ai_context_os::core::types::Config;
 
 fn load_config(root: &PathBuf) -> Config {
@@ -122,4 +123,79 @@ fn diagnose_chat_context_for_query() {
         println!("... [truncated, total {} chars]", prompt_context.len());
     }
     println!("\n=== END DIAGNOSTIC ===\n");
+}
+
+#[test]
+#[ignore]
+fn diagnose_frontmatter_parse_failures() {
+    let root = PathBuf::from(
+        std::env::var("DIAG_VAULT_ROOT")
+            .unwrap_or_else(|_| "/Users/alexdc/AI-Context-OS".to_string()),
+    );
+
+    println!("\n=== FRONTMATTER PARSE AUDIT ===");
+    println!("vault_root: {}\n", root.display());
+
+    let mut ok = 0;
+    let mut fail = 0;
+    let mut no_fm = 0;
+    let mut failures: Vec<(PathBuf, String)> = Vec::new();
+
+    fn walk(dir: &std::path::Path, out: &mut Vec<PathBuf>) {
+        for entry in std::fs::read_dir(dir).into_iter().flatten().flatten() {
+            let path = entry.path();
+            let name = path.file_name().unwrap_or_default().to_string_lossy().to_string();
+            if path.is_dir() {
+                if matches!(name.as_str(), ".git" | ".cache" | "node_modules" | "target" | ".obsidian") {
+                    continue;
+                }
+                walk(&path, out);
+            } else if path.extension().map_or(false, |e| e == "md") {
+                out.push(path);
+            }
+        }
+    }
+
+    let mut md_files = Vec::new();
+    walk(&root, &mut md_files);
+
+    for path in &md_files {
+        let Ok(raw) = std::fs::read_to_string(path) else { continue };
+        match parse_frontmatter(&raw) {
+            Ok((meta, _body)) => {
+                ok += 1;
+                println!(
+                    "  OK   id={:<32} l0={:?} importance={:.2} type={:?}",
+                    meta.id, meta.l0, meta.importance, meta.ontology
+                );
+            }
+            Err(e) => {
+                let msg = e.to_string();
+                if msg.contains("No frontmatter") {
+                    no_fm += 1;
+                } else {
+                    fail += 1;
+                    failures.push((path.clone(), msg));
+                }
+            }
+        }
+    }
+
+    println!("\n-- Summary --");
+    println!("  total .md scanned : {}", md_files.len());
+    println!("  parsed OK         : {}", ok);
+    println!("  no frontmatter    : {}", no_fm);
+    println!("  parse FAILURES    : {}", fail);
+
+    if !failures.is_empty() {
+        println!("\n-- Parse failures (first 30) --");
+        for (path, err) in failures.iter().take(30) {
+            println!(
+                "  FAIL {}\n       {}",
+                path.strip_prefix(&root).unwrap_or(path).display(),
+                err
+            );
+        }
+    }
+    println!("\n=== END FRONTMATTER AUDIT ===\n");
 }
