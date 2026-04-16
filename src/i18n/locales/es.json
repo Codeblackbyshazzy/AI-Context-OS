@@ -1,6 +1,7 @@
 {
   "sidebar": {
     "explorer": "Explorador",
+    "inbox": "Inbox",
     "journal": "Diario",
     "tasks": "Tareas",
     "graph": "Grafo",
@@ -64,6 +65,29 @@
       "restoreSuccess": "Espacio de trabajo restaurado correctamente",
       "restoreError": "Error al restaurar la copia",
       "restoreConfirm": "¿Restaurar copia? Los archivos actuales serán reemplazados."
+    },
+    "inference": {
+      "title": "Proveedor de inferencia",
+      "desc": "Configura una IA BYO opcional para proposals de Inbox ahora y para reutilizar el runtime en chat/IA local más adelante.",
+      "provider": "Tipo de proveedor",
+      "preset": "Preset",
+      "openaiCompatible": "Compatible con OpenAI",
+      "custom": "Personalizado",
+      "model": "Modelo",
+      "modelPlaceholder": "p. ej. gpt-4.1-mini, claude-sonnet, qwen2.5",
+      "endpoint": "Endpoint",
+      "apiKey": "API key",
+      "apiKeyPlaceholder": "Opcional para Ollama / LM Studio",
+      "enable": "Activar proveedor",
+      "enabled": "Activo",
+      "disabled": "Desactivado",
+      "healthy": "Conectado",
+      "optional": "Opcional",
+      "heuristicFallback": "Si no hay proveedor activo, Inbox seguirá usando proposals heurísticas.",
+      "save": "Guardar proveedor",
+      "saving": "Guardando...",
+      "test": "Probar conexión",
+      "testing": "Probando..."
     }
   },
   "search": {
@@ -159,6 +183,87 @@
     "errorCopyPath": "No se pudo copiar la ruta al portapapeles",
     "folderColor": "Color",
     "clearColor": "Sin color"
+  },
+  "inbox": {
+    "subtitle": "Captura primero, clasifica después, promociona solo cuando esté listo.",
+    "defaultTextTitle": "Captura rápida",
+    "empty": "Todavía no hay elementos en Inbox. Captura texto, links o archivos para arrancar el pipeline.",
+    "emptySelection": "Selecciona un elemento de Inbox para inspeccionarlo o editarlo.",
+    "noPreview": "Todavía no hay vista previa.",
+    "yes": "Sí",
+    "no": "No",
+    "dropTitle": "Suelta archivos aquí",
+    "dropDesc": "El arrastre funciona cuando el sistema expone rutas reales. Si no, usa Importar archivos.",
+    "dropUnavailable": "Este origen de arrastre no expone rutas de filesystem. Usa Importar archivos.",
+    "stats": {
+      "total": "Total",
+      "pending": "Pendientes",
+      "promoted": "Promovidos"
+    },
+    "actions": {
+      "newText": "Nuevo texto",
+      "newLink": "Nuevo link",
+      "importFiles": "Importar archivos",
+      "cancel": "Cancelar",
+      "capture": "Capturar",
+      "normalize": "Normalizar",
+      "generateProposal": "Generar proposal",
+      "approveProposal": "Aprobar proposal",
+      "rejectProposal": "Rechazar proposal",
+      "discard": "Descartar",
+      "save": "Guardar"
+    },
+    "compose": {
+      "textTitle": "Título",
+      "textBody": "Pega aquí notas, snippets o contenido en bruto...",
+      "linkTitle": "Título opcional",
+      "linkNotes": "Notas opcionales para este link"
+    },
+    "filters": {
+      "allKinds": "Todos los tipos",
+      "allStates": "Todos los estados"
+    },
+    "kinds": {
+      "text": "Texto",
+      "link": "Link",
+      "file": "Archivo"
+    },
+    "states": {
+      "new": "Nuevo",
+      "normalized": "Normalizado",
+      "proposal_ready": "Proposal lista",
+      "processed": "Procesado",
+      "promoted": "Promovido",
+      "discarded": "Descartado",
+      "error": "Error"
+    },
+    "editor": {
+      "title": "Editor del item",
+      "l1": "Resumen L1 / preview normalizada",
+      "l2": "Notas L2 / contenido extraído"
+    },
+    "metadata": {
+      "title": "Metadatos",
+      "created": "Creado",
+      "modified": "Modificado",
+      "captureState": "Estado de captura",
+      "proposalState": "Estado de proposal",
+      "extraction": "Necesita extracción",
+      "inference": "Necesita inferencia",
+      "attachments": "Adjuntos"
+    },
+    "proposal": {
+      "title": "Proposal",
+      "pending": "Pendiente",
+      "empty": "Todavía no hay una proposal pendiente. Puedes normalizar el item o generarla ahora.",
+      "confidence": "Confianza",
+      "origin": "Origen"
+    },
+    "ai": {
+      "title": "Motor de proposals",
+      "hint": "Funciona con heurísticas o con tu IA",
+      "heuristic": "Modo heurístico"
+    }
   },
   "tasks": {
     "filterAllStatuses": "Todos los estados",
