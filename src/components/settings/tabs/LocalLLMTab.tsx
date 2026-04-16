@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { clsx } from "clsx";
 import {
-  RefreshCw, Loader2, Check, Trash2, ChevronDown, ChevronUp,
+  RefreshCw, Loader2, Trash2, ChevronDown, ChevronUp,
   Download, FolderOpen, Zap, WifiOff
 } from "lucide-react";
 import {
@@ -15,7 +15,6 @@ import {
 import type {
   DiscoveredProvider,
   InferenceProviderConfig,
-  InferenceProviderPreset,
   ProviderModel,
 } from "../../../lib/types";
 
