@@ -212,6 +212,15 @@ export function InboxView() {
     };
   }, [handleNativeDrop]);
 
+  useEffect(() => {
+    const unlisten = listen<string>("inference-error", (event) => {
+      setStatusMessage(`Inference error: ${event.payload}`);
+    });
+    return () => {
+      void unlisten.then((fn) => fn());
+    };
+  }, []);
+
   const handleSaveSelected = async () => {
     if (!selectedItem) return;
     await withBusy(`save-${selectedItem.id}`, async () => {
