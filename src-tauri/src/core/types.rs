@@ -623,4 +623,6 @@ pub struct ProviderModel {
     pub size: Option<u64>,
     #[serde(default)]
     pub family: Option<String>,
+    #[serde(default)]
+    pub loaded: Option<bool>,
 }

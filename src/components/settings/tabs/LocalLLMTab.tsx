@@ -44,6 +44,16 @@ export function LocalLLMTab({ config, onSaved }: Props) {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [endpointOverride, setEndpointOverride] = useState("");
 
+  const getPreferredModelId = useCallback((availableModels: ProviderModel[], currentModel = "") => {
+    if (currentModel && availableModels.some((model) => model.id === currentModel)) {
+      return currentModel;
+    }
+
+    return availableModels.find((model) => model.loaded)?.id
+      ?? availableModels[0]?.id
+      ?? "";
+  }, []);
+
   // Hydrate from saved config on mount
   useEffect(() => {
     if (!config) return;
@@ -69,14 +79,18 @@ export function LocalLLMTab({ config, onSaved }: Props) {
       // Update models for the currently active preset
       if (!keepExistingModels && activePreset !== "disabled") {
         const match = found.find((p) => p.preset === activePreset);
-        if (match) setModels(match.models);
+        if (match) {
+          setModels(match.models);
+          const nextModel = getPreferredModelId(match.models, selectedModel);
+          if (nextModel !== selectedModel) setSelectedModel(nextModel);
+        }
       }
     } catch {
       // ignore
     } finally {
       setBusy("idle");
     }
-  }, [activePreset]);
+  }, [activePreset, getPreferredModelId, selectedModel]);
 
   // Auto-discover on mount
   useEffect(() => {
@@ -92,13 +106,14 @@ export function LocalLLMTab({ config, onSaved }: Props) {
     const match = providers.find((p) => p.preset === activePreset);
     if (match) {
       setModels(match.models);
-      if (!selectedModel && match.models.length > 0) {
-        setSelectedModel(match.models[0].id);
+      const nextModel = getPreferredModelId(match.models, selectedModel);
+      if (nextModel !== selectedModel) {
+        setSelectedModel(nextModel);
       }
     } else {
       setModels([]);
     }
-  }, [activePreset, providers]);
+  }, [activePreset, getPreferredModelId, providers, selectedModel]);
 
   const currentProvider = providers.find((p) => p.preset === activePreset);
   const isAvailable = currentProvider?.reachable ?? false;
@@ -326,6 +341,18 @@ export function LocalLLMTab({ config, onSaved }: Props) {
                       </div>
                     </button>
                     <div className="flex items-center gap-3">
+                      {activePreset === "lm_studio" && model.loaded !== undefined && model.loaded !== null && (
+                        <span
+                          className={clsx(
+                            "rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide",
+                            model.loaded
+                              ? "bg-green-500/10 text-green-600"
+                              : "bg-[color:var(--bg-2)] text-[color:var(--text-2)]",
+                          )}
+                        >
+                          {model.loaded ? t("settings.localLLM.loaded") : t("settings.localLLM.notLoaded")}
+                        </span>
+                      )}
                       {sizeStr && <span className="text-xs text-[color:var(--text-2)]">{sizeStr}</span>}
                       {activePreset === "ollama" && (
                         <button

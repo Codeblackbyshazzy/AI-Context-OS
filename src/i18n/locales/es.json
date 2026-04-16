@@ -117,7 +117,9 @@
       "connectionFailed": "Conexión fallida",
       "startHint": "Asegúrate de que {{provider}} está en ejecución.",
       "advancedSettings": "Ajustes avanzados",
-      "endpoint": "Endpoint"
+      "endpoint": "Endpoint",
+      "loaded": "Cargado",
+      "notLoaded": "Sin cargar"
     },
     "cloudLLM": {
       "title": "LLM Cloud",

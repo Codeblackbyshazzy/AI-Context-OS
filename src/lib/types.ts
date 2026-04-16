@@ -349,6 +349,7 @@ export interface ProviderModel {
   name: string;
   size?: number | null;
   family?: string | null;
+  loaded?: boolean | null;
 }
 
 export interface CreateInboxTextInput {

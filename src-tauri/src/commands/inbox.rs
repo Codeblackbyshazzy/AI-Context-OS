@@ -1,4 +1,4 @@
-use std::collections::hash_map::DefaultHasher;
+use std::collections::{hash_map::DefaultHasher, HashMap};
 use std::fs;
 use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
@@ -607,6 +607,110 @@ async fn fetch_link_preview(url: &Url) -> Result<(Option<String>, String), Strin
     Ok((title, preview))
 }
 
+fn lm_studio_api_base(base_url: &str, api_path: &str) -> String {
+    let trimmed = base_url.trim_end_matches('/');
+    if let Some(prefix) = trimmed.strip_suffix("/v1") {
+        format!("{}/{}", prefix, api_path)
+    } else if trimmed.ends_with(api_path) {
+        trimmed.to_string()
+    } else {
+        format!("{}/{}", trimmed, api_path)
+    }
+}
+
+async fn lm_studio_model_state(base_url: &str, model: &str) -> Result<Option<String>, String> {
+    let mut endpoint = Url::parse(&format!("{}/models", lm_studio_api_base(base_url, "api/v0")))
+        .map_err(|e| format!("Invalid LM Studio base URL: {}", e))?;
+    endpoint
+        .path_segments_mut()
+        .map_err(|_| "Invalid LM Studio model state endpoint".to_string())?
+        .push(model);
+
+    let client = Client::builder()
+        .timeout(std::time::Duration::from_secs(5))
+        .build()
+        .map_err(|e| format!("HTTP client error: {}", e))?;
+    let response = client.get(endpoint).send().await;
+    let Ok(response) = response else {
+        return Ok(None);
+    };
+    if response.status() == reqwest::StatusCode::NOT_FOUND {
+        return Ok(None);
+    }
+    if !response.status().is_success() {
+        return Ok(None);
+    }
+
+    let body: Value = response.json().await.unwrap_or(json!({}));
+    Ok(body
+        .get("state")
+        .and_then(|value| value.as_str())
+        .map(|value| value.to_string()))
+}
+
+async fn probe_lm_studio_model_states(
+    base_url: &str,
+    timeout_secs: u64,
+) -> Result<HashMap<String, bool>, String> {
+    let endpoint = format!("{}/models", lm_studio_api_base(base_url, "api/v0"));
+    let client = Client::builder()
+        .timeout(std::time::Duration::from_secs(timeout_secs))
+        .build()
+        .map_err(|e| format!("HTTP client error: {}", e))?;
+    let response = client
+        .get(&endpoint)
+        .send()
+        .await
+        .map_err(|e| format!("Unreachable: {}", e))?;
+    if !response.status().is_success() {
+        return Err(format!("Status {}", response.status()));
+    }
+
+    let body: Value = response
+        .json()
+        .await
+        .map_err(|e| format!("Parse error: {}", e))?;
+    let states = body
+        .get("data")
+        .and_then(|value| value.as_array())
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(|item| {
+                    let id = item.get("id").and_then(|value| value.as_str())?.to_string();
+                    let loaded = item
+                        .get("state")
+                        .and_then(|value| value.as_str())
+                        .map(|state| state == "loaded")?;
+                    Some((id, loaded))
+                })
+                .collect::<HashMap<_, _>>()
+        })
+        .unwrap_or_default();
+    Ok(states)
+}
+
+async fn probe_lm_studio_models(base_url: &str, timeout_secs: u64) -> Result<Vec<ProviderModel>, String> {
+    let mut models = probe_openai_compatible(base_url, timeout_secs).await?;
+    let model_states = probe_lm_studio_model_states(base_url, timeout_secs)
+        .await
+        .unwrap_or_default();
+
+    for model in &mut models {
+        model.loaded = model_states.get(&model.id).copied();
+    }
+
+    models.sort_by(|left, right| {
+        right
+            .loaded
+            .unwrap_or(false)
+            .cmp(&left.loaded.unwrap_or(false))
+            .then_with(|| left.name.cmp(&right.name))
+    });
+
+    Ok(models)
+}
+
 /// For LM Studio, try to load the model into memory before inference.
 /// Ollama auto-loads on first request, so this is a no-op for Ollama.
 async fn ensure_model_loaded(config: &InferenceProviderConfig) -> Result<(), String> {
@@ -617,10 +721,12 @@ async fn ensure_model_loaded(config: &InferenceProviderConfig) -> Result<(), Str
         .base_url
         .as_deref()
         .unwrap_or(DEFAULT_LM_STUDIO_BASE_URL);
+    if matches!(lm_studio_model_state(base_url, &config.model).await?, Some(state) if state == "loaded") {
+        return Ok(());
+    }
+
     // LM Studio native API lives under /api/v1, not /v1
-    let native_base = base_url
-        .trim_end_matches('/')
-        .replace("/v1", "/api/v1");
+    let native_base = lm_studio_api_base(base_url, "api/v1");
     let endpoint = format!("{}/models/load", native_base);
     let client = Client::builder()
         .timeout(std::time::Duration::from_secs(120))
@@ -911,7 +1017,13 @@ async fn probe_openai_compatible(base_url: &str, timeout_secs: u64) -> Result<Ve
                         .or_else(|| m.get("owned_by"))
                         .and_then(|v| v.as_str())
                         .map(|s| s.to_string());
-                    Some(ProviderModel { id, name, size, family })
+                    Some(ProviderModel {
+                        id,
+                        name,
+                        size,
+                        family,
+                        loaded: None,
+                    })
                 })
                 .collect::<Vec<_>>()
         })
@@ -926,7 +1038,11 @@ async fn discover_providers() -> Vec<DiscoveredProvider> {
     ];
     let mut results = Vec::new();
     for (preset, name, base_url) in probes {
-        match probe_openai_compatible(base_url, 3).await {
+        let models_result = match preset {
+            InferenceProviderPreset::LmStudio => probe_lm_studio_models(base_url, 3).await,
+            _ => probe_openai_compatible(base_url, 3).await,
+        };
+        match models_result {
             Ok(models) => results.push(DiscoveredProvider {
                 preset,
                 name: name.to_string(),
@@ -952,14 +1068,17 @@ async fn fetch_models_for_config(config: &InferenceProviderConfig) -> Result<Vec
         .base_url
         .ok_or_else(|| "Missing base URL".to_string())?;
     match normalized.kind {
-        InferenceProviderKind::OpenAiCompatible => probe_openai_compatible(&base_url, 10).await,
+        InferenceProviderKind::OpenAiCompatible => match normalized.preset {
+            InferenceProviderPreset::LmStudio => probe_lm_studio_models(&base_url, 10).await,
+            _ => probe_openai_compatible(&base_url, 10).await,
+        },
         InferenceProviderKind::Anthropic => {
             // Anthropic doesn't have a public models list endpoint;
             // return a curated list of common models.
             Ok(vec![
-                ProviderModel { id: "claude-sonnet-4-20250514".to_string(), name: "Claude Sonnet 4".to_string(), size: None, family: Some("claude-4".to_string()) },
-                ProviderModel { id: "claude-haiku-4-20250414".to_string(), name: "Claude Haiku 4".to_string(), size: None, family: Some("claude-4".to_string()) },
-                ProviderModel { id: "claude-3-5-haiku-20241022".to_string(), name: "Claude 3.5 Haiku".to_string(), size: None, family: Some("claude-3.5".to_string()) },
+                ProviderModel { id: "claude-sonnet-4-20250514".to_string(), name: "Claude Sonnet 4".to_string(), size: None, family: Some("claude-4".to_string()), loaded: None },
+                ProviderModel { id: "claude-haiku-4-20250414".to_string(), name: "Claude Haiku 4".to_string(), size: None, family: Some("claude-4".to_string()), loaded: None },
+                ProviderModel { id: "claude-3-5-haiku-20241022".to_string(), name: "Claude 3.5 Haiku".to_string(), size: None, family: Some("claude-3.5".to_string()), loaded: None },
             ])
         }
     }

@@ -117,7 +117,9 @@
       "connectionFailed": "Connection failed",
       "startHint": "Make sure {{provider}} is running on your machine.",
       "advancedSettings": "Show advanced settings",
-      "endpoint": "Endpoint"
+      "endpoint": "Endpoint",
+      "loaded": "Loaded",
+      "notLoaded": "Not loaded"
     },
     "cloudLLM": {
       "title": "Cloud LLM",
