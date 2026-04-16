@@ -131,6 +131,10 @@ export const discoverLocalProviders = () =>
   invoke<DiscoveredProvider[]>("discover_local_providers");
 export const listProviderModels = (config?: InferenceProviderConfig | null) =>
   invoke<ProviderModel[]>("list_provider_models", { config: config ?? null });
+export const pullOllamaModel = (modelName: string) =>
+  invoke<string>("pull_ollama_model", { modelName });
+export const deleteOllamaModel = (modelName: string) =>
+  invoke<void>("delete_ollama_model", { modelName });
 
 // Governance
 export const getConflicts = () => invoke<Conflict[]>("get_conflicts");

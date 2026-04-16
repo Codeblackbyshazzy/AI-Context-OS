@@ -163,6 +163,8 @@ pub fn run() {
             commands::inbox::chat_completion,
             commands::inbox::discover_local_providers,
             commands::inbox::list_provider_models,
+            commands::inbox::pull_ollama_model,
+            commands::inbox::delete_ollama_model,
             // Governance
             commands::governance::get_conflicts,
             commands::governance::get_decay_candidates,

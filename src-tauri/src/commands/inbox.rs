@@ -1842,3 +1842,43 @@ pub async fn list_provider_models(
     };
     fetch_models_for_config(&config).await
 }
+
+#[tauri::command]
+pub async fn pull_ollama_model(model_name: String) -> Result<String, String> {
+    let client = Client::builder()
+        .timeout(std::time::Duration::from_secs(600))
+        .build()
+        .map_err(|e| format!("HTTP client error: {}", e))?;
+    let response = client
+        .post("http://127.0.0.1:11434/api/pull")
+        .json(&json!({ "model": model_name, "stream": false }))
+        .send()
+        .await
+        .map_err(|e| format!("Failed to pull model: {}", e))?;
+    if !response.status().is_success() {
+        let body: Value = response.json().await.unwrap_or(json!({}));
+        let msg = body.get("error").and_then(|e| e.as_str()).unwrap_or("Unknown error");
+        return Err(format!("Ollama pull failed: {}", msg));
+    }
+    Ok(format!("Model '{}' pulled successfully", model_name))
+}
+
+#[tauri::command]
+pub async fn delete_ollama_model(model_name: String) -> Result<(), String> {
+    let client = Client::builder()
+        .timeout(std::time::Duration::from_secs(30))
+        .build()
+        .map_err(|e| format!("HTTP client error: {}", e))?;
+    let response = client
+        .delete("http://127.0.0.1:11434/api/delete")
+        .json(&json!({ "model": model_name }))
+        .send()
+        .await
+        .map_err(|e| format!("Failed to delete model: {}", e))?;
+    if !response.status().is_success() {
+        let body: Value = response.json().await.unwrap_or(json!({}));
+        let msg = body.get("error").and_then(|e| e.as_str()).unwrap_or("Unknown error");
+        return Err(format!("Ollama delete failed: {}", msg));
+    }
+    Ok(())
+}

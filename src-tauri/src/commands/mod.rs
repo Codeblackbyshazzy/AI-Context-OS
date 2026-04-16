@@ -13,5 +13,4 @@ pub mod router;
 pub mod scoring;
 pub mod tasks;
 pub mod vault;
-pub mod inference;
 
