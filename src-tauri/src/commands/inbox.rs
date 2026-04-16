@@ -669,8 +669,13 @@ async fn openai_compatible_chat(
         .clone()
         .ok_or_else(|| "Missing base URL for OpenAI-compatible provider".to_string())?;
     let endpoint = format!("{}/chat/completions", base_url.trim_end_matches('/'));
+    // Local models (Ollama/LM Studio) can be slow on first inference
+    let timeout_secs = match config.preset {
+        InferenceProviderPreset::Ollama | InferenceProviderPreset::LmStudio => 120,
+        _ => 30,
+    };
     let client = Client::builder()
-        .timeout(std::time::Duration::from_secs(30))
+        .timeout(std::time::Duration::from_secs(timeout_secs))
         .build()
         .map_err(|e| format!("Failed to build HTTP client: {}", e))?;
 
