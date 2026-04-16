@@ -94,16 +94,26 @@ export function ChatPanel() {
       let contextPrompt = "";
       let contextIds: string[] = [];
 
+      console.log("[chat] send start — useVaultContext:", useVaultContext);
       if (useVaultContext) {
         try {
           const chatContext = await buildChatContext(text, DEFAULT_TOKEN_BUDGET);
+          console.log(
+            "[chat] buildChatContext OK — prompt_context.length:",
+            chatContext.prompt_context.length,
+            "memory_ids:",
+            chatContext.memory_ids.length,
+          );
           if (chatContext.prompt_context.trim()) {
             contextPrompt = chatContext.prompt_context;
             contextIds = chatContext.memory_ids;
           }
-        } catch {
+        } catch (err) {
+          console.error("[chat] buildChatContext FAILED:", err);
           // non-fatal — keep plain system prompt
         }
+      } else {
+        console.warn("[chat] useVaultContext is OFF — skipping vault lookup");
       }
 
       // Build message history (excluding pending turn)
