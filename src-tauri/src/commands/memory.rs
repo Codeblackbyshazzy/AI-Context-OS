@@ -189,7 +189,8 @@ pub fn get_memory(id: String, state: State<AppState>) -> Result<Memory, String> 
 }
 
 /// Create a new memory file. Kept for compatibility with older flows.
-/// New UI paths should use `create_memory_at_path` explicitly.
+/// Legacy callers now default to the workspace root so canonical memories are
+/// created in a scannable location instead of the transient inbox surface.
 #[tauri::command]
 pub fn create_memory(
     input: CreateMemoryInput,
@@ -197,8 +198,7 @@ pub fn create_memory(
     state: State<AppState>,
 ) -> Result<Memory, String> {
     let root = state.get_root();
-    let paths = crate::core::paths::SystemPaths::new(&root);
-    create_memory_internal(input, paths.inbox_dir(), app, state)
+    create_memory_internal(input, root, app, state)
 }
 
 /// Create a new memory file inside a specific directory.

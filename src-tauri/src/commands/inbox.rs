@@ -886,6 +886,7 @@ async fn openai_compatible_chat(
             .and_then(|value| value.as_str())
             .map(|value| value.to_string())
             .or_else(|| Some(config.model.clone())),
+        context_memory_ids: Vec::new(),
     })
 }
 
@@ -950,6 +951,7 @@ async fn anthropic_chat(
             .and_then(|value| value.as_str())
             .map(|value| value.to_string())
             .or_else(|| Some(config.model.clone())),
+        context_memory_ids: Vec::new(),
     })
 }
 
@@ -1008,7 +1010,9 @@ async fn health_check(config: &InferenceProviderConfig) -> Result<String, String
                 &normalized,
                 &ChatCompletionRequest {
                     system_prompt: Some("Reply with OK.".to_string()),
+                    include_vault_context: false,
                     context_prompt: None,
+                    context_memory_ids: Vec::new(),
                     model: Some(normalized.model.clone()),
                     messages: vec![ChatMessage {
                         role: "user".to_string(),
@@ -1274,7 +1278,9 @@ async fn infer_proposal(
         &config,
         &ChatCompletionRequest {
             system_prompt: Some(system_prompt.to_string()),
+            include_vault_context: false,
             context_prompt: None,
+            context_memory_ids: Vec::new(),
             model: Some(config.model.clone()),
             messages: vec![ChatMessage {
                 role: "user".to_string(),
@@ -1984,6 +1990,17 @@ pub async fn chat_completion(
     let config = load_provider_config(&root)?
         .ok_or_else(|| "No provider configured".to_string())?;
 
+    let mut context_memory_ids = if request.include_vault_context {
+        request.context_memory_ids.clone()
+    } else {
+        Vec::new()
+    };
+
+    if !request.include_vault_context {
+        request.context_prompt = None;
+        request.context_memory_ids.clear();
+    }
+
     // Fallback: if the frontend didn't pre-assemble vault context, do it here.
     // This is the authoritative path — it guarantees the LLM receives grounding
     // regardless of frontend toggle state or HMR/bundle staleness.
@@ -1992,7 +2009,7 @@ pub async fn chat_completion(
         .as_deref()
         .map(|s| s.trim().len())
         .unwrap_or(0);
-    if incoming_ctx_len == 0 {
+    if request.include_vault_context && incoming_ctx_len == 0 {
         if let Some(query) = request
             .messages
             .iter()
@@ -2021,8 +2038,15 @@ pub async fn chat_completion(
                             result.total_memories,
                             assembled.len(),
                         );
+                        context_memory_ids = result
+                            .loaded
+                            .iter()
+                            .map(|memory| memory.memory_id.clone())
+                            .collect();
                         if !assembled.trim().is_empty() {
                             request.context_prompt = Some(assembled);
+                        } else {
+                            context_memory_ids.clear();
                         }
                     }
                     Err(err) => {
@@ -2042,21 +2066,24 @@ pub async fn chat_completion(
         .map(|s| s.len())
         .unwrap_or(0);
     log::info!(
-        "chat_completion provider={:?} preset={:?} model={:?} messages={} system_prompt={} context_prompt_len={} context_prompt_empty={}",
+        "chat_completion provider={:?} preset={:?} model={:?} messages={} system_prompt={} include_vault_context={} context_prompt_len={} context_prompt_empty={}",
         config.kind,
         config.preset,
         request.model.as_deref().unwrap_or(&config.model),
         request.messages.len(),
         request.system_prompt.is_some(),
+        request.include_vault_context,
         ctx_len,
         ctx_len == 0,
     );
-    if ctx_len == 0 {
+    if request.include_vault_context && ctx_len == 0 {
         log::warn!(
             "chat_completion received NO context_prompt even after auto-assembly fallback — the LLM will answer without vault context."
         );
     }
-    provider_chat_completion(&config, &request).await
+    let mut response = provider_chat_completion(&config, &request).await?;
+    response.context_memory_ids = context_memory_ids;
+    Ok(response)
 }
 
 #[tauri::command]
@@ -2222,7 +2249,9 @@ mod tests {
                 content: "como me llamo?".to_string(),
             }],
             system_prompt: Some("system rules".to_string()),
+            include_vault_context: true,
             context_prompt: Some("## [quien-soy-yo] Yo soy alex dc".to_string()),
+            context_memory_ids: vec!["quien-soy-yo".to_string()],
             model: None,
         });
 
@@ -2245,7 +2274,9 @@ mod tests {
                 content: "como me llamo?".to_string(),
             }],
             system_prompt: Some("system rules".to_string()),
+            include_vault_context: true,
             context_prompt: Some("## [quien-soy-yo] Yo soy alex dc".to_string()),
+            context_memory_ids: vec!["quien-soy-yo".to_string()],
             model: None,
         });
 
@@ -2273,7 +2304,9 @@ mod tests {
                 ChatMessage { role: "assistant".to_string(), content: "hey".to_string() },
             ],
             system_prompt: None,
+            include_vault_context: true,
             context_prompt: None,
+            context_memory_ids: Vec::new(),
             model: None,
         });
 

@@ -161,8 +161,12 @@ fn create_profile_memory(
     let content = serialize_frontmatter(&meta, &body)
         .map_err(|e| format!("Failed to serialize profile: {}", e))?;
 
-    let paths = crate::core::paths::SystemPaths::new(root);
-    let path = paths.inbox_dir().join("perfil-profesional.md");
+    let destination_dir = if root.join("identity").is_dir() {
+        root.join("identity")
+    } else {
+        root.to_path_buf()
+    };
+    let path = destination_dir.join("perfil-profesional.md");
     fs::write(&path, content).map_err(|e| format!("Failed to write profile: {}", e))?;
 
     Ok(())
