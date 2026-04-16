@@ -607,6 +607,43 @@ async fn fetch_link_preview(url: &Url) -> Result<(Option<String>, String), Strin
     Ok((title, preview))
 }
 
+/// For LM Studio, try to load the model into memory before inference.
+/// Ollama auto-loads on first request, so this is a no-op for Ollama.
+async fn ensure_model_loaded(config: &InferenceProviderConfig) -> Result<(), String> {
+    if config.preset != InferenceProviderPreset::LmStudio {
+        return Ok(());
+    }
+    let base_url = config
+        .base_url
+        .as_deref()
+        .unwrap_or(DEFAULT_LM_STUDIO_BASE_URL);
+    // LM Studio native API lives under /api/v1, not /v1
+    let native_base = base_url
+        .trim_end_matches('/')
+        .replace("/v1", "/api/v1");
+    let endpoint = format!("{}/models/load", native_base);
+    let client = Client::builder()
+        .timeout(std::time::Duration::from_secs(120))
+        .build()
+        .map_err(|e| format!("HTTP client error: {}", e))?;
+    let response = client
+        .post(&endpoint)
+        .json(&json!({ "model": config.model }))
+        .send()
+        .await
+        .map_err(|e| format!("Failed to load model in LM Studio: {}", e))?;
+    if !response.status().is_success() {
+        let body: Value = response.json().await.unwrap_or(json!({}));
+        let msg = body
+            .get("error")
+            .and_then(|e| e.get("message"))
+            .and_then(|m| m.as_str())
+            .unwrap_or("Unknown error");
+        return Err(format!("LM Studio model load failed: {}", msg));
+    }
+    Ok(())
+}
+
 async fn provider_chat_completion(
     config: &InferenceProviderConfig,
     request: &ChatCompletionRequest,
@@ -615,6 +652,8 @@ async fn provider_chat_completion(
     if !normalized.enabled {
         return Err("Provider is disabled".to_string());
     }
+    // Ensure model is loaded (LM Studio needs explicit loading)
+    ensure_model_loaded(&normalized).await?;
     match normalized.kind {
         InferenceProviderKind::OpenAiCompatible => openai_compatible_chat(&normalized, request).await,
         InferenceProviderKind::Anthropic => anthropic_chat(&normalized, request).await,
@@ -792,10 +831,22 @@ async fn health_check(config: &InferenceProviderConfig) -> Result<String, String
                 .and_then(|d| d.as_array())
                 .map(|a| a.len())
                 .unwrap_or(0);
+            // For LM Studio: also try to load the selected model so it's ready
+            let load_msg = if normalized.preset == InferenceProviderPreset::LmStudio
+                && !normalized.model.is_empty()
+            {
+                match ensure_model_loaded(&normalized).await {
+                    Ok(()) => format!(" — model '{}' loaded", normalized.model),
+                    Err(e) => format!(" — warning: {}", e),
+                }
+            } else {
+                String::new()
+            };
             Ok(format!(
-                "Connection successful — {} model{} available",
+                "Connection successful — {} model{} available{}",
                 model_count,
-                if model_count == 1 { "" } else { "s" }
+                if model_count == 1 { "" } else { "s" },
+                load_msg
             ))
         }
         InferenceProviderKind::Anthropic => {
