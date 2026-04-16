@@ -117,6 +117,13 @@ export function LocalLLMTab({ config, onSaved }: Props) {
 
   const currentProvider = providers.find((p) => p.preset === activePreset);
   const isAvailable = currentProvider?.reachable ?? false;
+  const recommendedEndpoint = activePreset === "ollama"
+    ? DEFAULT_OLLAMA_URL
+    : activePreset === "lm_studio"
+      ? DEFAULT_LM_STUDIO_URL
+      : "";
+  const normalizedEndpoint = endpointOverride.trim();
+  const isRecommendedEndpoint = !recommendedEndpoint || normalizedEndpoint === recommendedEndpoint;
 
   const handleSelectPreset = useCallback((preset: LocalPreset) => {
     setActivePreset(preset);
@@ -452,6 +459,29 @@ export function LocalLLMTab({ config, onSaved }: Props) {
                   className="rounded-md border border-[color:var(--border)] bg-[color:var(--bg-0)] px-3 py-2 text-sm text-[color:var(--text-0)] focus:border-[color:var(--accent)] focus:outline-none"
                 />
               </label>
+              {recommendedEndpoint && (
+                <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-xs text-[color:var(--text-2)]">
+                    {t("settings.localLLM.recommendedEndpoint", { endpoint: recommendedEndpoint })}
+                  </p>
+                  {!isRecommendedEndpoint && (
+                    <button
+                      onClick={() => setEndpointOverride(recommendedEndpoint)}
+                      disabled={busy !== "idle"}
+                      className="rounded-md border border-[color:var(--border)] bg-[color:var(--bg-0)] px-2.5 py-1 text-xs font-medium text-[color:var(--text-1)] transition-colors hover:border-[color:var(--border-active)] disabled:opacity-60"
+                    >
+                      {t("settings.localLLM.restoreRecommended")}
+                    </button>
+                  )}
+                </div>
+              )}
+              {!statusMsg?.ok && !isRecommendedEndpoint && (
+                <p className="mt-2 text-xs text-amber-600">
+                  {t("settings.localLLM.endpointMismatchHint", {
+                    provider: activePreset === "ollama" ? "Ollama" : "LM Studio",
+                  })}
+                </p>
+              )}
             </div>
           )}
         </section>

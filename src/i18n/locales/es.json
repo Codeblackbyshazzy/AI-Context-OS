@@ -118,6 +118,9 @@
       "startHint": "Asegúrate de que {{provider}} está en ejecución.",
       "advancedSettings": "Ajustes avanzados",
       "endpoint": "Endpoint",
+      "recommendedEndpoint": "Endpoint recomendado: {{endpoint}}",
+      "restoreRecommended": "Restaurar recomendado",
+      "endpointMismatchHint": "Si no has personalizado {{provider}}, restaura el endpoint recomendado y prueba otra vez.",
       "loaded": "Cargado",
       "notLoaded": "Sin cargar"
     },

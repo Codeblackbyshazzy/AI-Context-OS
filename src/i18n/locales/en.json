@@ -118,6 +118,9 @@
       "startHint": "Make sure {{provider}} is running on your machine.",
       "advancedSettings": "Show advanced settings",
       "endpoint": "Endpoint",
+      "recommendedEndpoint": "Recommended endpoint: {{endpoint}}",
+      "restoreRecommended": "Restore recommended",
+      "endpointMismatchHint": "If you did not customize {{provider}}, restore the recommended endpoint and test again.",
       "loaded": "Loaded",
       "notLoaded": "Not loaded"
     },
