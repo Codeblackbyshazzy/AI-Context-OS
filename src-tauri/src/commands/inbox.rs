@@ -913,12 +913,7 @@ async fn anthropic_chat(
         "max_tokens": 1024,
         "temperature": 0.2,
         "system": request.system_prompt.clone().unwrap_or_default(),
-        "messages": request.messages.iter().map(|message| {
-            json!({
-                "role": if message.role == "assistant" { "assistant" } else { "user" },
-                "content": [{ "type": "text", "text": message.content }]
-            })
-        }).collect::<Vec<_>>()
+        "messages": build_anthropic_messages(request),
     });
 
     let response = client
