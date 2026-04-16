@@ -1296,9 +1296,13 @@ pub async fn generate_ingest_proposals(
     let root = state.get_root();
     let items = load_inbox_items(&root)?;
     let all_items = if item_ids.is_empty() {
-        items
+        items.clone()
     } else {
-        items.into_iter().filter(|item| item_ids.contains(&item.id)).collect()
+        items
+            .iter()
+            .filter(|item| item_ids.contains(&item.id))
+            .cloned()
+            .collect()
     };
 
     let mut existing = load_proposals(&root)?;
@@ -1307,9 +1311,19 @@ pub async fn generate_ingest_proposals(
         if existing.iter().any(|proposal| proposal.item_id == item.id && proposal.state == ProposalState::Pending) {
             continue;
         }
-        let mut proposal = heuristic_proposal(&item);
+        let mut proposal = items
+            .iter()
+            .find(|other| {
+                other.id != item.id
+                    && (other.content_hash == item.content_hash
+                        || (item.source_url.is_some() && other.source_url == item.source_url))
+            })
+            .map(|duplicate_of| duplicate_proposal(&item, duplicate_of))
+            .unwrap_or_else(|| heuristic_proposal(&item));
         if let Ok(inferred) = infer_proposal(&root, &item).await {
-            proposal = inferred;
+            if !matches!(proposal.action, ProposalAction::Discard) {
+                proposal = inferred;
+            }
         }
         write_proposal(&root, &proposal)?;
         existing.push(proposal.clone());
