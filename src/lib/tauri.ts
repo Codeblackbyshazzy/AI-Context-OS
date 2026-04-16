@@ -5,6 +5,7 @@ import type {
   CreateInboxLinkInput,
   CreateInboxTextInput,
   DailyEntry,
+  DiscoveredProvider,
   FileNode,
   GodNode,
   GraphData,
@@ -18,6 +19,7 @@ import type {
   MemoryFilter,
   MemoryMeta,
   ApplyIngestProposalInput,
+  ProviderModel,
   RecentOperationalContext,
   SaveMemoryInput,
   ScoredMemory,
@@ -125,6 +127,10 @@ export const testInferenceProvider = (config?: InferenceProviderConfig | null) =
   invoke<InferenceProviderStatus>("test_inference_provider", { config: config ?? null });
 export const chatCompletion = (request: ChatCompletionRequest) =>
   invoke<ChatCompletionResponse>("chat_completion", { request });
+export const discoverLocalProviders = () =>
+  invoke<DiscoveredProvider[]>("discover_local_providers");
+export const listProviderModels = (config?: InferenceProviderConfig | null) =>
+  invoke<ProviderModel[]>("list_provider_models", { config: config ?? null });
 
 // Governance
 export const getConflicts = () => invoke<Conflict[]>("get_conflicts");

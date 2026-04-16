@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { useSettingsStore, Theme } from "../lib/settingsStore";
-import { Monitor, Moon, Sun, Download, Upload, Check, Loader2, Eye, EyeOff, Sparkles, PlugZap } from "lucide-react";
+import { Monitor, Moon, Sun, Download, Upload, Check, Loader2, Eye, EyeOff, Sparkles, PlugZap, Search, Zap, ChevronDown } from "lucide-react";
 import { clsx } from "clsx";
 import {
   backupWorkspace,
