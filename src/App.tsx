@@ -248,8 +248,8 @@ function AppContent() {
           style={{ width: explorerOpen ? "196px" : "0px" }}
         />
 
-        {/* Sliding Toggle Button: Pushed left/right by the animated spacer. 
-            mb-[3px] perfectly nudges it upwards to counter optical misalignment with macOS traffic lights 
+        {/* Sliding Toggle Button: Pushed left/right by the animated spacer.
+            mb-[3px] perfectly nudges it upwards to counter optical misalignment with macOS traffic lights
         */}
         <div data-tauri-drag-region className="flex w-[40px] items-center justify-center shrink-0 mb-[3px]">
           <button
@@ -258,6 +258,21 @@ function AppContent() {
             title="Toggle Explorer"
           >
             <PanelLeft className="h-[15px] w-[15px]" pointerEvents="none" />
+          </button>
+        </div>
+
+        {/* Chat toggle */}
+        <div data-tauri-drag-region className="flex items-center justify-center shrink-0 mb-[3px]">
+          <button
+            onClick={toggleChat}
+            className={`flex h-6 w-6 items-center justify-center rounded-md transition-colors ${
+              chatOpen
+                ? "bg-[color:var(--accent-muted)] text-[color:var(--accent)]"
+                : "text-[color:var(--text-2)] hover:bg-[color:var(--bg-2)] hover:text-[color:var(--text-1)]"
+            }`}
+            title="Toggle Chat"
+          >
+            <MessageSquare className="h-[15px] w-[15px]" pointerEvents="none" />
           </button>
         </div>
 
@@ -272,8 +287,8 @@ function AppContent() {
 
       <div className="obs-app-shell flex flex-1 overflow-hidden">
         <Sidebar onCreateVault={() => setShowOnboardingForVault(true)} />
-        <main className="relative flex-1 overflow-hidden">
-          <div className="h-full overflow-hidden bg-[color:var(--bg-1)]">
+        <main className="relative flex min-w-0 flex-1 overflow-hidden">
+          <div className="min-w-0 flex-1 overflow-hidden bg-[color:var(--bg-1)]">
             <Suspense fallback={<RouteFallback />}>
               <Routes>
                 <Route path="/" element={<ExplorerView />} />
@@ -288,6 +303,7 @@ function AppContent() {
               </Routes>
             </Suspense>
           </div>
+          {chatOpen && <ChatPanel />}
           <Toast message={error} onDismiss={() => setError(null)} />
         </main>
       </div>
