@@ -11,6 +11,20 @@
     "connectors": "Connectors",
     "settings": "Settings"
   },
+  "chat": {
+    "title": "Chat",
+    "close": "Close chat",
+    "clear": "Clear",
+    "send": "Send",
+    "inputPlaceholder": "Ask something — Enter to send, Shift+Enter for newline",
+    "hint": "Responses may use ranked vault context as grounding.",
+    "useContext": "Use vault context",
+    "noProvider": "No inference provider configured. Open Settings → Local LLM or Cloud LLM to set one up.",
+    "empty": {
+      "title": "Start a conversation",
+      "description": "Ask a question. If \"Use vault context\" is on, your top-ranked memories are passed as grounding."
+    }
+  },
   "settings": {
     "title": "Settings",
     "appearance": "Appearance",

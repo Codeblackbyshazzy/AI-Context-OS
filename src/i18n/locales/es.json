@@ -11,6 +11,20 @@
     "connectors": "Conectores",
     "settings": "Ajustes"
   },
+  "chat": {
+    "title": "Chat",
+    "close": "Cerrar chat",
+    "clear": "Limpiar",
+    "send": "Enviar",
+    "inputPlaceholder": "Pregunta algo — Enter para enviar, Shift+Enter para nueva línea",
+    "hint": "Las respuestas pueden usar el contexto del vault como base.",
+    "useContext": "Usar contexto del vault",
+    "noProvider": "No hay proveedor de inferencia configurado. Abre Ajustes → Local LLM o Cloud LLM para configurarlo.",
+    "empty": {
+      "title": "Inicia una conversación",
+      "description": "Pregunta lo que quieras. Si \"Usar contexto del vault\" está activo, tus memorias mejor rankeadas se pasan como contexto."
+    }
+  },
   "settings": {
     "title": "Ajustes",
     "appearance": "Apariencia",
