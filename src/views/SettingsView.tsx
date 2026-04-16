@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useSettingsStore, Theme } from "../lib/settingsStore";
 import { Monitor, Moon, Sun, Download, Upload, Check, Loader2, Eye, EyeOff, Sparkles, PlugZap } from "lucide-react";
 import { clsx } from "clsx";
@@ -40,6 +40,38 @@ export function SettingsView() {
 
   const [backupStatus, setBackupStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
   const [restoreStatus, setRestoreStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
+  const [providerConfig, setProviderConfig] = useState<InferenceProviderConfig>({
+    enabled: false,
+    kind: "openai_compatible",
+    preset: "ollama",
+    model: "",
+    base_url: "http://127.0.0.1:11434/v1",
+    api_key: "",
+    capabilities: ["proposal", "classification", "summary", "chat", "streaming"],
+  });
+  const [providerStatus, setProviderStatus] = useState<InferenceProviderStatus | null>(null);
+  const [providerBusy, setProviderBusy] = useState<"idle" | "saving" | "testing">("idle");
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const [savedConfig, savedStatus] = await Promise.all([
+          getInferenceProviderConfig(),
+          getInferenceProviderStatus(),
+        ]);
+        if (savedConfig) {
+          setProviderConfig({
+            ...savedConfig,
+            api_key: savedConfig.api_key ?? "",
+            base_url: savedConfig.base_url ?? "",
+          });
+        }
+        setProviderStatus(savedStatus);
+      } catch (error) {
+        console.error("Failed to load inference settings", error);
+      }
+    })();
+  }, []);
 
   const handleBackup = useCallback(async () => {
     const dest = await save({
