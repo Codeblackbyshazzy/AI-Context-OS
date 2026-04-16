@@ -1882,3 +1882,98 @@ pub async fn delete_ollama_model(model_name: String) -> Result<(), String> {
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use std::sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc,
+    };
+
+    use axum::{
+        extract::{Path as AxumPath, State as AxumState},
+        routing::{get, post},
+        Json, Router,
+    };
+
+    #[derive(Clone)]
+    struct TestLmStudioState {
+        load_calls: Arc<AtomicUsize>,
+        model_state: &'static str,
+    }
+
+    async fn lm_studio_model_state(
+        AxumPath(model): AxumPath<String>,
+        AxumState(state): AxumState<TestLmStudioState>,
+    ) -> Json<Value> {
+        Json(json!({
+            "id": model,
+            "object": "model",
+            "state": state.model_state,
+        }))
+    }
+
+    async fn lm_studio_load_model(
+        AxumState(state): AxumState<TestLmStudioState>,
+    ) -> Json<Value> {
+        state.load_calls.fetch_add(1, Ordering::SeqCst);
+        Json(json!({ "status": "loaded" }))
+    }
+
+    async fn spawn_test_lm_studio(model_state: &'static str) -> (String, Arc<AtomicUsize>) {
+        let load_calls = Arc::new(AtomicUsize::new(0));
+        let app = Router::new()
+            .route("/api/v0/models/{*model}", get(lm_studio_model_state))
+            .route("/api/v1/models/load", post(lm_studio_load_model))
+            .with_state(TestLmStudioState {
+                load_calls: load_calls.clone(),
+                model_state,
+            });
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("bind test server");
+        let addr = listener.local_addr().expect("test server addr");
+        tokio::spawn(async move {
+            axum::serve(listener, app).await.expect("serve test lm studio");
+        });
+
+        (format!("http://{}", addr), load_calls)
+    }
+
+    fn lm_studio_test_config(base_url: String) -> InferenceProviderConfig {
+        InferenceProviderConfig {
+            enabled: true,
+            kind: InferenceProviderKind::OpenAiCompatible,
+            preset: InferenceProviderPreset::LmStudio,
+            model: "openai/gpt-oss-20b".to_string(),
+            base_url: Some(format!("{}/v1", base_url.trim_end_matches('/'))),
+            api_key: None,
+            capabilities: vec![InferenceCapability::Chat],
+        }
+    }
+
+    #[tokio::test]
+    async fn ensure_model_loaded_skips_reload_for_loaded_lm_studio_models() {
+        let (base_url, load_calls) = spawn_test_lm_studio("loaded").await;
+
+        ensure_model_loaded(&lm_studio_test_config(base_url))
+            .await
+            .expect("already loaded model should not error");
+
+        assert_eq!(load_calls.load(Ordering::SeqCst), 0);
+    }
+
+    #[tokio::test]
+    async fn ensure_model_loaded_loads_unloaded_lm_studio_models() {
+        let (base_url, load_calls) = spawn_test_lm_studio("not-loaded").await;
+
+        ensure_model_loaded(&lm_studio_test_config(base_url))
+            .await
+            .expect("unloaded model should be loaded");
+
+        assert_eq!(load_calls.load(Ordering::SeqCst), 1);
+    }
+}
