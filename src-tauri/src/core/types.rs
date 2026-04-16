@@ -398,6 +398,7 @@ pub enum ProposalState {
 #[serde(rename_all = "snake_case")]
 pub enum InferenceProviderKind {
     Anthropic,
+    #[serde(rename = "openai_compatible")]
     OpenAiCompatible,
 }
 
@@ -405,7 +406,9 @@ pub enum InferenceProviderKind {
 #[serde(rename_all = "snake_case")]
 pub enum InferenceProviderPreset {
     Custom,
+    #[serde(rename = "openai")]
     OpenAi,
+    #[serde(rename = "openrouter")]
     OpenRouter,
     Ollama,
     LmStudio,
