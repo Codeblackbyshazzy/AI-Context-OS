@@ -780,6 +780,99 @@ async fn health_check(config: &InferenceProviderConfig) -> Result<String, String
     }
 }
 
+async fn probe_openai_compatible(base_url: &str, timeout_secs: u64) -> Result<Vec<ProviderModel>, String> {
+    let endpoint = format!("{}/models", base_url.trim_end_matches('/'));
+    let client = Client::builder()
+        .timeout(std::time::Duration::from_secs(timeout_secs))
+        .build()
+        .map_err(|e| format!("HTTP client error: {}", e))?;
+    let response = client
+        .get(&endpoint)
+        .send()
+        .await
+        .map_err(|e| format!("Unreachable: {}", e))?;
+    if !response.status().is_success() {
+        return Err(format!("Status {}", response.status()));
+    }
+    let body: Value = response
+        .json()
+        .await
+        .map_err(|e| format!("Parse error: {}", e))?;
+    let models = body
+        .get("data")
+        .and_then(|d| d.as_array())
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|m| {
+                    let id = m.get("id").and_then(|v| v.as_str())?.to_string();
+                    let name = m
+                        .get("name")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or_else(|| m.get("id").and_then(|v| v.as_str()).unwrap_or(""))
+                        .to_string();
+                    let size = m
+                        .get("size")
+                        .or_else(|| m.get("vram_required"))
+                        .and_then(|v| v.as_u64());
+                    let family = m
+                        .get("family")
+                        .or_else(|| m.get("owned_by"))
+                        .and_then(|v| v.as_str())
+                        .map(|s| s.to_string());
+                    Some(ProviderModel { id, name, size, family })
+                })
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+    Ok(models)
+}
+
+async fn discover_providers() -> Vec<DiscoveredProvider> {
+    let probes = vec![
+        (InferenceProviderPreset::Ollama, "Ollama", DEFAULT_OLLAMA_BASE_URL),
+        (InferenceProviderPreset::LmStudio, "LM Studio", DEFAULT_LM_STUDIO_BASE_URL),
+    ];
+    let mut results = Vec::new();
+    for (preset, name, base_url) in probes {
+        match probe_openai_compatible(base_url, 3).await {
+            Ok(models) => results.push(DiscoveredProvider {
+                preset,
+                name: name.to_string(),
+                base_url: base_url.to_string(),
+                reachable: true,
+                models,
+            }),
+            Err(_) => results.push(DiscoveredProvider {
+                preset,
+                name: name.to_string(),
+                base_url: base_url.to_string(),
+                reachable: false,
+                models: Vec::new(),
+            }),
+        }
+    }
+    results
+}
+
+async fn fetch_models_for_config(config: &InferenceProviderConfig) -> Result<Vec<ProviderModel>, String> {
+    let normalized = normalize_provider_config(config.clone());
+    let base_url = normalized
+        .base_url
+        .ok_or_else(|| "Missing base URL".to_string())?;
+    match normalized.kind {
+        InferenceProviderKind::OpenAiCompatible => probe_openai_compatible(&base_url, 10).await,
+        InferenceProviderKind::Anthropic => {
+            // Anthropic doesn't have a public models list endpoint;
+            // return a curated list of common models.
+            Ok(vec![
+                ProviderModel { id: "claude-sonnet-4-20250514".to_string(), name: "Claude Sonnet 4".to_string(), size: None, family: Some("claude-4".to_string()) },
+                ProviderModel { id: "claude-haiku-4-20250414".to_string(), name: "Claude Haiku 4".to_string(), size: None, family: Some("claude-4".to_string()) },
+                ProviderModel { id: "claude-3-5-haiku-20241022".to_string(), name: "Claude 3.5 Haiku".to_string(), size: None, family: Some("claude-3.5".to_string()) },
+            ])
+        }
+    }
+}
+
 fn heuristic_proposal(item: &InboxItem) -> IngestProposal {
     let now = Utc::now();
     let (action, ontology, rationale, l0, l1, l2, confidence) = match item.kind {
@@ -1620,4 +1713,25 @@ pub async fn chat_completion(
     let config = load_provider_config(&root)?
         .ok_or_else(|| "No provider configured".to_string())?;
     provider_chat_completion(&config, &request).await
+}
+
+#[tauri::command]
+pub async fn discover_local_providers() -> Result<Vec<DiscoveredProvider>, String> {
+    Ok(discover_providers().await)
+}
+
+#[tauri::command]
+pub async fn list_provider_models(
+    config: Option<InferenceProviderConfig>,
+    state: State<'_, AppState>,
+) -> Result<Vec<ProviderModel>, String> {
+    let config = match config {
+        Some(c) => normalize_provider_config(c),
+        None => {
+            let root = state.get_root();
+            load_provider_config(&root)?
+                .ok_or_else(|| "No provider configured".to_string())?
+        }
+    };
+    fetch_models_for_config(&config).await
 }

@@ -161,6 +161,8 @@ pub fn run() {
             commands::inbox::get_inference_provider_status,
             commands::inbox::test_inference_provider,
             commands::inbox::chat_completion,
+            commands::inbox::discover_local_providers,
+            commands::inbox::list_provider_models,
             // Governance
             commands::governance::get_conflicts,
             commands::governance::get_decay_candidates,

@@ -336,6 +336,21 @@ export interface InferenceProviderStatus {
   message: string;
 }
 
+export interface DiscoveredProvider {
+  preset: InferenceProviderPreset;
+  name: string;
+  base_url: string;
+  reachable: boolean;
+  models: ProviderModel[];
+}
+
+export interface ProviderModel {
+  id: string;
+  name: string;
+  size?: number | null;
+  family?: string | null;
+}
+
 export interface CreateInboxTextInput {
   title: string;
   content?: string;
