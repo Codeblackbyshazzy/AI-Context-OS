@@ -1983,6 +1983,26 @@ pub async fn chat_completion(
     let root = state.get_root();
     let config = load_provider_config(&root)?
         .ok_or_else(|| "No provider configured".to_string())?;
+    let ctx_len = request
+        .context_prompt
+        .as_deref()
+        .map(|s| s.len())
+        .unwrap_or(0);
+    log::info!(
+        "chat_completion provider={:?} preset={:?} model={:?} messages={} system_prompt={} context_prompt_len={} context_prompt_empty={}",
+        config.kind,
+        config.preset,
+        request.model.as_deref().unwrap_or(&config.model),
+        request.messages.len(),
+        request.system_prompt.is_some(),
+        ctx_len,
+        ctx_len == 0,
+    );
+    if ctx_len == 0 {
+        log::warn!(
+            "chat_completion received NO context_prompt — the LLM will answer without vault context. Check useVaultContext toggle in the UI and build_chat_context logs above."
+        );
+    }
     provider_chat_completion(&config, &request).await
 }
 
