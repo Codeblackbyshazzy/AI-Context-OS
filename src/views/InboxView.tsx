@@ -22,7 +22,6 @@ import type {
   InboxItem,
   InboxItemKind,
   InboxItemStatus,
-  ProposalState,
 } from "../lib/types";
 import { useAppStore } from "../lib/store";
 

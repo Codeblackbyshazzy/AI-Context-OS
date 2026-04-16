@@ -942,8 +942,10 @@ fn update_item_status(root: &Path, item_id: &str, status: InboxItemStatus, propo
     item.proposal_state = proposal_state;
     item.modified = Utc::now();
     write_inbox_item(item)?;
+    let updated = item.clone();
+    let _ = item;
     persist_manifest(root, &items)?;
-    Ok(item.clone())
+    Ok(updated)
 }
 
 fn append_daily_log(root: &Path, entry_type: &str, summary: String, tags: Vec<String>, source: String) -> Result<(), String> {
@@ -1035,7 +1037,7 @@ pub fn create_inbox_text(
 pub async fn create_inbox_link(
     input: CreateInboxLinkInput,
     app: AppHandle,
-    state: State<AppState>,
+    state: State<'_, AppState>,
 ) -> Result<InboxItem, String> {
     let root = state.get_root();
     let paths = SystemPaths::new(&root);
@@ -1232,9 +1234,23 @@ pub fn normalize_inbox_item(id: String, app: AppHandle, state: State<AppState>) 
 #[tauri::command]
 pub fn normalize_inbox_batch(ids: Vec<String>, app: AppHandle, state: State<AppState>) -> Result<Vec<InboxItem>, String> {
     let mut out = Vec::new();
+    let root = state.get_root();
     for id in ids {
-        out.push(normalize_inbox_item(id, app.clone(), state.clone())?);
+        let mut item = load_inbox_items(&root)?
+            .into_iter()
+            .find(|item| item.id == id)
+            .ok_or_else(|| format!("Inbox item not found: {}", id))?;
+        item.status = InboxItemStatus::Normalized;
+        item.capture_state = "normalized".to_string();
+        item.modified = Utc::now();
+        if item.summary.trim().is_empty() {
+            item.summary = preview_text(if item.l1_content.trim().is_empty() { &item.l2_content } else { &item.l1_content });
+        }
+        write_inbox_item(&item)?;
+        out.push(item);
     }
+    update_manifest_from_disk(&root)?;
+    let _ = app.emit("inbox-changed", ());
     Ok(out)
 }
 
@@ -1247,7 +1263,7 @@ pub fn list_ingest_proposals(state: State<AppState>) -> Result<Vec<IngestProposa
 pub async fn generate_ingest_proposals(
     item_ids: Vec<String>,
     app: AppHandle,
-    state: State<AppState>,
+    state: State<'_, AppState>,
 ) -> Result<Vec<IngestProposal>, String> {
     let root = state.get_root();
     let items = load_inbox_items(&root)?;
@@ -1532,7 +1548,7 @@ pub fn get_inference_provider_status(state: State<AppState>) -> Result<Inference
 #[tauri::command]
 pub async fn test_inference_provider(
     config: Option<InferenceProviderConfig>,
-    state: State<AppState>,
+    state: State<'_, AppState>,
 ) -> Result<InferenceProviderStatus, String> {
     let root = state.get_root();
     let config = match config {
@@ -1556,7 +1572,7 @@ pub async fn test_inference_provider(
 #[tauri::command]
 pub async fn chat_completion(
     request: ChatCompletionRequest,
-    state: State<AppState>,
+    state: State<'_, AppState>,
 ) -> Result<ChatCompletionResponse, String> {
     let root = state.get_root();
     let config = load_provider_config(&root)?
