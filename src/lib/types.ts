@@ -409,6 +409,22 @@ export interface ChatCompletionResponse {
   text: string;
   model?: string | null;
   context_memory_ids: string[];
+  context_debug?: ChatContextDebug | null;
+}
+
+export interface ChatContextDebugMemory {
+  id: string;
+  score?: number | null;
+  token_estimate?: number | null;
+  load_level?: LoadLevel | null;
+}
+
+export interface ChatContextDebug {
+  prompt_chars: number;
+  token_budget: number;
+  tokens_used: number;
+  memory_count: number;
+  memories: ChatContextDebugMemory[];
 }
 
 export interface ContextRequestRecord {

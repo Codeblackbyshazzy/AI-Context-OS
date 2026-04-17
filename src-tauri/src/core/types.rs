@@ -637,6 +637,28 @@ pub struct ChatCompletionResponse {
     pub model: Option<String>,
     #[serde(default)]
     pub context_memory_ids: Vec<String>,
+    #[serde(default)]
+    pub context_debug: Option<ChatContextDebug>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ChatContextDebugMemory {
+    pub id: String,
+    #[serde(default)]
+    pub score: Option<f64>,
+    #[serde(default)]
+    pub token_estimate: Option<u32>,
+    #[serde(default)]
+    pub load_level: Option<LoadLevel>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ChatContextDebug {
+    pub prompt_chars: u32,
+    pub token_budget: u32,
+    pub tokens_used: u32,
+    pub memory_count: u32,
+    pub memories: Vec<ChatContextDebugMemory>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

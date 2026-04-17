@@ -16,12 +16,12 @@ use crate::core::levels::join_levels;
 use crate::core::memory::write_memory;
 use crate::core::paths::SystemPaths;
 use crate::core::types::{
-    ApplyIngestProposalInput, ChatCompletionRequest, ChatCompletionResponse, ChatMessage,
-    CreateInboxLinkInput, CreateInboxTextInput, DailyEntry, DiscoveredProvider, InboxAttachment,
-    InboxItem, InboxItemKind, InboxItemStatus, InferenceCapability, InferenceProviderConfig,
-    InferenceProviderKind, InferenceProviderPreset, InferenceProviderStatus, IngestProposal,
-    Memory, MemoryMeta, MemoryOntology, ProposalAction, ProposalState, ProviderModel,
-    RecentOperationalContext, UpdateInboxItemInput,
+    ApplyIngestProposalInput, ChatCompletionRequest, ChatCompletionResponse, ChatContextDebug,
+    ChatContextDebugMemory, ChatMessage, CreateInboxLinkInput, CreateInboxTextInput, DailyEntry,
+    DiscoveredProvider, InboxAttachment, InboxItem, InboxItemKind, InboxItemStatus,
+    InferenceCapability, InferenceProviderConfig, InferenceProviderKind, InferenceProviderPreset,
+    InferenceProviderStatus, IngestProposal, Memory, MemoryMeta, MemoryOntology, ProposalAction,
+    ProposalState, ProviderModel, RecentOperationalContext, UpdateInboxItemInput,
 };
 use crate::state::AppState;
 
@@ -824,6 +824,53 @@ fn latest_user_query(messages: &[ChatMessage]) -> Option<String> {
         .map(|message| message.content.clone())
 }
 
+fn build_context_debug_from_request(request: &ChatCompletionRequest) -> Option<ChatContextDebug> {
+    let prompt = request.context_prompt.as_deref()?.trim();
+    if prompt.is_empty() && request.context_memory_ids.is_empty() {
+        return None;
+    }
+
+    Some(ChatContextDebug {
+        prompt_chars: prompt.len() as u32,
+        token_budget: 0,
+        tokens_used: 0,
+        memory_count: request.context_memory_ids.len() as u32,
+        memories: request
+            .context_memory_ids
+            .iter()
+            .map(|id| ChatContextDebugMemory {
+                id: id.clone(),
+                score: None,
+                token_estimate: None,
+                load_level: None,
+            })
+            .collect(),
+    })
+}
+
+fn build_context_debug_from_result(
+    prompt_chars: usize,
+    token_budget: u32,
+    result: &crate::core::engine::ContextResult,
+) -> ChatContextDebug {
+    ChatContextDebug {
+        prompt_chars: prompt_chars as u32,
+        token_budget,
+        tokens_used: result.tokens_used,
+        memory_count: result.loaded.len() as u32,
+        memories: result
+            .loaded
+            .iter()
+            .map(|memory| ChatContextDebugMemory {
+                id: memory.memory_id.clone(),
+                score: Some(memory.score.final_score),
+                token_estimate: Some(memory.token_estimate),
+                load_level: Some(memory.load_level.clone()),
+            })
+            .collect(),
+    }
+}
+
 /// Builds the `messages` array to send to an OpenAI-compatible API.
 ///
 /// Layout:
@@ -951,6 +998,7 @@ async fn openai_compatible_chat(
             .map(|value| value.to_string())
             .or_else(|| Some(config.model.clone())),
         context_memory_ids: Vec::new(),
+        context_debug: None,
     })
 }
 
@@ -1016,6 +1064,7 @@ async fn anthropic_chat(
             .map(|value| value.to_string())
             .or_else(|| Some(config.model.clone())),
         context_memory_ids: Vec::new(),
+        context_debug: None,
     })
 }
 
@@ -2299,6 +2348,7 @@ pub async fn chat_completion(
     } else {
         Vec::new()
     };
+    let mut context_debug = build_context_debug_from_request(&request);
 
     if !request.include_vault_context {
         request.context_prompt = None;
@@ -2341,10 +2391,13 @@ pub async fn chat_completion(
                             .iter()
                             .map(|memory| memory.memory_id.clone())
                             .collect();
+                        context_debug =
+                            Some(build_context_debug_from_result(assembled.len(), budget, &result));
                         if !assembled.trim().is_empty() {
                             request.context_prompt = Some(assembled);
                         } else {
                             context_memory_ids.clear();
+                            context_debug = None;
                         }
                     }
                     Err(err) => {
@@ -2381,6 +2434,7 @@ pub async fn chat_completion(
     }
     let mut response = provider_chat_completion(&config, &request).await?;
     response.context_memory_ids = context_memory_ids;
+    response.context_debug = context_debug;
     Ok(response)
 }
 
