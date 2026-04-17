@@ -313,10 +313,14 @@ export function MemoryEditor() {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      {/* Minimal top bar — actions only */}
-      <div className="flex items-center gap-1.5 border-b border-[var(--border)] px-4 py-1.5">
-        <span className="flex-1 font-mono text-[11px] text-[color:var(--text-2)]">{meta.id}.md</span>
+    <div className="flex h-full min-h-0 flex-col bg-[radial-gradient(circle_at_top,_color-mix(in_srgb,var(--accent)_7%,transparent),transparent_35%),var(--bg-0)]">
+      <div className="flex items-center gap-2 border-b border-[var(--border)] bg-[color:var(--bg-0)]/86 px-4 py-2 backdrop-blur">
+        <div className="min-w-0 flex-1">
+          <div className="font-mono text-[11px] text-[color:var(--text-2)]">{meta.id}.md</div>
+          <div className="text-[11px] text-[color:var(--text-2)]">
+            Markdown live preview · Cmd+B negrita · Cmd+I cursiva · Aa mas opciones
+          </div>
+        </div>
         <SaveStateBadge status={saveStatus} />
         <FormatToolbar viewRef={editorViewRef} disabled={isProtected} />
         <button
@@ -339,10 +343,9 @@ export function MemoryEditor() {
       </div>
 
       <div className="flex min-h-0 flex-1">
-        {/* Main editor area */}
         <div className="min-w-0 flex-1 overflow-y-auto">
-          <div className="mx-auto max-w-[780px] px-8 py-6">
-            {/* Editable title (L0) */}
+          <div className="mx-auto max-w-[880px] px-6 py-7 md:px-10">
+            <div className="rounded-[28px] border border-[color:color-mix(in_srgb,var(--border)_82%,transparent)] bg-[color:var(--bg-1)]/92 px-6 py-7 shadow-[0_28px_80px_-42px_rgba(15,23,42,0.35)] backdrop-blur md:px-10 md:py-9">
             <input
               type="text"
               value={meta.l0}
@@ -351,9 +354,9 @@ export function MemoryEditor() {
               }}
               readOnly={isProtected}
               placeholder={t("memoryEditor.untitled")}
-              className="mb-1 w-full bg-transparent text-2xl font-semibold text-[color:var(--text-0)] placeholder:text-[color:var(--text-2)]/40 focus:outline-none"
+              className="mb-2 w-full bg-transparent text-[2.35rem] font-semibold leading-[1.05] tracking-[-0.04em] text-[color:var(--text-0)] placeholder:text-[color:var(--text-2)]/40 focus:outline-none"
             />
-            <p className="mb-6 font-mono text-[11px] text-[color:var(--text-2)]">
+            <p className="mb-8 font-mono text-[11px] leading-5 text-[color:var(--text-2)]">
               {meta.type}
               {meta.system_role && ` · ${meta.system_role}`}
               {meta.folder_category && ` · ${meta.folder_category}`}
@@ -362,7 +365,6 @@ export function MemoryEditor() {
               {` · ${t("memoryEditor.meta.l2Content")} · v${meta.version}`}
             </p>
 
-            {/* L2 — Main content (Obsidian-style live preview) */}
             <HybridMarkdownEditor
               key={`${activeMemory.meta.id}-l2`}
               content={l2}
@@ -372,18 +374,17 @@ export function MemoryEditor() {
                 setSaveStatus("dirty");
               }}
               onBlur={() => void handleSave()}
-              className="min-h-[400px]"
+              className="min-h-[560px]"
               placeholder={t("memoryEditor.placeholders.typeHere")}
               editable={!isProtected}
               viewRef={editorViewRef}
             />
 
-            {/* L1 — Collapsible summary */}
-            <div className="mt-8 border-t border-[var(--border)] pt-3">
+            <div className="mt-10 border-t border-[color:color-mix(in_srgb,var(--accent)_12%,var(--border))] pt-4">
               <button
                 type="button"
                 onClick={() => setL1Open((prev) => !prev)}
-                className="flex items-center gap-1.5 text-[11px] font-medium text-[color:var(--text-2)] transition-colors hover:text-[color:var(--text-1)]"
+                className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-[color:var(--text-2)] transition-colors hover:text-[color:var(--text-1)]"
               >
                 <ChevronRight
                   className={clsx(
@@ -406,10 +407,11 @@ export function MemoryEditor() {
                     readOnly={isProtected}
                     placeholder={t("memoryEditor.placeholders.l1Summary")}
                     rows={3}
-                    className="w-full resize-y rounded-md border border-[var(--border)] bg-[color:var(--bg-1)] px-3 py-2 text-sm leading-relaxed text-[color:var(--text-1)] placeholder:text-[color:var(--text-2)]/40 focus:outline-none"
+                    className="w-full resize-y rounded-2xl border border-[var(--border)] bg-[color:var(--bg-0)] px-4 py-3 text-sm leading-relaxed text-[color:var(--text-1)] placeholder:text-[color:var(--text-2)]/40 focus:outline-none"
                   />
                 </div>
               )}
+            </div>
             </div>
           </div>
         </div>

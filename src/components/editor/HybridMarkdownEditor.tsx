@@ -21,16 +21,19 @@ interface Props {
   viewRef?: React.MutableRefObject<EditorView | null>;
 }
 
-// Custom theme to blend exactly with the app's dark/light modes
+// Logseq-inspired theme with stronger hierarchy and calmer reading rhythm.
 const customTheme = EditorView.theme({
   "&": {
     backgroundColor: "transparent !important",
     color: "var(--text-0)",
-    fontSize: "0.9375rem",
-    lineHeight: "1.65",
+    fontSize: "1rem",
+    lineHeight: "1.72",
+  },
+  ".cm-scroller": {
+    fontFamily: "inherit",
   },
   ".cm-content": {
-    padding: "0",
+    padding: "0.25rem 0 6rem",
     caretColor: "var(--text-0)",
   },
   "&.cm-focused": {
@@ -40,7 +43,7 @@ const customTheme = EditorView.theme({
     display: "none", // No line numbers
   },
   ".cm-line": {
-    padding: "0",
+    padding: "0.12rem 0",
     fontFamily: "inherit",
     wordWrap: "break-word",
     whiteSpace: "pre-wrap",
@@ -54,50 +57,123 @@ const customTheme = EditorView.theme({
   ".cm-cursor": {
     borderLeftColor: "var(--text-0)",
   },
+  ".cm-line.cm-paragraph": {
+    color: "var(--text-1)",
+  },
   ".cm-line.cm-h1": {
-    fontSize: "1.85em",
-    fontWeight: "700",
-    lineHeight: "1.3",
-    paddingTop: "0.5em",
-    paddingBottom: "0.2em",
-    borderBottom: "2px solid var(--border)",
+    fontSize: "2.1em",
+    fontWeight: "760",
+    letterSpacing: "-0.03em",
+    lineHeight: "1.18",
+    color: "var(--text-0)",
+    paddingTop: "0.9em",
+    paddingBottom: "0.45em",
+    marginBottom: "0.45em",
+    borderBottom: "2px solid color-mix(in srgb, var(--accent) 18%, var(--border))",
   },
   ".cm-line.cm-h2": {
-    fontSize: "1.5em",
-    fontWeight: "650",
-    lineHeight: "1.3",
-    paddingTop: "0.4em",
-    paddingBottom: "0.15em",
-    borderBottom: "1px solid var(--border)",
+    fontSize: "1.62em",
+    fontWeight: "720",
+    letterSpacing: "-0.025em",
+    lineHeight: "1.24",
+    color: "var(--accent)",
+    paddingTop: "0.85em",
+    paddingBottom: "0.28em",
+    marginBottom: "0.35em",
+    borderBottom: "1px solid color-mix(in srgb, var(--accent) 16%, var(--border))",
   },
-  ".cm-line.cm-h3": { fontSize: "1.25em", fontWeight: "600", lineHeight: "1.35", paddingTop: "0.3em", paddingBottom: "0.1em" },
-  ".cm-line.cm-h4": { fontSize: "1.1em", fontWeight: "600", paddingTop: "0.2em" },
-  ".cm-line.cm-h5": { fontSize: "1em", fontWeight: "600" },
-  ".cm-line.cm-h6": { fontSize: "1em", fontWeight: "600", color: "var(--text-2)" },
-  ".cm-link-preview": { cursor: "pointer" },
+  ".cm-line.cm-h3": {
+    fontSize: "1.32em",
+    fontWeight: "680",
+    lineHeight: "1.3",
+    color: "var(--text-0)",
+    paddingTop: "0.7em",
+    paddingBottom: "0.1em",
+  },
+  ".cm-line.cm-h4": {
+    fontSize: "1.12em",
+    fontWeight: "650",
+    lineHeight: "1.34",
+    color: "var(--text-0)",
+    paddingTop: "0.55em",
+  },
+  ".cm-line.cm-h5": {
+    fontSize: "1.02em",
+    fontWeight: "640",
+    color: "var(--text-0)",
+    paddingTop: "0.45em",
+  },
+  ".cm-line.cm-h6": {
+    fontSize: "0.95em",
+    fontWeight: "650",
+    letterSpacing: "0.04em",
+    textTransform: "uppercase",
+    color: "var(--text-2)",
+    paddingTop: "0.4em",
+  },
+  ".cm-line.cm-quote-line": {
+    margin: "0.35rem 0",
+    padding: "0.5rem 0.85rem",
+    borderLeft: "3px solid color-mix(in srgb, var(--accent) 55%, transparent)",
+    backgroundColor: "color-mix(in srgb, var(--accent) 8%, transparent)",
+    borderRadius: "0 14px 14px 0",
+    color: "var(--text-1)",
+  },
+  ".cm-line.cm-hr-line": {
+    height: "1.4rem",
+    padding: "0",
+  },
+  ".cm-line.cm-task-line": {
+    paddingLeft: "0.15rem",
+  },
+  ".cm-link-preview": {
+    cursor: "pointer",
+  },
 });
 
 // A custom highlighting style to mimic Obsidian's markdown highlight 
 // (e.g. bold is bold, headings are larger, but it's still text)
 const markdownHighlightStyle = HighlightStyle.define([
-  { tag: t.heading1, fontWeight: "700", color: "var(--text-0)" },
-  { tag: t.heading2, fontWeight: "700", color: "var(--text-0)" },
-  { tag: t.heading3, fontWeight: "700", color: "var(--text-0)" },
-  { tag: t.heading4, fontWeight: "700", color: "var(--text-0)" },
-  { tag: t.heading5, fontWeight: "700", color: "var(--text-0)" },
-  { tag: t.heading6, fontWeight: "700", color: "var(--text-0)" },
-  { tag: t.strong, fontWeight: "bold" },
+  { tag: t.heading1, fontWeight: "760", color: "var(--text-0)" },
+  { tag: t.heading2, fontWeight: "720", color: "var(--accent)" },
+  { tag: t.heading3, fontWeight: "680", color: "var(--text-0)" },
+  { tag: t.heading4, fontWeight: "660", color: "var(--text-0)" },
+  { tag: t.heading5, fontWeight: "640", color: "var(--text-0)" },
+  { tag: t.heading6, fontWeight: "650", color: "var(--text-2)" },
+  { tag: t.strong, fontWeight: "760", color: "var(--text-0)" },
   { tag: t.emphasis, fontStyle: "italic" },
   { tag: t.strikethrough, textDecoration: "line-through" },
   { tag: t.link, color: "var(--accent)", textDecoration: "underline" },
   { tag: t.url, color: "var(--text-2)" },
-  { tag: t.monospace, fontFamily: "\"JetBrains Mono\", ui-monospace, monospace", color: "var(--text-0)", backgroundColor: "color-mix(in srgb, var(--bg-2) 60%, transparent)", borderRadius: "3px" },
+  {
+    tag: t.monospace,
+    fontFamily: "\"JetBrains Mono\", ui-monospace, monospace",
+    color: "var(--text-0)",
+    backgroundColor: "color-mix(in srgb, var(--bg-2) 78%, transparent)",
+    borderRadius: "5px",
+  },
   { tag: t.keyword, color: "var(--accent)" },
-  { tag: [t.processingInstruction, t.meta, t.punctuation], color: "var(--text-2)" }, // markdown markup characters (#, **, etc)
+  { tag: t.quote, color: "var(--text-1)", fontStyle: "italic" },
+  { tag: t.contentSeparator, color: "transparent" },
+  { tag: [t.processingInstruction, t.meta, t.punctuation], color: "var(--text-2)" },
 ]);
 
-// Decorates entire lines based on syntax tree (needed for font-size changes)
-const headingDecorations = ViewPlugin.fromClass(class {
+class HorizontalRuleWidget extends WidgetType {
+  toDOM() {
+    const element = document.createElement("div");
+    element.className = "cm-horizontal-rule-widget";
+    element.style.height = "1px";
+    element.style.marginTop = "0.7rem";
+    element.style.marginBottom = "0.7rem";
+    element.style.borderRadius = "999px";
+    element.style.background =
+      "linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 34%, var(--border)), transparent)";
+    return element;
+  }
+}
+
+// Decorates visible blocks to create a calmer "document" feel.
+const blockDecorations = ViewPlugin.fromClass(class {
   decorations: DecorationSet;
 
   constructor(view: EditorView) {
@@ -105,14 +181,19 @@ const headingDecorations = ViewPlugin.fromClass(class {
   }
 
   update(update: ViewUpdate) {
-    if (update.docChanged || update.viewportChanged) {
+    if (update.docChanged || update.viewportChanged || update.selectionSet) {
       this.decorations = this.buildDecorations(update.view);
     }
   }
 
   buildDecorations(view: EditorView) {
     const builder = new RangeSetBuilder<Decoration>();
-    for (const {from, to} of view.visibleRanges) {
+    const activeLines = new Set<number>();
+    for (const range of view.state.selection.ranges) {
+      activeLines.add(view.state.doc.lineAt(range.head).number);
+    }
+
+    for (const { from, to } of view.visibleRanges) {
       syntaxTree(view.state).iterate({
         from, to,
         enter(node) {
@@ -120,14 +201,54 @@ const headingDecorations = ViewPlugin.fromClass(class {
             const match = node.name.match(/Heading(\d)/);
             if (match) {
               const level = match[1];
-              builder.add(node.from, node.from, Decoration.line({
-                class: `cm-h${level}`
-              }));
+              builder.add(node.from, node.from, Decoration.line({ class: `cm-h${level}` }));
+            }
+            return;
+          }
+
+          if (node.name === "HorizontalRule") {
+            const line = view.state.doc.lineAt(node.from);
+            builder.add(line.from, line.from, Decoration.line({ class: "cm-hr-line" }));
+            if (!activeLines.has(line.number)) {
+              builder.add(
+                line.from,
+                line.to,
+                Decoration.replace({ widget: new HorizontalRuleWidget(), block: true }),
+              );
+            }
+            return;
+          }
+
+          if (node.name === "Blockquote") {
+            const startLine = view.state.doc.lineAt(node.from).number;
+            const endLine = view.state.doc.lineAt(node.to).number;
+            for (let lineNumber = startLine; lineNumber <= endLine; lineNumber += 1) {
+              const line = view.state.doc.line(lineNumber);
+              builder.add(line.from, line.from, Decoration.line({ class: "cm-quote-line" }));
             }
           }
         }
       });
     }
+
+    for (const { from, to } of view.visibleRanges) {
+      const startLine = view.state.doc.lineAt(from).number;
+      const endLine = view.state.doc.lineAt(to).number;
+      for (let lineNumber = startLine; lineNumber <= endLine; lineNumber += 1) {
+        const line = view.state.doc.line(lineNumber);
+        if (/^\s*-\s\[[ xX]\]\s+/.test(line.text)) {
+          builder.add(line.from, line.from, Decoration.line({ class: "cm-task-line" }));
+        } else if (
+          !/^#{1,6}\s/.test(line.text) &&
+          !line.text.startsWith("> ") &&
+          line.text.trim().length > 0 &&
+          !/^```/.test(line.text)
+        ) {
+          builder.add(line.from, line.from, Decoration.line({ class: "cm-paragraph" }));
+        }
+      }
+    }
+
     return builder.finish();
   }
 }, {
@@ -236,32 +357,168 @@ const livePreviewPlugin = ViewPlugin.fromClass(class {
   decorations: v => v.decorations
 });
 
-// Helper to toggle a formatting string around the selection
+function applyToggleMark(view: EditorView, mark: string) {
+  const { state } = view;
+  const changes = state.changeByRange((range) => {
+    if (range.empty) {
+      const isInside =
+        range.from >= mark.length &&
+        range.to <= state.doc.length - mark.length &&
+        state.sliceDoc(range.from - mark.length, range.from) === mark &&
+        state.sliceDoc(range.to, range.to + mark.length) === mark;
+
+      if (isInside) {
+        return {
+          range: EditorSelection.range(range.anchor + mark.length, range.head + mark.length),
+        };
+      }
+
+      return {
+        changes: [{ from: range.from, insert: mark + mark }],
+        range: EditorSelection.range(range.anchor + mark.length, range.head + mark.length),
+      };
+    }
+
+    const isMarked =
+      range.from >= mark.length &&
+      range.to <= state.doc.length - mark.length &&
+      state.sliceDoc(range.from - mark.length, range.from) === mark &&
+      state.sliceDoc(range.to, range.to + mark.length) === mark;
+
+    if (isMarked) {
+      return {
+        changes: [
+          { from: range.from - mark.length, to: range.from },
+          { from: range.to, to: range.to + mark.length },
+        ],
+        range: EditorSelection.range(range.anchor - mark.length, range.head - mark.length),
+      };
+    }
+
+    return {
+      changes: [
+        { from: range.from, insert: mark },
+        { from: range.to, insert: mark },
+      ],
+      range: EditorSelection.range(range.anchor + mark.length, range.head + mark.length),
+    };
+  });
+
+  view.dispatch(state.update(changes, { scrollIntoView: true, userEvent: "input" }));
+}
+
+function insertMarkdownLink(view: EditorView) {
+  const { state } = view;
+  const range = state.selection.main;
+  const selected = state.sliceDoc(range.from, range.to) || "texto";
+  const insert = `[${selected}](url)`;
+  view.dispatch({
+    changes: { from: range.from, to: range.to, insert },
+    selection: EditorSelection.range(range.from + selected.length + 3, range.from + selected.length + 6),
+    scrollIntoView: true,
+    userEvent: "input",
+  });
+}
+
+function applyToggleLinePrefix(view: EditorView, prefix: string) {
+  const { state } = view;
+  const changes = state.changeByRange((range) => {
+    const startLine = state.doc.lineAt(range.from);
+    const endLine = state.doc.lineAt(range.to);
+    const nextChanges: { from: number; to: number; insert: string }[] = [];
+
+    for (let lineNumber = startLine.number; lineNumber <= endLine.number; lineNumber += 1) {
+      const line = state.doc.line(lineNumber);
+      const headingMatch = line.text.match(/^#{1,6}\s+/);
+      if (headingMatch && line.text.startsWith(prefix)) {
+        nextChanges.push({ from: line.from, to: line.from + prefix.length, insert: "" });
+      } else if (headingMatch) {
+        nextChanges.push({
+          from: line.from,
+          to: line.from + headingMatch[0].length,
+          insert: prefix,
+        });
+      } else {
+        nextChanges.push({ from: line.from, to: line.from, insert: prefix });
+      }
+    }
+
+    const delta = nextChanges.reduce(
+      (acc, change) => acc + (change.insert.length - (change.to - change.from)),
+      0,
+    );
+
+    return {
+      changes: nextChanges,
+      range: EditorSelection.range(range.from, range.to + delta),
+    };
+  });
+
+  view.dispatch(state.update(changes, { scrollIntoView: true, userEvent: "input" }));
+}
+
+function toggleLinePrefixCommand(prefix: string): StateCommand {
+  return ({ state, dispatch }) => {
+    const changes = state.changeByRange((range) => {
+      const startLine = state.doc.lineAt(range.from);
+      const endLine = state.doc.lineAt(range.to);
+      const nextChanges: { from: number; to: number; insert: string }[] = [];
+
+      for (let lineNumber = startLine.number; lineNumber <= endLine.number; lineNumber += 1) {
+        const line = state.doc.line(lineNumber);
+        const headingMatch = line.text.match(/^#{1,6}\s+/);
+        if (headingMatch && line.text.startsWith(prefix)) {
+          nextChanges.push({ from: line.from, to: line.from + prefix.length, insert: "" });
+        } else if (headingMatch) {
+          nextChanges.push({
+            from: line.from,
+            to: line.from + headingMatch[0].length,
+            insert: prefix,
+          });
+        } else {
+          nextChanges.push({ from: line.from, to: line.from, insert: prefix });
+        }
+      }
+
+      const delta = nextChanges.reduce(
+        (acc, change) => acc + (change.insert.length - (change.to - change.from)),
+        0,
+      );
+
+      return {
+        changes: nextChanges,
+        range: EditorSelection.range(range.from, range.to + delta),
+      };
+    });
+
+    dispatch(state.update(changes, { scrollIntoView: true, userEvent: "input" }));
+    return true;
+  };
+}
+
 function toggleMark(mark: string): StateCommand {
   return ({ state, dispatch }) => {
     const changes = state.changeByRange((range) => {
-      // If empty selection, assume we want to just insert formatting marks and put cursor inside
       if (range.empty) {
-        const isInside = 
+        const isInside =
           range.from >= mark.length &&
           range.to <= state.doc.length - mark.length &&
           state.sliceDoc(range.from - mark.length, range.from) === mark &&
           state.sliceDoc(range.to, range.to + mark.length) === mark;
 
         if (isInside) {
-          // just move cursor past the mark
           return {
-            range: EditorSelection.range(range.anchor + mark.length, range.head + mark.length),
-          };
-        } else {
-          return {
-            changes: [{ from: range.from, insert: mark + mark }],
             range: EditorSelection.range(range.anchor + mark.length, range.head + mark.length),
           };
         }
+
+        return {
+          changes: [{ from: range.from, insert: mark + mark }],
+          range: EditorSelection.range(range.anchor + mark.length, range.head + mark.length),
+        };
       }
-      
-      const isMarked = 
+
+      const isMarked =
         range.from >= mark.length &&
         range.to <= state.doc.length - mark.length &&
         state.sliceDoc(range.from - mark.length, range.from) === mark &&
@@ -275,15 +532,15 @@ function toggleMark(mark: string): StateCommand {
           ],
           range: EditorSelection.range(range.anchor - mark.length, range.head - mark.length),
         };
-      } else {
-        return {
-          changes: [
-            { from: range.from, insert: mark },
-            { from: range.to, insert: mark },
-          ],
-          range: EditorSelection.range(range.anchor + mark.length, range.head + mark.length),
-        };
       }
+
+      return {
+        changes: [
+          { from: range.from, insert: mark },
+          { from: range.to, insert: mark },
+        ],
+        range: EditorSelection.range(range.anchor + mark.length, range.head + mark.length),
+      };
     });
 
     dispatch(state.update(changes, { scrollIntoView: true, userEvent: "input" }));
@@ -317,6 +574,21 @@ const markdownKeymap: KeyBinding[] = [
   { key: "Mod-b", run: toggleMark("**") },
   { key: "Mod-i", run: toggleMark("*") },
   { key: "Mod-e", run: toggleMark("`") },
+  { key: "Mod-k", run: ({ state, dispatch }) => {
+    const range = state.selection.main;
+    const selected = state.sliceDoc(range.from, range.to) || "texto";
+    const insert = `[${selected}](url)`;
+    dispatch(state.update({
+      changes: { from: range.from, to: range.to, insert },
+      selection: EditorSelection.range(range.from + selected.length + 3, range.from + selected.length + 6),
+      scrollIntoView: true,
+      userEvent: "input",
+    }));
+    return true;
+  } },
+  { key: "Mod-1", run: toggleLinePrefixCommand("# ") },
+  { key: "Mod-2", run: toggleLinePrefixCommand("## ") },
+  { key: "Mod-3", run: toggleLinePrefixCommand("### ") },
   { key: "Mod-Shift-x", run: toggleMark("~~") },
   { key: "*", run: wrapWith("*") },
   { key: "_", run: wrapWith("_") },
@@ -334,6 +606,45 @@ const turndownService = new TurndownService({
 });
 
 const domHandlers = EditorView.domEventHandlers({
+  keydown(event, view) {
+    const isMod = event.metaKey || event.ctrlKey;
+    if (!isMod) return false;
+
+    const key = event.key.toLowerCase();
+    if (key === "b") {
+      event.preventDefault();
+      applyToggleMark(view, "**");
+      return true;
+    }
+    if (key === "i") {
+      event.preventDefault();
+      applyToggleMark(view, "*");
+      return true;
+    }
+    if (key === "e") {
+      event.preventDefault();
+      applyToggleMark(view, "`");
+      return true;
+    }
+    if (key === "k") {
+      event.preventDefault();
+      insertMarkdownLink(view);
+      return true;
+    }
+    if (key === "1" || key === "2" || key === "3") {
+      event.preventDefault();
+      applyToggleLinePrefix(view, key === "1" ? "# " : key === "2" ? "## " : "### ");
+      return true;
+    }
+    if (event.shiftKey && key === "x") {
+      event.preventDefault();
+      applyToggleMark(view, "~~");
+      return true;
+    }
+
+    return false;
+  },
+
   paste(event, view) {
     const data = event.clipboardData;
     if (!data) return false;
@@ -429,7 +740,7 @@ export function HybridMarkdownEditor({
     markdown({ base: markdownLanguage, codeLanguages: languages }),
     EditorView.lineWrapping,
     customTheme,
-    headingDecorations,
+    blockDecorations,
     livePreviewPlugin,
     syntaxHighlighting(markdownHighlightStyle),
     history(),

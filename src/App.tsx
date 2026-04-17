@@ -116,6 +116,8 @@ function AppContent() {
     const handler = (e: KeyboardEvent) => {
       if (!(e.metaKey || e.ctrlKey)) return;
       if (isEditableElement(e.target)) return;
+      const target = e.target as HTMLElement | null;
+      if (target?.closest(".cm-editor")) return;
       if (document.querySelector(".cm-editor.cm-focused")) return;
       switch (e.key.toLowerCase()) {
         case "k":
