@@ -816,6 +816,14 @@ async fn provider_chat_completion(
     }
 }
 
+fn latest_user_query(messages: &[ChatMessage]) -> Option<String> {
+    messages
+        .iter()
+        .rev()
+        .find(|message| message.role == "user")
+        .map(|message| message.content.clone())
+}
+
 /// Builds the `messages` array to send to an OpenAI-compatible API.
 ///
 /// Layout:
@@ -2286,6 +2294,7 @@ pub async fn chat_completion(
     let root = state.get_root();
     let config =
         load_provider_config(&root)?.ok_or_else(|| "No provider configured".to_string())?;
+    let latest_user_query = latest_user_query(&request.messages);
 
     let mut context_memory_ids = if request.include_vault_context {
         request.context_memory_ids.clone()
@@ -2293,9 +2302,21 @@ pub async fn chat_completion(
         Vec::new()
     };
 
-    if !request.include_vault_context {
+    let suppress_vault_context = latest_user_query
+        .as_deref()
+        .map(crate::core::engine::is_trivial_chat_query)
+        .unwrap_or(false);
+
+    if !request.include_vault_context || suppress_vault_context {
         request.context_prompt = None;
         request.context_memory_ids.clear();
+        context_memory_ids.clear();
+    }
+    if suppress_vault_context {
+        log::info!(
+            "chat_completion skipped vault context for trivial chat query {:?}",
+            latest_user_query.as_deref().unwrap_or_default()
+        );
     }
 
     // Fallback: when vault context is enabled but the frontend did not
@@ -2305,14 +2326,8 @@ pub async fn chat_completion(
         .as_deref()
         .map(|s| s.trim().len())
         .unwrap_or(0);
-    if request.include_vault_context && incoming_ctx_len == 0 {
-        if let Some(query) = request
-            .messages
-            .iter()
-            .rev()
-            .find(|m| m.role == "user")
-            .map(|m| m.content.clone())
-        {
+    if request.include_vault_context && !suppress_vault_context && incoming_ctx_len == 0 {
+        if let Some(query) = latest_user_query {
             let trimmed = query.trim();
             if !trimmed.is_empty() {
                 let scoring_config = state.config.read().unwrap().clone();
