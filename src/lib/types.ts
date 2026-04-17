@@ -401,7 +401,7 @@ export interface ChatCompletionRequest {
   system_prompt?: string | null;
   include_vault_context?: boolean;
   context_prompt?: string | null;
-  context_memory_ids?: string[] | null;
+  context_memory_ids?: string[];
   model?: string | null;
 }
 
