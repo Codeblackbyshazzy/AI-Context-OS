@@ -126,12 +126,14 @@ pub fn compute_score(
         + weights.access_frequency * access_frequency;
 
     // Retrieval must be anchored in actual query evidence. Recency, importance
-    // and prior access only rerank memories that already have some lexical,
-    // semantic or graph-backed signal for the current query.
-    let final_score = if evidence_strength < 0.08 {
+    // and prior access help rerank candidates, but only in proportion to the
+    // evidence the current query produced. This avoids hard cutoffs that can
+    // hurt recall on short natural-language queries while still preventing
+    // priors from surfacing unrelated memories on their own.
+    let final_score = if evidence_strength <= f64::EPSILON {
         0.0
     } else {
-        direct_evidence + contextual_priors * evidence_strength.clamp(0.35, 1.0)
+        direct_evidence + contextual_priors * evidence_strength * 0.5
     };
 
     ScoreBreakdown {
@@ -301,15 +303,18 @@ fn contains_any(query: &str, terms: &[&str]) -> bool {
 }
 
 fn memory_metadata_matches(memory: &Memory, terms: &[&str]) -> bool {
-    let haystack = format!(
-        "{} {} {}",
-        memory.meta.id,
-        memory.meta.l0,
-        memory.meta.tags.join(" ")
-    )
-    .to_lowercase();
+    metadata_field_matches(&memory.meta.id, terms)
+        || metadata_field_matches(&memory.meta.l0, terms)
+        || memory
+            .meta
+            .tags
+            .iter()
+            .any(|tag| metadata_field_matches(tag, terms))
+}
 
-    contains_any(&haystack, terms)
+fn metadata_field_matches(value: &str, terms: &[&str]) -> bool {
+    let normalized = value.to_lowercase();
+    contains_any(&normalized, terms)
 }
 
 /// BM25 score using all memories as corpus.
@@ -486,6 +491,28 @@ mod tests {
         let score = compute_score("hola", &memory, &all_memories, &[], &HashMap::new(), Utc::now());
 
         assert_eq!(score.final_score, 0.0);
+    }
+
+    #[test]
+    fn weak_query_evidence_can_still_rerank_relevant_memory() {
+        let memory = sample_memory(
+            "analisis-mercado",
+            MemoryOntology::Synthesis,
+            "Resumen de mercado para AI Context OS",
+            &["mercado"],
+        );
+        let all_memories = vec![memory.clone()];
+
+        let score = compute_score(
+            "investigacion mercado",
+            &memory,
+            &all_memories,
+            &[],
+            &HashMap::new(),
+            Utc::now(),
+        );
+
+        assert!(score.final_score > 0.0);
     }
 
     #[test]
