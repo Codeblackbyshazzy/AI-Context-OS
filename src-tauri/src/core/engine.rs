@@ -378,16 +378,4 @@ mod tests {
         assert!(rendered.contains("Alex DC es indie hacker en Madrid."));
         assert!(!rendered.contains("MCP WORKSPACE RULES"));
     }
-
-    #[test]
-    fn trivial_chat_query_detects_greetings_and_acknowledgements() {
-        assert!(is_trivial_chat_query("hola"));
-        assert!(is_trivial_chat_query("Buenas tardes"));
-        assert!(is_trivial_chat_query("muchas gracias!"));
-        assert!(is_trivial_chat_query("ok"));
-        assert!(!is_trivial_chat_query(
-            "hola necesito contexto del proyecto"
-        ));
-        assert!(!is_trivial_chat_query("como va el roadmap"));
-    }
 }

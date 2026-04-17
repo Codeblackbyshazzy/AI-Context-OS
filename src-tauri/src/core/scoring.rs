@@ -118,9 +118,8 @@ pub fn compute_score(
         access_frequency_score(memory.meta.access_count, max_access_count(all_memories));
     let graph_proximity = graph_proximity_score(memory, all_memories, selected_ids, community_map);
     let evidence_strength = semantic.max(bm25).max(graph_proximity);
-    let direct_evidence = weights.semantic * semantic
-        + weights.bm25 * bm25
-        + weights.graph * graph_proximity;
+    let direct_evidence =
+        weights.semantic * semantic + weights.bm25 * bm25 + weights.graph * graph_proximity;
     let contextual_priors = weights.recency * recency
         + weights.importance * importance
         + weights.access_frequency * access_frequency;
@@ -163,13 +162,7 @@ fn semantic_score_free(query: &str, memory: &Memory) -> f64 {
 fn ontology_bonus_score(query: &str, memory: &Memory) -> f64 {
     let q = query.to_lowercase();
     let generic_context_terms = [
-        "vault",
-        "boveda",
-        "bóveda",
-        "memoria",
-        "memorias",
-        "contexto",
-        "context",
+        "vault", "boveda", "bóveda", "memoria", "memorias", "contexto", "context",
     ];
     let identity_terms = [
         "quien",
@@ -248,7 +241,10 @@ fn ontology_bonus_score(query: &str, memory: &Memory) -> f64 {
                     return 0.9;
                 }
                 if contains_any(&q, &generic_context_terms)
-                    && memory_metadata_matches(memory, &["perfil", "profile", "bio", "about", "identity"])
+                    && memory_metadata_matches(
+                        memory,
+                        &["perfil", "profile", "bio", "about", "identity"],
+                    )
                 {
                     return 0.5;
                 }
@@ -275,7 +271,10 @@ fn ontology_bonus_score(query: &str, memory: &Memory) -> f64 {
                     return 0.9;
                 }
                 if contains_any(&q, &generic_context_terms)
-                    && memory_metadata_matches(memory, &["brief", "overview", "roadmap", "resumen", "plan"])
+                    && memory_metadata_matches(
+                        memory,
+                        &["brief", "overview", "roadmap", "resumen", "plan"],
+                    )
                 {
                     return 0.45;
                 }
@@ -284,7 +283,10 @@ fn ontology_bonus_score(query: &str, memory: &Memory) -> f64 {
             MemoryOntology::Concept => 0.0,
             MemoryOntology::Source => {
                 if contains_any(&q, &source_terms)
-                    && memory_metadata_matches(memory, &["source", "fuente", "document", "pdf", "link"])
+                    && memory_metadata_matches(
+                        memory,
+                        &["source", "fuente", "document", "pdf", "link"],
+                    )
                 {
                     return 0.6;
                 }
@@ -488,7 +490,14 @@ mod tests {
         );
         let all_memories = vec![memory.clone()];
 
-        let score = compute_score("hola", &memory, &all_memories, &[], &HashMap::new(), Utc::now());
+        let score = compute_score(
+            "hola",
+            &memory,
+            &all_memories,
+            &[],
+            &HashMap::new(),
+            Utc::now(),
+        );
 
         assert_eq!(score.final_score, 0.0);
     }
