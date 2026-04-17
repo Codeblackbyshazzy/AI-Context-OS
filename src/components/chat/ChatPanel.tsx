@@ -5,9 +5,15 @@ import {
   buildChatContext,
   chatCompletion,
   getInferenceProviderConfig,
+  simulateContext,
 } from "../../lib/tauri";
 import { useAppStore } from "../../lib/store";
-import type { ChatMessage, InferenceProviderConfig } from "../../lib/types";
+import type {
+  ChatMessage,
+  InferenceProviderConfig,
+  LoadLevel,
+  ScoredMemory,
+} from "../../lib/types";
 
 interface ChatTurn {
   id: string;
@@ -16,6 +22,17 @@ interface ChatTurn {
   pending?: boolean;
   error?: boolean;
   contextIds?: string[];
+  contextDebug?: {
+    budget: number;
+    promptChars: number;
+    memoryCount: number;
+    memories: Array<{
+      id: string;
+      score?: number;
+      tokenEstimate?: number;
+      loadLevel?: LoadLevel;
+    }>;
+  };
 }
 
 const DEFAULT_TOKEN_BUDGET = 2_000;
@@ -27,6 +44,38 @@ const SYSTEM_PROMPT =
 
 function nanoid(): string {
   return Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+}
+
+function scoreColor(score?: number): string {
+  if (score == null) return "var(--text-2)";
+  if (score >= 0.75) return "var(--success)";
+  if (score >= 0.45) return "var(--warning)";
+  return "var(--text-2)";
+}
+
+function buildContextDebug(
+  contextIds: string[],
+  promptContext: string,
+  budget: number,
+  scored?: ScoredMemory[],
+): ChatTurn["contextDebug"] | undefined {
+  if (contextIds.length === 0) return undefined;
+
+  const byId = new Map((scored ?? []).map((memory) => [memory.memory_id, memory]));
+  return {
+    budget,
+    promptChars: promptContext.length,
+    memoryCount: contextIds.length,
+    memories: contextIds.map((id) => {
+      const match = byId.get(id);
+      return {
+        id,
+        score: match?.score.final_score,
+        tokenEstimate: match?.token_estimate,
+        loadLevel: match?.load_level,
+      };
+    }),
+  };
 }
 
 export function ChatPanel() {
@@ -93,6 +142,7 @@ export function ChatPanel() {
     try {
       let contextPrompt = "";
       let contextIds: string[] = [];
+      let contextDebug: ChatTurn["contextDebug"];
       const shouldUseVaultContext = useVaultContext;
 
       if (shouldUseVaultContext) {
@@ -101,6 +151,11 @@ export function ChatPanel() {
           if (chatContext.prompt_context.trim()) {
             contextPrompt = chatContext.prompt_context;
             contextIds = chatContext.memory_ids;
+            contextDebug = buildContextDebug(
+              contextIds,
+              contextPrompt,
+              DEFAULT_TOKEN_BUDGET,
+            );
           }
         } catch {
           // Backend fallback can still resolve vault context when enabled.
@@ -128,15 +183,41 @@ export function ChatPanel() {
       setTurns((prev) =>
         prev.map((turn) =>
           turn.id === pendingTurn.id
-            ? {
-                ...turn,
-                content: response.text,
-                pending: false,
-                contextIds: resolvedContextIds,
-              }
-            : turn,
+              ? {
+                  ...turn,
+                  content: response.text,
+                  pending: false,
+                  contextIds: resolvedContextIds,
+                  contextDebug,
+                }
+              : turn,
         ),
       );
+
+      if (shouldUseVaultContext && resolvedContextIds.length > 0) {
+        void simulateContext(text, DEFAULT_TOKEN_BUDGET)
+          .then((scored) => {
+            const enrichedDebug = buildContextDebug(
+              resolvedContextIds,
+              contextPrompt,
+              DEFAULT_TOKEN_BUDGET,
+              scored,
+            );
+            setTurns((prev) =>
+              prev.map((turn) =>
+                turn.id === pendingTurn.id
+                  ? {
+                      ...turn,
+                      contextDebug: enrichedDebug,
+                    }
+                  : turn,
+              ),
+            );
+          })
+          .catch(() => {
+            // Keep basic debug info if score enrichment fails.
+          });
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       setTurns((prev) =>
@@ -307,15 +388,26 @@ function MessageBubble({ turn }: { turn: ChatTurn }) {
         )}
       </div>
       {!isUser && turn.contextIds && turn.contextIds.length > 0 && (
-        <div className="flex flex-wrap gap-1 pl-1">
-          {turn.contextIds.map((id) => (
+        <div className="flex flex-col gap-1 pl-1">
+          {turn.contextDebug && (
+            <div className="font-mono text-[9px] text-[color:var(--text-2)]">
+              ctx: {turn.contextDebug.memoryCount} mem · {turn.contextDebug.promptChars} chars · budget {turn.contextDebug.budget}
+            </div>
+          )}
+          <div className="flex flex-wrap gap-1">
+          {(turn.contextDebug?.memories ?? turn.contextIds.map((id) => ({ id }))).map((memory) => (
             <span
-              key={id}
-              className="rounded bg-[color:var(--bg-2)] px-1.5 py-0.5 font-mono text-[9px] text-[color:var(--text-2)]"
+              key={memory.id}
+              className="rounded bg-[color:var(--bg-2)] px-1.5 py-0.5 font-mono text-[9px]"
+              style={{ color: scoreColor(memory.score) }}
             >
-              {id}
+              {memory.id}
+              {memory.score != null && ` · ${memory.score.toFixed(2)}`}
+              {memory.tokenEstimate != null && ` · ${memory.tokenEstimate}t`}
+              {memory.loadLevel && ` · ${memory.loadLevel.toUpperCase()}`}
             </span>
           ))}
+          </div>
         </div>
       )}
     </div>
