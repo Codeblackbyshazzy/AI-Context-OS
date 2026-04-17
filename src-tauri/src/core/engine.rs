@@ -4,6 +4,7 @@ use std::path::Path;
 use chrono::Utc;
 
 use crate::core::graph::personalized_pagerank;
+use crate::core::search::Bm25Corpus;
 use crate::core::index::scan_memories;
 use crate::core::levels::estimate_tokens;
 use crate::core::memory::read_memory;
@@ -119,12 +120,17 @@ pub fn execute_context_query(
 
     let now = Utc::now();
 
+    // Precompute BM25 corpus stats once — shared across both passes
+    let documents: Vec<&str> = memories.iter().map(|m| m.raw_content.as_str()).collect();
+    let bm25_corpus = Bm25Corpus::from_documents(&documents);
+    let empty_ppr = std::collections::HashMap::new();
+
     // First pass: score without graph context to identify seeds
     let mut base_scored: Vec<(usize, ScoreBreakdown)> = memories
         .iter()
         .enumerate()
         .map(|(i, m)| {
-            let score = compute_score(query, m, &memories, &std::collections::HashMap::new(), now);
+            let score = compute_score(query, m, &memories, &bm25_corpus, &empty_ppr, now);
             (i, score)
         })
         .collect();
@@ -145,7 +151,7 @@ pub fn execute_context_query(
         .iter()
         .enumerate()
         .map(|(i, m)| {
-            let score = compute_score(query, m, &memories, &ppr_scores, now);
+            let score = compute_score(query, m, &memories, &bm25_corpus, &ppr_scores, now);
             (i, score)
         })
         .collect();

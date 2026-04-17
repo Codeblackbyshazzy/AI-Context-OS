@@ -96,6 +96,43 @@ pub fn build_doc_freq(documents: &[&str]) -> HashMap<String, usize> {
     doc_freq
 }
 
+/// Precomputed BM25 corpus statistics. Build once per query and share across
+/// all per-document scoring calls to avoid recomputing doc_freq N times.
+#[derive(Debug, Clone)]
+pub struct Bm25Corpus {
+    pub doc_freq: HashMap<String, usize>,
+    pub avg_doc_len: f64,
+    pub total_docs: usize,
+}
+
+impl Bm25Corpus {
+    pub fn empty() -> Self {
+        Self {
+            doc_freq: HashMap::new(),
+            avg_doc_len: 0.0,
+            total_docs: 0,
+        }
+    }
+
+    pub fn from_documents(documents: &[&str]) -> Self {
+        if documents.is_empty() {
+            return Self::empty();
+        }
+        let total_docs = documents.len();
+        let avg_doc_len = documents
+            .iter()
+            .map(|d| d.split_whitespace().count())
+            .sum::<usize>() as f64
+            / total_docs as f64;
+        let doc_freq = build_doc_freq(documents);
+        Self {
+            doc_freq,
+            avg_doc_len,
+            total_docs,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

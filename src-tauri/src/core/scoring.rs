@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use chrono::{DateTime, Utc};
 
-use crate::core::search::{bm25_score, build_doc_freq, l0_keyword_score, tag_match_score};
+use crate::core::search::{bm25_score, Bm25Corpus, l0_keyword_score, tag_match_score};
 use crate::core::types::{Memory, MemoryOntology, ScoreBreakdown, SystemRole};
 
 // ─── Scoring weights per intent profile ───────────────────────────────────────
@@ -98,11 +98,13 @@ fn expand_query(query: &str) -> String {
 
 /// Compute the hybrid score for a memory given a query.
 /// Uses dynamic intent-based weights and query expansion for better recall.
-/// `ppr_scores` is a precomputed Personalized PageRank map (memory_id → score).
+/// `bm25_corpus` is precomputed once per query; `ppr_scores` is a precomputed
+/// Personalized PageRank map (memory_id → score).
 pub fn compute_score(
     query: &str,
     memory: &Memory,
     all_memories: &[Memory],
+    bm25_corpus: &Bm25Corpus,
     ppr_scores: &HashMap<String, f64>,
     now: DateTime<Utc>,
 ) -> ScoreBreakdown {
@@ -110,7 +112,7 @@ pub fn compute_score(
     let expanded = expand_query(query);
 
     let semantic = semantic_score_free(&expanded, memory);
-    let bm25 = compute_bm25(&expanded, memory, all_memories);
+    let bm25 = compute_bm25(&expanded, memory, bm25_corpus);
     let recency = recency_score(&memory.meta.last_access, now);
     let importance = memory.meta.importance;
     let access_frequency =
@@ -202,29 +204,22 @@ fn ontology_bonus_score(query: &str, memory: &Memory) -> f64 {
     }
 }
 
-/// BM25 score using all memories as corpus.
-fn compute_bm25(query: &str, memory: &Memory, all_memories: &[Memory]) -> f64 {
-    let documents: Vec<&str> = all_memories
-        .iter()
-        .map(|m| m.raw_content.as_str())
-        .collect();
-
-    if documents.is_empty() {
+/// BM25 score for a memory against a precomputed corpus.
+fn compute_bm25(query: &str, memory: &Memory, corpus: &Bm25Corpus) -> f64 {
+    if corpus.total_docs == 0 {
         return 0.0;
     }
-
-    let avg_len = documents
-        .iter()
-        .map(|d| d.split_whitespace().count())
-        .sum::<usize>() as f64
-        / documents.len() as f64;
-    let doc_freq = build_doc_freq(&documents);
     let content = format!(
         "{} {} {}",
         memory.meta.l0, memory.l1_content, memory.l2_content
     );
-
-    let raw = bm25_score(query, &content, avg_len, documents.len(), &doc_freq);
+    let raw = bm25_score(
+        query,
+        &content,
+        corpus.avg_doc_len,
+        corpus.total_docs,
+        &corpus.doc_freq,
+    );
     // Normalize to 0-1 range (cap at 10)
     (raw / 10.0).min(1.0)
 }
