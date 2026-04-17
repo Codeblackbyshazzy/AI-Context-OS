@@ -1,8 +1,8 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use chrono::{DateTime, Utc};
 
-use crate::core::search::{bm25_score, Bm25Corpus, l0_keyword_score, tag_match_score};
+use crate::core::search::{bm25_score, tokenize, Bm25Corpus, l0_keyword_score, tag_match_score};
 use crate::core::types::{Memory, MemoryOntology, ScoreBreakdown, SystemRole};
 
 // ─── Scoring weights per intent profile ───────────────────────────────────────
@@ -16,20 +16,26 @@ struct ScoringWeights {
     access_frequency: f64,
 }
 
+/// Intent vocabularies. Matched at stem level via `tokenize`, so every listed
+/// surface form covers all its morphological variants (plural, conjugations,
+/// gender) in both Spanish and English without needing them spelled out.
+const DEBUG_VOCAB: &str = "error errores fallo fallar falla bug panic crash \
+    exception excepcion romper roto arreglar corregir debug depurar stacktrace";
+const BRAINSTORM_VOCAB: &str = "idea ideas proponer propuesta sugerir sugerencia \
+    brainstorm lluvia actuar accion concepto explorar";
+
+fn stems_of(text: &str) -> HashSet<String> {
+    tokenize(text).into_iter().collect()
+}
+
 /// Detect intent from query and return appropriate weights (always sum to 1.0).
 fn detect_intent_weights(query: &str) -> ScoringWeights {
-    let q = query.to_lowercase();
-    let is_debug = q.contains("error")
-        || q.contains("falla")
-        || q.contains("bug")
-        || q.contains("panic")
-        || q.contains("crash")
-        || q.contains("exception");
-    let is_brainstorm = q.contains("idea")
-        || q.contains("propon")
-        || q.contains("actua")
-        || q.contains("brainstorm")
-        || q.contains("suger");
+    let query_stems = stems_of(query);
+    let debug_stems = stems_of(DEBUG_VOCAB);
+    let brainstorm_stems = stems_of(BRAINSTORM_VOCAB);
+
+    let is_debug = query_stems.iter().any(|t| debug_stems.contains(t));
+    let is_brainstorm = query_stems.iter().any(|t| brainstorm_stems.contains(t));
 
     if is_debug {
         // Debug: BM25 + graph elevated for precise term & dependency matching
@@ -66,32 +72,36 @@ fn detect_intent_weights(query: &str) -> ScoringWeights {
 
 // ─── Query expansion ──────────────────────────────────────────────────────────
 
+/// Synonym clusters. Matching happens at stem level via `tokenize`, so a single
+/// entry like "deploy" covers "deploying", and "desplegar" covers "desplegamos",
+/// "despliegue", etc. If any query token stem intersects a cluster, the whole
+/// cluster is appended to the expanded query.
+const EXPANSION_CLUSTERS: &[&str] = &[
+    "bug bugs error errores fallo fallar excepcion excepciones panic crash",
+    "arreglar corregir fix fixing solucionar reparar",
+    "idea ideas propuesta proponer concepto brainstorm sugerencia sugerir",
+    "task tarea pendiente accion action todo",
+    "refactor refactoring mejora limpieza codigo deuda",
+    "deploy deployment desplegar despliegue release publicar lanzar",
+    "test tests prueba pruebas testing verificar validar",
+];
+
 /// Expand query with synonyms/related terms to increase lexical recall.
 /// Result is used for BM25 and semantic matching; original query still drives intent detection.
 fn expand_query(query: &str) -> String {
-    let q = query.to_lowercase();
-    let expansions: &[(&str, &str)] = &[
-        ("bug", "bug error fix excepcion fallo"),
-        ("error", "error bug fallo excepcion panic"),
-        ("fix", "fix arreglar corregir bug error"),
-        ("crash", "crash panic error fallo excepcion"),
-        ("idea", "idea propuesta concepto brainstorm"),
-        ("task", "task tarea pendiente accion action"),
-        ("refactor", "refactor mejora limpieza codigo deuda"),
-        ("deploy", "deploy despliegue release publicar"),
-        ("test", "test prueba testing verificar"),
-    ];
-    let mut terms: Vec<String> = q.split_whitespace().map(|term| term.to_string()).collect();
-    for (term, extra) in expansions {
-        if q.contains(term) {
-            for extra_term in extra.split_whitespace() {
-                if !terms.iter().any(|existing| existing == extra_term) {
-                    terms.push(extra_term.to_string());
-                }
-            }
+    let query_stems = stems_of(query);
+    let mut extras: Vec<&str> = Vec::new();
+    for cluster in EXPANSION_CLUSTERS {
+        let cluster_stems = stems_of(cluster);
+        if query_stems.iter().any(|t| cluster_stems.contains(t)) {
+            extras.push(cluster);
         }
     }
-    terms.join(" ")
+    if extras.is_empty() {
+        query.to_lowercase()
+    } else {
+        format!("{} {}", query.to_lowercase(), extras.join(" "))
+    }
 }
 
 // ─── Main scoring function ────────────────────────────────────────────────────
