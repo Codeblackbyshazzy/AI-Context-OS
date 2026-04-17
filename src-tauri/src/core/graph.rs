@@ -652,7 +652,21 @@ mod tests {
         let sa = scores["mem-a"];
         let sc = scores.get("mem-c").copied().unwrap_or(0.0);
         assert!(sa > sc, "direct neighbor {sa} should outscore isolated {sc}");
-        assert!((scores["mem-b"] - 1.0).abs() < 1e-9, "seed should be 1.0");
+        assert!((scores["mem-b"] - 0.0).abs() < 1e-9, "seed should not receive graph bonus");
+    }
+
+    #[test]
+    fn ppr_raw_preserves_probability_mass_with_isolated_seed() {
+        let a = make_memory("mem-a", vec!["mem-b"], vec![], "");
+        let b = make_memory("mem-b", vec![], vec![], "");
+        let isolated_seed = make_memory("seed-isolated", vec![], vec![], "");
+        let seeds = vec!["mem-b".to_string(), "seed-isolated".to_string()];
+        let raw = personalized_pagerank_raw(&[a, b, isolated_seed], &seeds, 0.15);
+        let total: f64 = raw.values().sum();
+        assert!(
+            (total - 1.0).abs() < 1e-9,
+            "raw personalized pagerank should preserve total probability mass, got {total}"
+        );
     }
 
     #[test]
