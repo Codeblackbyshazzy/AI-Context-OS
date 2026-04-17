@@ -399,6 +399,100 @@ pub fn get_community_map_for_scoring(memories: &[Memory]) -> HashMap<String, u32
     compute_community_map(memories)
 }
 
+/// Personalized PageRank scores from a seed set.
+///
+/// Propagates relevance from `seeds` through the graph following edge weights.
+/// `alpha` is the teleport probability (0.15 recommended): at each step the
+/// random walker jumps back to the uniform seed distribution with probability
+/// `alpha`, or follows a weighted edge with probability `1-alpha`.
+///
+/// Scores are normalized so the highest-scoring non-seed node = 1.0, giving
+/// a [0, 1] proximity value usable directly as the `graph_proximity` component.
+/// Seed nodes always receive 1.0. Returns an empty map when seeds is empty.
+pub(crate) fn personalized_pagerank(
+    memories: &[Memory],
+    seeds: &[String],
+    alpha: f64,
+) -> HashMap<String, f64> {
+    let n = memories.len();
+    if n == 0 || seeds.is_empty() {
+        return HashMap::new();
+    }
+
+    let id_to_idx: HashMap<&str, usize> = memories
+        .iter()
+        .enumerate()
+        .map(|(i, m)| (m.meta.id.as_str(), i))
+        .collect();
+
+    let typed_edges = collect_typed_edges(memories);
+    let mut adj: Vec<Vec<(usize, f64)>> = vec![Vec::new(); n];
+    for edge in &typed_edges {
+        let w = edge.weight();
+        adj[edge.source].push((edge.target, w));
+        adj[edge.target].push((edge.source, w));
+    }
+    let strength: Vec<f64> = adj
+        .iter()
+        .map(|nbrs| nbrs.iter().map(|(_, w)| w).sum())
+        .collect();
+
+    let seed_indices: Vec<usize> = seeds
+        .iter()
+        .filter_map(|s| id_to_idx.get(s.as_str()).copied())
+        .collect();
+    if seed_indices.is_empty() {
+        return HashMap::new();
+    }
+
+    let seed_weight = 1.0 / seed_indices.len() as f64;
+    let mut seed_dist = vec![0.0f64; n];
+    for &idx in &seed_indices {
+        seed_dist[idx] = seed_weight;
+    }
+
+    let mut ppr = seed_dist.clone();
+    for _ in 0..30 {
+        let mut next = vec![0.0f64; n];
+        for u in 0..n {
+            if strength[u] == 0.0 || ppr[u] == 0.0 {
+                continue;
+            }
+            for &(v, w) in &adj[u] {
+                next[v] += (1.0 - alpha) * (w / strength[u]) * ppr[u];
+            }
+        }
+        for v in 0..n {
+            next[v] += alpha * seed_dist[v];
+        }
+        ppr = next;
+    }
+
+    let max_non_seed = ppr
+        .iter()
+        .enumerate()
+        .filter(|(i, _)| !seed_indices.contains(i))
+        .map(|(_, &v)| v)
+        .fold(0.0f64, f64::max);
+
+    if max_non_seed == 0.0 {
+        return HashMap::new();
+    }
+
+    memories
+        .iter()
+        .enumerate()
+        .map(|(i, m)| {
+            let score = if seed_indices.contains(&i) {
+                1.0
+            } else {
+                (ppr[i] / max_non_seed).min(1.0)
+            };
+            (m.meta.id.clone(), score)
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -3,7 +3,7 @@ use std::path::Path;
 
 use chrono::Utc;
 
-use crate::core::graph::get_community_map_for_scoring;
+use crate::core::graph::personalized_pagerank;
 use crate::core::index::scan_memories;
 use crate::core::levels::estimate_tokens;
 use crate::core::memory::read_memory;
@@ -119,15 +119,12 @@ pub fn execute_context_query(
 
     let now = Utc::now();
 
-    // Compute community map once — used by both scoring passes
-    let community_map = get_community_map_for_scoring(&memories);
-
-    // First pass: score without graph context to identify top 5
+    // First pass: score without graph context to identify seeds
     let mut base_scored: Vec<(usize, ScoreBreakdown)> = memories
         .iter()
         .enumerate()
         .map(|(i, m)| {
-            let score = compute_score(query, m, &memories, &[], &community_map, now);
+            let score = compute_score(query, m, &memories, &std::collections::HashMap::new(), now);
             (i, score)
         })
         .collect();
@@ -142,12 +139,13 @@ pub fn execute_context_query(
         .map(|(idx, _)| memories[*idx].meta.id.clone())
         .collect();
 
-    // Second pass: score with graph proximity + community membership
+    // Second pass: score with PPR graph proximity seeded from top-5
+    let ppr_scores = personalized_pagerank(&memories, &selected_ids, 0.15);
     let mut scored: Vec<(usize, ScoreBreakdown)> = memories
         .iter()
         .enumerate()
         .map(|(i, m)| {
-            let score = compute_score(query, m, &memories, &selected_ids, &community_map, now);
+            let score = compute_score(query, m, &memories, &ppr_scores, now);
             (i, score)
         })
         .collect();

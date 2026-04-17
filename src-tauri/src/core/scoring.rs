@@ -98,13 +98,12 @@ fn expand_query(query: &str) -> String {
 
 /// Compute the hybrid score for a memory given a query.
 /// Uses dynamic intent-based weights and query expansion for better recall.
-/// `community_map` maps memory_id → community_id for community-proximity boosting.
+/// `ppr_scores` is a precomputed Personalized PageRank map (memory_id → score).
 pub fn compute_score(
     query: &str,
     memory: &Memory,
     all_memories: &[Memory],
-    selected_ids: &[String],
-    community_map: &HashMap<String, u32>,
+    ppr_scores: &HashMap<String, f64>,
     now: DateTime<Utc>,
 ) -> ScoreBreakdown {
     let weights = detect_intent_weights(query);
@@ -116,7 +115,11 @@ pub fn compute_score(
     let importance = memory.meta.importance;
     let access_frequency =
         access_frequency_score(memory.meta.access_count, max_access_count(all_memories));
-    let graph_proximity = graph_proximity_score(memory, all_memories, selected_ids, community_map);
+    let graph_proximity = ppr_scores
+        .get(&memory.meta.id)
+        .copied()
+        .unwrap_or(0.0)
+        .min(1.0);
     let final_score = weights.semantic * semantic
         + weights.bm25 * bm25
         + weights.recency * recency
@@ -248,103 +251,10 @@ fn max_access_count(memories: &[Memory]) -> u32 {
         .unwrap_or(1)
 }
 
-/// Edge-kind weights mirroring `core::graph` so spreading activation respects
-/// the same semantics used by community detection and the visualization layer.
-/// `requires` (hard dep) pulls harder than `related`, which pulls harder than
-/// `optional`. Kept in sync with `graph::WEIGHT_*`.
-const SCORING_EDGE_REQUIRES: f64 = 1.0;
-const SCORING_EDGE_RELATED: f64 = 0.7;
-const SCORING_EDGE_OPTIONAL: f64 = 0.4;
-
-/// Weight of the explicit edge from `meta` to `target_id`, based on which
-/// outgoing list it appears in. Returns 0.0 if no such edge exists.
-/// Priority follows the same order as `graph::collect_typed_edges`
-/// (strongest kind wins when duplicated).
-fn explicit_edge_weight(meta: &crate::core::types::MemoryMeta, target_id: &str) -> f64 {
-    if meta.requires.iter().any(|x| x == target_id) {
-        SCORING_EDGE_REQUIRES
-    } else if meta.related.iter().any(|x| x == target_id) {
-        SCORING_EDGE_RELATED
-    } else if meta.optional.iter().any(|x| x == target_id) {
-        SCORING_EDGE_OPTIONAL
-    } else {
-        0.0
-    }
-}
-
-/// Graph proximity with two-level weighted spreading activation plus community
-/// membership boost.
-///
-/// L1 (direct explicit link in selected_ids): +0.10 × edge_weight per match,
-/// where edge_weight is 1.0 (requires), 0.7 (related), or 0.4 (optional).
-/// L2 (connection-of-connection in selected_ids): +0.03 × edge_weight of the
-/// second hop per match.
-/// Community bonus: +0.08 if memory shares a community with any selected memory.
-///
-/// Result is capped at 1.0.
-fn graph_proximity_score(
-    memory: &Memory,
-    all_memories: &[Memory],
-    selected_ids: &[String],
-    community_map: &HashMap<String, u32>,
-) -> f64 {
-    if selected_ids.is_empty() {
-        return 0.0;
-    }
-
-    let all_links: Vec<&String> = memory.meta.explicit_links().collect();
-
-    // Level 1: direct links that appear in selected_ids, weighted by edge kind
-    let l1_hits: Vec<(&String, f64)> = all_links
-        .iter()
-        .copied()
-        .filter(|id| selected_ids.contains(id))
-        .map(|id| (id, explicit_edge_weight(&memory.meta, id)))
-        .collect();
-    let l1_score: f64 = l1_hits.iter().map(|(_, w)| 0.10 * w).sum();
-    let l1_ids: Vec<&String> = l1_hits.iter().map(|(id, _)| *id).collect();
-
-    // Level 2: IDs referenced by L1 memories that also appear in selected_ids,
-    // weighted by the kind of the second hop.
-    let l2_score: f64 = all_memories
-        .iter()
-        .filter(|m| l1_ids.contains(&&m.meta.id))
-        .flat_map(|m| {
-            m.meta
-                .explicit_links()
-                .filter(|id| selected_ids.contains(*id) && !all_links.contains(id))
-                .map(move |id| 0.03 * explicit_edge_weight(&m.meta, id))
-        })
-        .sum();
-
-    // Community bonus: +0.08 if this memory is in the same topical cluster
-    // as any of the top-scored selected memories (covers implicit tag-based proximity)
-    let community_bonus = match community_map.get(&memory.meta.id) {
-        Some(&mem_community) => {
-            let shares_community = selected_ids.iter().any(|sid| {
-                community_map
-                    .get(sid)
-                    .map(|&c| c == mem_community)
-                    .unwrap_or(false)
-            });
-            if shares_community {
-                0.08
-            } else {
-                0.0
-            }
-        }
-        None => 0.0,
-    };
-
-    (l1_score + l2_score + community_bonus).min(1.0)
-}
 
 #[cfg(test)]
 mod tests {
-    use super::{expand_query, graph_proximity_score};
-    use crate::core::types::{Memory, MemoryMeta, MemoryOntology};
-    use chrono::Utc;
-    use std::collections::HashMap;
+    use super::expand_query;
 
     #[test]
     fn expand_query_only_uses_original_terms() {
@@ -356,95 +266,5 @@ mod tests {
     fn expand_query_deduplicates_added_terms() {
         let expanded = expand_query("error bug");
         assert_eq!(expanded, "error bug fix excepcion fallo panic");
-    }
-
-    fn make_mem(id: &str) -> Memory {
-        Memory {
-            meta: MemoryMeta {
-                id: id.to_string(),
-                ontology: MemoryOntology::Concept,
-                l0: String::new(),
-                importance: 0.5,
-                decay_rate: 0.998,
-                last_access: Utc::now(),
-                access_count: 0,
-                confidence: 0.9,
-                tags: vec![],
-                related: vec![],
-                created: Utc::now(),
-                modified: Utc::now(),
-                version: 1,
-                triggers: vec![],
-                requires: vec![],
-                optional: vec![],
-                output_format: None,
-                status: None,
-                protected: false,
-                derived_from: vec![],
-                folder_category: None,
-                system_role: None,
-            },
-            l1_content: String::new(),
-            l2_content: String::new(),
-            raw_content: String::new(),
-            file_path: format!("{}.md", id),
-        }
-    }
-
-    #[test]
-    fn l1_bonus_scales_with_edge_kind_weight() {
-        // mem-a --requires--> mem-b (weight 1.0) ⇒ L1 bonus = 0.10
-        // mem-c --optional--> mem-b (weight 0.4) ⇒ L1 bonus = 0.04
-        let mut a = make_mem("mem-a");
-        a.meta.requires = vec!["mem-b".to_string()];
-        let b = make_mem("mem-b");
-        let mut c = make_mem("mem-c");
-        c.meta.optional = vec!["mem-b".to_string()];
-
-        let mems = vec![a.clone(), b.clone(), c.clone()];
-        let selected = vec!["mem-b".to_string()];
-        let empty: HashMap<String, u32> = HashMap::new();
-
-        let sa = graph_proximity_score(&a, &mems, &selected, &empty);
-        let sc = graph_proximity_score(&c, &mems, &selected, &empty);
-        assert!((sa - 0.10).abs() < 1e-9, "requires should give 0.10, got {}", sa);
-        assert!((sc - 0.04).abs() < 1e-9, "optional should give 0.04, got {}", sc);
-    }
-
-    #[test]
-    fn related_edge_gives_intermediate_bonus() {
-        // mem-a --related--> mem-b (weight 0.7) ⇒ L1 bonus = 0.07
-        let mut a = make_mem("mem-a");
-        a.meta.related = vec!["mem-b".to_string()];
-        let b = make_mem("mem-b");
-        let mems = vec![a.clone(), b];
-        let selected = vec!["mem-b".to_string()];
-        let empty: HashMap<String, u32> = HashMap::new();
-        let s = graph_proximity_score(&a, &mems, &selected, &empty);
-        assert!((s - 0.07).abs() < 1e-9, "related should give 0.07, got {}", s);
-    }
-
-    #[test]
-    fn l2_bonus_uses_second_hop_weight() {
-        // a --requires--> b --related--> c ; selected = {b, c}
-        // L1(a→b, requires): 0.10 × 1.0 = 0.10
-        // L2(b→c, related):  0.03 × 0.7 = 0.021
-        let mut a = make_mem("mem-a");
-        a.meta.requires = vec!["mem-b".to_string()];
-        let mut b = make_mem("mem-b");
-        b.meta.related = vec!["mem-c".to_string()];
-        let c = make_mem("mem-c");
-        let mems = vec![a.clone(), b, c];
-        let selected = vec!["mem-b".to_string(), "mem-c".to_string()];
-        let empty: HashMap<String, u32> = HashMap::new();
-        let s = graph_proximity_score(&a, &mems, &selected, &empty);
-        assert!((s - (0.10 + 0.021)).abs() < 1e-9, "got {}", s);
-    }
-
-    #[test]
-    fn empty_selected_returns_zero() {
-        let a = make_mem("mem-a");
-        let empty: HashMap<String, u32> = HashMap::new();
-        assert_eq!(graph_proximity_score(&a, &[a.clone()], &[], &empty), 0.0);
     }
 }
