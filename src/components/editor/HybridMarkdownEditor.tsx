@@ -5,6 +5,7 @@ import CodeMirror from "@uiw/react-codemirror";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { languages } from "@codemirror/language-data";
 import { EditorView, keymap, KeyBinding, ViewPlugin, Decoration, DecorationSet, ViewUpdate, WidgetType } from "@codemirror/view";
+import { useEffect, useRef } from "react";
 import { tags as t } from "@lezer/highlight";
 import { HighlightStyle, syntaxHighlighting, syntaxTree } from "@codemirror/language";
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
@@ -17,6 +18,7 @@ interface Props {
   placeholder?: string;
   className?: string;
   editable?: boolean;
+  viewRef?: React.MutableRefObject<EditorView | null>;
 }
 
 // Custom theme to blend exactly with the app's dark/light modes
@@ -52,13 +54,42 @@ const customTheme = EditorView.theme({
   ".cm-cursor": {
     borderLeftColor: "var(--text-0)",
   },
-  ".cm-line.cm-h1": { fontSize: "1.6em", fontWeight: "700", paddingTop: "0.5em", paddingBottom: "0.2em" },
-  ".cm-line.cm-h2": { fontSize: "1.4em", fontWeight: "700", paddingTop: "0.4em", paddingBottom: "0.2em" },
-  ".cm-line.cm-h3": { fontSize: "1.25em", fontWeight: "700", paddingTop: "0.3em", paddingBottom: "0.2em" },
-  ".cm-line.cm-h4": { fontSize: "1.1em", fontWeight: "700" },
-  ".cm-line.cm-h5": { fontSize: "1em", fontWeight: "700" },
-  ".cm-line.cm-h6": { fontSize: "1em", fontWeight: "700", color: "var(--text-2)" },
+  ".cm-line.cm-h1": {
+    fontSize: "1.9em",
+    fontWeight: "700",
+    lineHeight: "1.25",
+    paddingTop: "0.8em",
+    paddingBottom: "0.3em",
+    marginBottom: "0.25em",
+    borderBottom: "2px solid var(--border)",
+    letterSpacing: "-0.01em",
+  },
+  ".cm-line.cm-h2": {
+    fontSize: "1.55em",
+    fontWeight: "650",
+    lineHeight: "1.3",
+    paddingTop: "0.7em",
+    paddingBottom: "0.25em",
+    marginBottom: "0.2em",
+    borderBottom: "1px solid var(--border)",
+  },
+  ".cm-line.cm-h3": { fontSize: "1.28em", fontWeight: "600", lineHeight: "1.35", paddingTop: "0.6em", paddingBottom: "0.15em" },
+  ".cm-line.cm-h4": { fontSize: "1.12em", fontWeight: "600", paddingTop: "0.5em", paddingBottom: "0.1em" },
+  ".cm-line.cm-h5": { fontSize: "1em", fontWeight: "600", paddingTop: "0.4em" },
+  ".cm-line.cm-h6": { fontSize: "0.95em", fontWeight: "600", color: "var(--text-2)", textTransform: "uppercase", letterSpacing: "0.05em" },
   ".cm-link-preview": { cursor: "pointer" },
+  ".cm-line.cm-quote": {
+    borderLeft: "3px solid var(--accent)",
+    paddingLeft: "0.85rem",
+    color: "var(--text-1)",
+    fontStyle: "italic",
+    backgroundColor: "color-mix(in srgb, var(--bg-2) 35%, transparent)",
+  },
+  ".cm-line.cm-hr-line": {
+    borderBottom: "1px solid var(--border)",
+    color: "transparent",
+    margin: "0.75em 0",
+  },
 });
 
 // A custom highlighting style to mimic Obsidian's markdown highlight 
@@ -75,8 +106,9 @@ const markdownHighlightStyle = HighlightStyle.define([
   { tag: t.strikethrough, textDecoration: "line-through" },
   { tag: t.link, color: "var(--accent)", textDecoration: "underline" },
   { tag: t.url, color: "var(--text-2)" },
-  { tag: t.monospace, fontFamily: "monospace", color: "var(--text-0)", backgroundColor: "color-mix(in srgb, var(--bg-2) 60%, transparent)", borderRadius: "3px" },
+  { tag: t.monospace, fontFamily: "\"JetBrains Mono\", ui-monospace, monospace", color: "var(--accent)", backgroundColor: "color-mix(in srgb, var(--bg-2) 80%, transparent)", borderRadius: "3px" },
   { tag: t.keyword, color: "var(--accent)" },
+  { tag: t.list, color: "var(--accent)" },
   { tag: [t.processingInstruction, t.meta, t.punctuation], color: "var(--text-2)" }, // markdown markup characters (#, **, etc)
 ]);
 
@@ -95,24 +127,35 @@ const headingDecorations = ViewPlugin.fromClass(class {
   }
 
   buildDecorations(view: EditorView) {
-    const builder = new RangeSetBuilder<Decoration>();
+    const state = view.state;
+    const decos: { pos: number; deco: Decoration }[] = [];
     for (const {from, to} of view.visibleRanges) {
-      syntaxTree(view.state).iterate({
+      syntaxTree(state).iterate({
         from, to,
         enter(node) {
           if (node.name.includes("Heading")) {
             const match = node.name.match(/Heading(\d)/);
             if (match) {
               const level = match[1];
-              // Add a class to the entire line
-              builder.add(node.from, node.from, Decoration.line({
-                class: `cm-h${level}`
-              }));
+              decos.push({ pos: node.from, deco: Decoration.line({ class: `cm-h${level}` }) });
             }
+          } else if (node.name === "Blockquote") {
+            let lineStart = state.doc.lineAt(node.from).number;
+            const lineEnd = state.doc.lineAt(node.to).number;
+            while (lineStart <= lineEnd) {
+              const line = state.doc.line(lineStart);
+              decos.push({ pos: line.from, deco: Decoration.line({ class: "cm-quote" }) });
+              lineStart++;
+            }
+          } else if (node.name === "HorizontalRule") {
+            decos.push({ pos: node.from, deco: Decoration.line({ class: "cm-hr-line" }) });
           }
         }
       });
     }
+    decos.sort((a, b) => a.pos - b.pos);
+    const builder = new RangeSetBuilder<Decoration>();
+    for (const d of decos) builder.add(d.pos, d.pos, d.deco);
     return builder.finish();
   }
 }, {
@@ -404,7 +447,12 @@ export function HybridMarkdownEditor({
   placeholder,
   className,
   editable = true,
+  viewRef,
 }: Props) {
+  const localRef = useRef<EditorView | null>(null);
+  useEffect(() => () => {
+    if (viewRef && viewRef.current === localRef.current) viewRef.current = null;
+  }, [viewRef]);
   const extensions = [
     markdown({ base: markdownLanguage, codeLanguages: languages }),
     EditorView.lineWrapping,
@@ -427,6 +475,10 @@ export function HybridMarkdownEditor({
         editable={editable}
         placeholder={placeholder}
         extensions={extensions}
+        onCreateEditor={(view) => {
+          localRef.current = view;
+          if (viewRef) viewRef.current = view;
+        }}
         basicSetup={{
           lineNumbers: false,
           foldGutter: false,

@@ -6,6 +6,8 @@ import { clsx } from "clsx";
 import { useAppStore } from "../../lib/store";
 import { FrontmatterForm } from "./FrontmatterForm";
 import { HybridMarkdownEditor } from "./HybridMarkdownEditor";
+import { FormatToolbar } from "./FormatToolbar";
+import type { EditorView } from "@codemirror/view";
 import type { Memory, MemoryMeta, MemoryOntology, RawFileDocument } from "../../lib/types";
 
 type InspectorTab = "properties" | "links" | "history";
@@ -64,6 +66,7 @@ export function MemoryEditor() {
   const latestDraftRef = useRef<MemoryDraft | null>(null);
   const queuedDraftRef = useRef<MemoryDraft | null>(null);
   const isSavingRef = useRef(false);
+  const editorViewRef = useRef<EditorView | null>(null);
 
   useEffect(() => {
     if (activeMemory) {
@@ -315,6 +318,7 @@ export function MemoryEditor() {
       <div className="flex items-center gap-1.5 border-b border-[var(--border)] px-4 py-1.5">
         <span className="flex-1 font-mono text-[11px] text-[color:var(--text-2)]">{meta.id}.md</span>
         <SaveStateBadge status={saveStatus} />
+        <FormatToolbar viewRef={editorViewRef} disabled={isProtected} />
         <button
           type="button"
           onClick={() => setShowInspector((prev) => !prev)}
@@ -371,6 +375,7 @@ export function MemoryEditor() {
               className="min-h-[400px]"
               placeholder={t("memoryEditor.placeholders.typeHere")}
               editable={!isProtected}
+              viewRef={editorViewRef}
             />
 
             {/* L1 — Collapsible summary */}
