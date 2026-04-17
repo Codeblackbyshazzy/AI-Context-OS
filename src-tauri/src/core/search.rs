@@ -194,3 +194,16 @@ mod tests {
         assert!(score > 0.0);
     }
 }
+
+#[cfg(test)]
+mod stem_probe {
+    use rust_stemmers::{Algorithm, Stemmer};
+    #[test]
+    fn print_stems() {
+        let en = Stemmer::create(Algorithm::English);
+        let es = Stemmer::create(Algorithm::Spanish);
+        for w in &["hello", "world", "test", "write", "writing", "linkedin", "post", "deploying", "deployed", "deployment", "desplegar", "desplegando"] {
+            println!("{w} -> EN:{} ES:{}", en.stem(w), es.stem(w));
+        }
+    }
+}
