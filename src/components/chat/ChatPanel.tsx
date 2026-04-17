@@ -185,6 +185,12 @@ export function ChatPanel() {
       const resolvedContextIds = Array.isArray(response.context_memory_ids)
         ? response.context_memory_ids
         : contextIds;
+      const baseContextDebug =
+        buildContextDebug(
+          resolvedContextIds,
+          contextPrompt,
+          DEFAULT_TOKEN_BUDGET,
+        ) ?? contextDebug;
 
       setTurns((prev) =>
         prev.map((turn) =>
@@ -194,7 +200,7 @@ export function ChatPanel() {
                   content: response.text,
                   pending: false,
                   contextIds: resolvedContextIds,
-                  contextDebug,
+                  contextDebug: baseContextDebug,
                 }
               : turn,
         ),
@@ -393,18 +399,21 @@ function MessageBubble({ turn }: { turn: ChatTurn }) {
           <p className="whitespace-pre-wrap break-words">{turn.content}</p>
         )}
       </div>
-      {!isUser && turn.contextIds && turn.contextIds.length > 0 && (
-        <div className="flex flex-col gap-1 pl-1">
+      {!isUser && ((turn.contextIds && turn.contextIds.length > 0) || turn.contextDebug) && (
+        <div className="w-full max-w-[90%] rounded-md border border-[color:var(--border)] bg-[color:var(--bg-1)]/70 px-2 py-1.5">
+          <div className="mb-1 font-mono text-[10px] font-medium uppercase tracking-wide text-[color:var(--text-2)]">
+            Context Debug
+          </div>
           {turn.contextDebug && (
-            <div className="font-mono text-[9px] text-[color:var(--text-2)]">
-              ctx: {turn.contextDebug.memoryCount} mem · {turn.contextDebug.promptChars} chars · budget {turn.contextDebug.budget}
+            <div className="mb-1 font-mono text-[10px] text-[color:var(--text-2)]">
+              {turn.contextDebug.memoryCount} memorias · {turn.contextDebug.promptChars} chars de `context_prompt` · budget {turn.contextDebug.budget}
             </div>
           )}
           <div className="flex flex-wrap gap-1">
-          {(turn.contextDebug?.memories ?? fallbackContextMemories(turn.contextIds)).map((memory) => (
+          {(turn.contextDebug?.memories ?? fallbackContextMemories(turn.contextIds ?? [])).map((memory) => (
             <span
               key={memory.id}
-              className="rounded bg-[color:var(--bg-2)] px-1.5 py-0.5 font-mono text-[9px]"
+              className="rounded bg-[color:var(--bg-2)] px-1.5 py-0.5 font-mono text-[10px]"
               style={{ color: scoreColor(memory.score) }}
             >
               {memory.id}
