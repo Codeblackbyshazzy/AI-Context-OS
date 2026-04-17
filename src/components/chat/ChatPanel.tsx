@@ -29,39 +29,6 @@ function nanoid(): string {
   return Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 }
 
-function isTrivialChatQuery(text: string): boolean {
-  const normalized = text
-    .trim()
-    .toLowerCase()
-    .split(/\s+/)
-    .map((token) => token.replace(/[^\p{L}\p{N}ñ]+/gu, ""))
-    .filter(Boolean);
-
-  if (normalized.length === 0 || normalized.length > 4) return false;
-
-  return new Set([
-    "hola",
-    "hi",
-    "hey",
-    "hello",
-    "buenas",
-    "buenos dias",
-    "buenas tardes",
-    "buenas noches",
-    "gracias",
-    "muchas gracias",
-    "thanks",
-    "thank you",
-    "ok",
-    "okay",
-    "okey",
-    "vale",
-    "perfecto",
-    "genial",
-    "de acuerdo",
-  ]).has(normalized.join(" "));
-}
-
 export function ChatPanel() {
   const { t } = useTranslation();
   const setChatOpen = useAppStore((s) => s.setChatOpen);
@@ -126,8 +93,7 @@ export function ChatPanel() {
     try {
       let contextPrompt = "";
       let contextIds: string[] = [];
-      const shouldUseVaultContext =
-        useVaultContext && !isTrivialChatQuery(text);
+      const shouldUseVaultContext = useVaultContext;
 
       if (shouldUseVaultContext) {
         try {
