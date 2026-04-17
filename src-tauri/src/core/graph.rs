@@ -408,8 +408,9 @@ pub fn get_community_map_for_scoring(memories: &[Memory]) -> HashMap<String, u32
 ///
 /// Scores are normalized so the highest-scoring non-seed node = 1.0, giving
 /// a [0, 1] proximity value usable directly as the `graph_proximity` component.
-/// Seed nodes always receive 1.0. Returns an empty map when seeds is empty.
-pub(crate) fn personalized_pagerank(
+/// Seed nodes receive 0.0 because they already define the active context and
+/// should not get extra graph bonus. Returns an empty map when seeds is empty.
+fn personalized_pagerank_raw(
     memories: &[Memory],
     seeds: &[String],
     alpha: f64,
@@ -454,25 +455,53 @@ pub(crate) fn personalized_pagerank(
     let mut ppr = seed_dist.clone();
     for _ in 0..30 {
         let mut next = vec![0.0f64; n];
+        let mut dangling_mass = 0.0f64;
+
         for u in 0..n {
-            if strength[u] == 0.0 || ppr[u] == 0.0 {
+            if ppr[u] == 0.0 {
+                continue;
+            }
+            if strength[u] == 0.0 {
+                dangling_mass += (1.0 - alpha) * ppr[u];
                 continue;
             }
             for &(v, w) in &adj[u] {
                 next[v] += (1.0 - alpha) * (w / strength[u]) * ppr[u];
             }
         }
+
         for v in 0..n {
-            next[v] += alpha * seed_dist[v];
+            next[v] += (alpha + dangling_mass) * seed_dist[v];
         }
         ppr = next;
     }
 
-    let max_non_seed = ppr
+    memories
         .iter()
         .enumerate()
-        .filter(|(i, _)| !seed_indices.contains(i))
-        .map(|(_, &v)| v)
+        .map(|(i, m)| (m.meta.id.clone(), ppr[i]))
+        .collect()
+}
+
+pub(crate) fn personalized_pagerank(
+    memories: &[Memory],
+    seeds: &[String],
+    alpha: f64,
+) -> HashMap<String, f64> {
+    if memories.is_empty() || seeds.is_empty() {
+        return HashMap::new();
+    }
+
+    let raw = personalized_pagerank_raw(memories, seeds, alpha);
+    if raw.is_empty() {
+        return HashMap::new();
+    }
+
+    let seed_ids: HashSet<&str> = seeds.iter().map(|s| s.as_str()).collect();
+    let max_non_seed = memories
+        .iter()
+        .filter(|m| !seed_ids.contains(m.meta.id.as_str()))
+        .filter_map(|m| raw.get(&m.meta.id).copied())
         .fold(0.0f64, f64::max);
 
     if max_non_seed == 0.0 {
@@ -481,14 +510,13 @@ pub(crate) fn personalized_pagerank(
 
     memories
         .iter()
-        .enumerate()
-        .map(|(i, m)| {
-            let score = if seed_indices.contains(&i) {
-                1.0
+        .map(|m| {
+            let score = if seed_ids.contains(m.meta.id.as_str()) {
+                0.0
             } else {
-                (ppr[i] / max_non_seed).min(1.0)
+                raw.get(&m.meta.id).copied().unwrap_or(0.0) / max_non_seed
             };
-            (m.meta.id.clone(), score)
+            (m.meta.id.clone(), score.min(1.0))
         })
         .collect()
 }

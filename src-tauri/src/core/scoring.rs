@@ -121,7 +121,9 @@ pub fn compute_score(
     let weights = detect_intent_weights(query);
     let expanded = expand_query(query);
 
-    let semantic = semantic_score_free(&expanded, memory);
+    // Query expansion helps lexical recall, but semantic/tag overlap must stay
+    // anchored to the user's original terms so exact matches are not diluted.
+    let semantic = semantic_score_free(query, memory);
     let bm25 = compute_bm25(&expanded, memory, bm25_corpus);
     let recency = recency_score(&memory.meta.last_access, now);
     let importance = memory.meta.importance;
