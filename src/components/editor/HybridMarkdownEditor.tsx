@@ -190,6 +190,8 @@ const headingDecorations = ViewPlugin.fromClass(
 function applyToggleMark(view: EditorView, mark: string) {
   const { state } = view;
   const changes = state.changeByRange((range) => {
+    const normalized = normalizeInlineRange(state.doc, range.from, range.to);
+
     if (range.empty) {
       return {
         changes: [{ from: range.from, insert: mark + mark }],
@@ -198,31 +200,56 @@ function applyToggleMark(view: EditorView, mark: string) {
     }
 
     const alreadyWrapped =
-      range.from >= mark.length &&
-      range.to <= state.doc.length - mark.length &&
-      state.sliceDoc(range.from - mark.length, range.from) === mark &&
-      state.sliceDoc(range.to, range.to + mark.length) === mark;
+      normalized.from >= mark.length &&
+      normalized.to <= state.doc.length - mark.length &&
+      state.sliceDoc(normalized.from - mark.length, normalized.from) === mark &&
+      state.sliceDoc(normalized.to, normalized.to + mark.length) === mark;
 
     if (alreadyWrapped) {
       return {
         changes: [
-          { from: range.from - mark.length, to: range.from },
-          { from: range.to, to: range.to + mark.length },
+          { from: normalized.from - mark.length, to: normalized.from },
+          { from: normalized.to, to: normalized.to + mark.length },
         ],
-        range: EditorSelection.range(range.from - mark.length, range.to - mark.length),
+        range: EditorSelection.range(normalized.from - mark.length, normalized.to - mark.length),
       };
     }
 
     return {
       changes: [
-        { from: range.from, insert: mark },
-        { from: range.to, insert: mark },
+        { from: normalized.from, insert: mark },
+        { from: normalized.to, insert: mark },
       ],
-      range: EditorSelection.range(range.from + mark.length, range.to + mark.length),
+      range: EditorSelection.range(normalized.from + mark.length, normalized.to + mark.length),
     };
   });
 
   view.dispatch(state.update(changes, { scrollIntoView: true, userEvent: "input" }));
+}
+
+function normalizeInlineRange(
+  doc: { lineAt: (pos: number) => { from: number; to: number; text: string }; sliceString: (from: number, to: number) => string },
+  from: number,
+  to: number,
+) {
+  let nextFrom = from;
+  let nextTo = to;
+
+  while (nextTo > nextFrom) {
+    const char = doc.sliceString(nextTo - 1, nextTo);
+    if (char !== "\n" && char !== "\r") break;
+    nextTo -= 1;
+  }
+
+  const line = doc.lineAt(nextFrom);
+  if (nextFrom === line.from && nextTo >= line.to) {
+    const prefixMatch = line.text.match(/^(\s*(?:[-*+]\s|\d+\.\s|- \[[ xX]\]\s|>\s))/);
+    if (prefixMatch) {
+      nextFrom += prefixMatch[0].length;
+    }
+  }
+
+  return nextTo < nextFrom ? { from, to } : { from: nextFrom, to: nextTo };
 }
 
 function applyToggleLinePrefix(view: EditorView, prefix: string) {

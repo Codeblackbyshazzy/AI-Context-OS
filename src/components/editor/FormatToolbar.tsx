@@ -29,15 +29,44 @@ interface Props {
 function wrapSelection(view: EditorView, mark: string, placeholder = "") {
   const { state } = view;
   const changes = state.changeByRange((range) => {
-    const text = state.sliceDoc(range.from, range.to) || placeholder;
+    const normalized = normalizeInlineRange(state.doc, range.from, range.to);
+    const text = state.sliceDoc(normalized.from, normalized.to) || placeholder;
     const inserted = `${mark}${text}${mark}`;
     return {
-      changes: [{ from: range.from, to: range.to, insert: inserted }],
-      range: EditorSelection.range(range.from + mark.length, range.from + mark.length + text.length),
+      changes: [{ from: normalized.from, to: normalized.to, insert: inserted }],
+      range: EditorSelection.range(
+        normalized.from + mark.length,
+        normalized.from + mark.length + text.length,
+      ),
     };
   });
   view.dispatch(state.update(changes, { scrollIntoView: true, userEvent: "input" }));
   view.focus();
+}
+
+function normalizeInlineRange(
+  doc: { lineAt: (pos: number) => { from: number; to: number; text: string }; sliceString: (from: number, to: number) => string },
+  from: number,
+  to: number,
+) {
+  let nextFrom = from;
+  let nextTo = to;
+
+  while (nextTo > nextFrom) {
+    const char = doc.sliceString(nextTo - 1, nextTo);
+    if (char !== "\n" && char !== "\r") break;
+    nextTo -= 1;
+  }
+
+  const line = doc.lineAt(nextFrom);
+  if (nextFrom === line.from && nextTo >= line.to) {
+    const prefixMatch = line.text.match(/^(\s*(?:[-*+]\s|\d+\.\s|- \[[ xX]\]\s|>\s))/);
+    if (prefixMatch) {
+      nextFrom += prefixMatch[0].length;
+    }
+  }
+
+  return nextTo < nextFrom ? { from, to } : { from: nextFrom, to: nextTo };
 }
 
 function toggleLinePrefix(view: EditorView, prefix: string) {
