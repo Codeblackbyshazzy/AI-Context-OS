@@ -679,7 +679,7 @@ export function GraphViewPage() {
             className="rounded border border-[var(--border)] bg-[color:var(--bg-2)] px-2 py-1 text-[11px] text-[color:var(--text-1)]"
           >
             <option value="all">{t("graph.filterAll")}</option>
-            {(["source", "entity", "concept", "synthesis"] as MemoryOntology[]).map((o) => (
+            {(["source", "entity", "concept", "synthesis", "unknown"] as MemoryOntology[]).map((o) => (
               <option key={o} value={o}>{t(`ontologies.${o}`)}</option>
             ))}
           </select>
