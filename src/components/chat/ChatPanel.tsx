@@ -94,25 +94,16 @@ export function ChatPanel() {
       let contextPrompt = "";
       let contextIds: string[] = [];
 
-      console.log("[chat] send start — useVaultContext toggle:", useVaultContext);
-      // TEMP DIAGNOSTIC: always attempt to load vault context regardless of the
-      // toggle so we can confirm whether the backend path works for this user.
-      // If this resolves the "no context" issue, the root cause is the toggle
-      // being OFF (or its persisted state) and we'll restore the gate after.
-      try {
-        const chatContext = await buildChatContext(text, DEFAULT_TOKEN_BUDGET);
-        console.log(
-          "[chat] buildChatContext OK — prompt_context.length:",
-          chatContext.prompt_context.length,
-          "memory_ids:",
-          chatContext.memory_ids.length,
-        );
-        if (chatContext.prompt_context.trim()) {
-          contextPrompt = chatContext.prompt_context;
-          contextIds = chatContext.memory_ids;
+      if (useVaultContext) {
+        try {
+          const chatContext = await buildChatContext(text, DEFAULT_TOKEN_BUDGET);
+          if (chatContext.prompt_context.trim()) {
+            contextPrompt = chatContext.prompt_context;
+            contextIds = chatContext.memory_ids;
+          }
+        } catch {
+          // Backend fallback can still resolve vault context when enabled.
         }
-      } catch (err) {
-        console.error("[chat] buildChatContext FAILED:", err);
       }
 
       // Build message history (excluding pending turn)
@@ -124,9 +115,14 @@ export function ChatPanel() {
       const response = await chatCompletion({
         messages: history,
         system_prompt: SYSTEM_PROMPT,
+        include_vault_context: useVaultContext,
         context_prompt: contextPrompt || null,
+        context_memory_ids: contextIds,
         model: providerConfig?.model ?? null,
       });
+      const resolvedContextIds = Array.isArray(response.context_memory_ids)
+        ? response.context_memory_ids
+        : contextIds;
 
       setTurns((prev) =>
         prev.map((turn) =>
@@ -135,7 +131,7 @@ export function ChatPanel() {
                 ...turn,
                 content: response.text,
                 pending: false,
-                contextIds,
+                contextIds: resolvedContextIds,
               }
             : turn,
         ),
