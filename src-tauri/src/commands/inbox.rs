@@ -2391,8 +2391,11 @@ pub async fn chat_completion(
                             .iter()
                             .map(|memory| memory.memory_id.clone())
                             .collect();
-                        context_debug =
-                            Some(build_context_debug_from_result(assembled.len(), budget, &result));
+                        context_debug = Some(build_context_debug_from_result(
+                            assembled.len(),
+                            budget,
+                            &result,
+                        ));
                         if !assembled.trim().is_empty() {
                             request.context_prompt = Some(assembled);
                         } else {

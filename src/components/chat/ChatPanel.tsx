@@ -9,6 +9,7 @@ import {
 } from "../../lib/tauri";
 import { useAppStore } from "../../lib/store";
 import type {
+  ChatContextDebug,
   ChatMessage,
   InferenceProviderConfig,
   LoadLevel,
@@ -25,6 +26,7 @@ interface ChatTurn {
   contextDebug?: {
     budget: number;
     promptChars: number;
+    tokensUsed?: number;
     memoryCount: number;
     memories: Array<{
       id: string;
@@ -75,6 +77,24 @@ function buildContextDebug(
         loadLevel: match?.load_level,
       };
     }),
+  };
+}
+
+function fromResponseContextDebug(
+  debug?: ChatContextDebug | null,
+): ChatTurn["contextDebug"] | undefined {
+  if (!debug) return undefined;
+  return {
+    budget: debug.token_budget,
+    promptChars: debug.prompt_chars,
+    tokensUsed: debug.tokens_used,
+    memoryCount: debug.memory_count,
+    memories: debug.memories.map((memory) => ({
+      id: memory.id,
+      score: memory.score ?? undefined,
+      tokenEstimate: memory.token_estimate ?? undefined,
+      loadLevel: memory.load_level ?? undefined,
+    })),
   };
 }
 
@@ -186,11 +206,13 @@ export function ChatPanel() {
         ? response.context_memory_ids
         : contextIds;
       const baseContextDebug =
+        fromResponseContextDebug(response.context_debug) ??
         buildContextDebug(
           resolvedContextIds,
           contextPrompt,
           DEFAULT_TOKEN_BUDGET,
-        ) ?? contextDebug;
+        ) ??
+        contextDebug;
 
       setTurns((prev) =>
         prev.map((turn) =>
@@ -206,7 +228,11 @@ export function ChatPanel() {
         ),
       );
 
-      if (shouldUseVaultContext && resolvedContextIds.length > 0) {
+      if (
+        shouldUseVaultContext &&
+        resolvedContextIds.length > 0 &&
+        !response.context_debug
+      ) {
         void simulateContext(text, DEFAULT_TOKEN_BUDGET)
           .then((scored) => {
             const enrichedDebug = buildContextDebug(
@@ -406,7 +432,9 @@ function MessageBubble({ turn }: { turn: ChatTurn }) {
           </div>
           {turn.contextDebug && (
             <div className="mb-1 font-mono text-[10px] text-[color:var(--text-2)]">
-              {turn.contextDebug.memoryCount} memorias · {turn.contextDebug.promptChars} chars de `context_prompt` · budget {turn.contextDebug.budget}
+              {turn.contextDebug.memoryCount} memorias · {turn.contextDebug.promptChars} chars de `context_prompt`
+              {turn.contextDebug.tokensUsed != null && turn.contextDebug.tokensUsed > 0 && ` · ${turn.contextDebug.tokensUsed}t usados`}
+              {turn.contextDebug.budget > 0 && ` · budget ${turn.contextDebug.budget}`}
             </div>
           )}
           <div className="flex flex-wrap gap-1">
