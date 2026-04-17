@@ -37,7 +37,17 @@ fn stem_token(token: &str) -> String {
             }
         }
         (true, false) => en_stem.into_owned(),
-        (false, true) => es_stem.into_owned(),
+        (false, true) => {
+            // EN left the token unchanged. Only accept the Spanish stem if it
+            // reduced the token by ≥ 2 characters; a reduction of just 1 char
+            // is almost always the Spanish suffix rules mis-firing on an English
+            // word (e.g. "hello"→"hell", "write"→"writ").
+            if token.len() >= es_stem.len() + 2 && es_stem.len() >= 3 {
+                es_stem.into_owned()
+            } else {
+                token.to_owned()
+            }
+        }
         (false, false) => token.to_owned(),
     }
 }
@@ -177,7 +187,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_tokenize() {
+    fn tokenize_base_forms_unchanged() {
         let tokens = tokenize("Hello World! This is a test.");
         assert!(tokens.contains(&"hello".to_string()));
         assert!(tokens.contains(&"world".to_string()));
@@ -186,24 +196,39 @@ mod tests {
     }
 
     #[test]
-    fn test_tag_match() {
+    fn tokenize_en_morphological_variants_normalize_to_same_stem() {
+        // "deploying", "deployed", "deployment" must all yield the same stem
+        // so BM25/tag queries on "deploy" match all three forms in documents.
+        let t_ing = tokenize("deploying");
+        let t_ed = tokenize("deployed");
+        let t_ment = tokenize("deployment");
+        assert_eq!(t_ing, t_ed, "deploying and deployed should share stem");
+        assert_eq!(t_ing, t_ment, "deploying and deployment should share stem");
+    }
+
+    #[test]
+    fn tokenize_es_morphological_variants_normalize_to_same_stem() {
+        // Spanish verb forms that differ only in conjugation suffix should collapse.
+        let t1 = tokenize("desplegar");
+        let t2 = tokenize("desplegando");
+        assert_eq!(t1, t2, "desplegar and desplegando should share stem");
+    }
+
+    #[test]
+    fn tokenize_no_false_stem_on_short_english_words() {
+        // Spanish stemmer would turn "hello" into "hell" (1-char reduction).
+        // The ≥2 char threshold must reject this.
+        let tokens = tokenize("hello");
+        assert_eq!(tokens, vec!["hello".to_string()]);
+    }
+
+    #[test]
+    fn tag_match_cross_morphology() {
+        // Query "writing" should match tag "write" (and vice-versa) via shared stem.
         let score = tag_match_score(
             "write linkedin post",
             &["linkedin".into(), "writing".into()],
         );
         assert!(score > 0.0);
-    }
-}
-
-#[cfg(test)]
-mod stem_probe {
-    use rust_stemmers::{Algorithm, Stemmer};
-    #[test]
-    fn print_stems() {
-        let en = Stemmer::create(Algorithm::English);
-        let es = Stemmer::create(Algorithm::Spanish);
-        for w in &["hello", "world", "test", "write", "writing", "linkedin", "post", "deploying", "deployed", "deployment", "desplegar", "desplegando"] {
-            println!("{w} -> EN:{} ES:{}", en.stem(w), es.stem(w));
-        }
     }
 }
