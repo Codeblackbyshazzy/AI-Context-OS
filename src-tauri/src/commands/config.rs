@@ -54,18 +54,18 @@ pub fn create_workspace_structure(root: &Path, active_tools: &[String]) -> Resul
     .map_err(|e| format!("Failed to write .windsurfrules: {}", e))?;
 
     // Create JSONL files with schema lines
-    create_jsonl_with_schema(
-        &paths.daily_log(),
-        "timestamp,type,summary,tags,source",
-    )?;
+    create_jsonl_with_schema(&paths.daily_log(), "timestamp,type,summary,tags,source")?;
 
     // Create initial rich index + human-readable catalog
     let index = crate::core::router::generate_index_yaml(&manifest)
         .map_err(|e| format!("Failed to generate index.yaml: {}", e))?;
     fs::write(paths.index_yaml(), index)
         .map_err(|e| format!("Failed to write index.yaml: {}", e))?;
-    fs::write(paths.catalog_md(), crate::core::router::render_catalog_markdown(&manifest))
-        .map_err(|e| format!("Failed to write catalog.md: {}", e))?;
+    fs::write(
+        paths.catalog_md(),
+        crate::core::router::render_catalog_markdown(&manifest),
+    )
+    .map_err(|e| format!("Failed to write catalog.md: {}", e))?;
 
     // Create folder contracts for system directories
     write_folder_contracts(&paths)?;
@@ -194,10 +194,10 @@ fn write_folder_contracts(paths: &SystemPaths) -> Result<(), String> {
             "role: inbox\n\
              description: Staging area for unprocessed incoming memories\n\
              lifecycle: transient\n\
-             scannable: true\n\
+             scannable: false\n\
              writable_by_mcp: true\n\
-             required_fields: [id, type, l0, status]\n\
-             optional_fields: [derived_from, tags, importance]\n\
+             required_fields: [id, kind, status]\n\
+             optional_fields: [derived_from, tags, importance, source_url, original_file]\n\
              default_values:\n\
              \x20 status: unprocessed\n\
              \x20 importance: 0.3\n",
@@ -237,9 +237,8 @@ fn write_folder_contracts(paths: &SystemPaths) -> Result<(), String> {
     for (dir, content) in contracts {
         let contract_path = dir.join(".folder.yaml");
         if !contract_path.exists() {
-            fs::write(&contract_path, content).map_err(|e| {
-                format!("Failed to write {}: {}", contract_path.display(), e)
-            })?;
+            fs::write(&contract_path, content)
+                .map_err(|e| format!("Failed to write {}: {}", contract_path.display(), e))?;
         }
     }
 

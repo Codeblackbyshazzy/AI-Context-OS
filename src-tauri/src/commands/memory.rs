@@ -98,6 +98,9 @@ fn validate_memory_directory(root: &Path, dir: &Path) -> Result<PathBuf, String>
     if normalized_dir == paths.sources_dir() {
         return Err("Cannot store memories inside sources/".to_string());
     }
+    if normalized_dir == paths.inbox_dir() {
+        return Err("Cannot store canonical memories inside inbox/".to_string());
+    }
     if normalized_dir == paths.ai_dir() {
         return Err("Cannot store memories in the .ai/ system directory".to_string());
     }
@@ -185,7 +188,9 @@ pub fn get_memory(id: String, state: State<AppState>) -> Result<Memory, String> 
     Ok(memory)
 }
 
-/// Create a new memory file. Defaults to inbox/ as landing zone.
+/// Create a new memory file. Kept for compatibility with older flows.
+/// Legacy callers now default to the workspace root so canonical memories are
+/// created in a scannable location instead of the transient inbox surface.
 #[tauri::command]
 pub fn create_memory(
     input: CreateMemoryInput,
@@ -193,8 +198,7 @@ pub fn create_memory(
     state: State<AppState>,
 ) -> Result<Memory, String> {
     let root = state.get_root();
-    let paths = crate::core::paths::SystemPaths::new(&root);
-    create_memory_internal(input, paths.inbox_dir(), app, state)
+    create_memory_internal(input, root, app, state)
 }
 
 /// Create a new memory file inside a specific directory.

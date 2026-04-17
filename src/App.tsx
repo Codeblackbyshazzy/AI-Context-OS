@@ -12,7 +12,8 @@ import { useThemeEffect } from "./lib/settingsStore";
 import { useVaultStore } from "./lib/vaultStore";
 import { VaultConfirmDialog } from "./components/vault/VaultConfirmDialog";
 import { VaultSwitchScreen } from "./components/vault/VaultSwitchScreen";
-import { PanelLeft } from "lucide-react";
+import { PanelLeft, MessageSquare } from "lucide-react";
+import { ChatPanel } from "./components/chat/ChatPanel";
 
 const ExplorerView = lazy(() =>
   import("./views/ExplorerView").then((module) => ({ default: module.ExplorerView })),
@@ -89,6 +90,8 @@ function AppContent() {
   const toggleExplorer = useAppStore((s) => s.toggleExplorer);
   const explorerOpen = useAppStore((s) => s.explorerOpen);
   const setExplorerOpen = useAppStore((s) => s.setExplorerOpen);
+  const chatOpen = useAppStore((s) => s.chatOpen);
+  const toggleChat = useAppStore((s) => s.toggleChat);
 
   const navigate = useNavigate();
   const [onboarded, setOnboarded] = useState<boolean | null>(null);
@@ -245,8 +248,8 @@ function AppContent() {
           style={{ width: explorerOpen ? "196px" : "0px" }}
         />
 
-        {/* Sliding Toggle Button: Pushed left/right by the animated spacer. 
-            mb-[3px] perfectly nudges it upwards to counter optical misalignment with macOS traffic lights 
+        {/* Sliding Toggle Button: Pushed left/right by the animated spacer.
+            mb-[3px] perfectly nudges it upwards to counter optical misalignment with macOS traffic lights
         */}
         <div data-tauri-drag-region className="flex w-[40px] items-center justify-center shrink-0 mb-[3px]">
           <button
@@ -265,12 +268,27 @@ function AppContent() {
 
         {/* Remaining top window drag region */}
         <div data-tauri-drag-region className="flex-1 h-full" />
+
+        {/* Chat toggle — at the far right, mirroring where the panel opens */}
+        <div data-tauri-drag-region className="flex items-center justify-center shrink-0 mb-[3px] pr-2">
+          <button
+            onClick={toggleChat}
+            className={`flex h-6 w-6 items-center justify-center rounded-md transition-colors ${
+              chatOpen
+                ? "bg-[color:var(--accent-muted)] text-[color:var(--accent)]"
+                : "text-[color:var(--text-2)] hover:bg-[color:var(--bg-2)] hover:text-[color:var(--text-1)]"
+            }`}
+            title="Toggle Chat"
+          >
+            <MessageSquare className="h-[15px] w-[15px]" pointerEvents="none" />
+          </button>
+        </div>
       </div>
 
       <div className="obs-app-shell flex flex-1 overflow-hidden">
         <Sidebar onCreateVault={() => setShowOnboardingForVault(true)} />
-        <main className="relative flex-1 overflow-hidden">
-          <div className="h-full overflow-hidden bg-[color:var(--bg-1)]">
+        <main className="relative flex min-w-0 flex-1 overflow-hidden">
+          <div className="min-w-0 flex-1 overflow-hidden bg-[color:var(--bg-1)]">
             <Suspense fallback={<RouteFallback />}>
               <Routes>
                 <Route path="/" element={<ExplorerView />} />
@@ -285,6 +303,7 @@ function AppContent() {
               </Routes>
             </Suspense>
           </div>
+          {chatOpen && <ChatPanel />}
           <Toast message={error} onDismiss={() => setError(null)} />
         </main>
       </div>

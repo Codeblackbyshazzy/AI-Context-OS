@@ -3,7 +3,7 @@ use std::path::Path;
 
 use crate::core::folder_contract::{check_required_fields, load_folder_contract};
 use crate::core::frontmatter::parse_frontmatter;
-use crate::core::paths::{enrich_memory_meta, AI_DIR, AI_SKIP_SUBDIRS, SCAN_SKIP_DIRS};
+use crate::core::paths::{enrich_memory_meta, AI_DIR, AI_SKIP_SUBDIRS, INBOX_DIR, SCAN_SKIP_DIRS};
 use crate::core::types::MemoryMeta;
 use crate::core::usage::{apply_usage, load_usage_map};
 
@@ -34,6 +34,11 @@ fn scan_dir_recursive(
         if path.is_dir() {
             // Skip directories that should never be scanned
             if SCAN_SKIP_DIRS.iter().any(|skip| *skip == name.as_ref()) {
+                continue;
+            }
+            // Inbox is a transient capture surface and does not participate
+            // in canonical memory retrieval until explicit promotion.
+            if dir == root && name.as_ref() == INBOX_DIR {
                 continue;
             }
             // Skip system-managed .ai/ subdirs that don't contain memory files
@@ -72,9 +77,24 @@ fn scan_dir_recursive(
 
                         results.push((meta, path.to_string_lossy().to_string()));
                     }
-                    Err(_) => {
+                    Err(err) => {
                         // Bare markdown files are left untouched. They remain regular documents
                         // until the user explicitly converts them into canonical memories.
+                        // When frontmatter IS present but fails YAML validation, the memory is
+                        // silently dropped from the retrieval index — which historically masked
+                        // schema drift (e.g. new `type` variants emitted by the UI that the
+                        // parser didn't yet know about). Surface that case as a warning so the
+                        // user can see *why* their memories aren't showing up in chat context.
+                        if matches!(
+                            err,
+                            crate::core::frontmatter::FrontmatterError::YamlError(_)
+                        ) {
+                            log::warn!(
+                                "scan_memories: rejected '{}' — frontmatter present but failed to parse: {}",
+                                path.display(),
+                                err
+                            );
+                        }
                     }
                 }
             }

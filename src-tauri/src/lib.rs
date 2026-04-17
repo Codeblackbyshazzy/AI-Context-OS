@@ -103,6 +103,13 @@ pub fn try_run_embedded_mcp_server() -> Result<bool, String> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Initialize logging. Without this, every `log::info!` / `log::warn!` /
+    // `log::error!` in the crate silently drops. `default_filter_or("info")`
+    // makes chat-context diagnostics visible out of the box; users can override
+    // with e.g. `RUST_LOG=ai_context_os=debug`.
+    let _ = env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info"))
+        .try_init();
+
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
@@ -139,9 +146,33 @@ pub fn run() {
             commands::router::get_router_content,
             // Scoring
             commands::scoring::simulate_context,
+            commands::scoring::build_chat_context,
             // Graph
             commands::graph::get_graph_data,
             commands::graph::get_god_nodes,
+            // Inbox / ingest
+            commands::inbox::list_inbox_items,
+            commands::inbox::get_inbox_item,
+            commands::inbox::create_inbox_text,
+            commands::inbox::create_inbox_link,
+            commands::inbox::import_inbox_files,
+            commands::inbox::update_inbox_item,
+            commands::inbox::normalize_inbox_item,
+            commands::inbox::normalize_inbox_batch,
+            commands::inbox::list_ingest_proposals,
+            commands::inbox::generate_ingest_proposals,
+            commands::inbox::apply_ingest_proposal,
+            commands::inbox::reject_ingest_proposal,
+            commands::inbox::get_recent_operational_context,
+            commands::inbox::get_inference_provider_config,
+            commands::inbox::save_inference_provider_config,
+            commands::inbox::get_inference_provider_status,
+            commands::inbox::test_inference_provider,
+            commands::inbox::chat_completion,
+            commands::inbox::discover_local_providers,
+            commands::inbox::list_provider_models,
+            commands::inbox::pull_ollama_model,
+            commands::inbox::delete_ollama_model,
             // Governance
             commands::governance::get_conflicts,
             commands::governance::get_decay_candidates,

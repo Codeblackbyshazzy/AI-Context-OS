@@ -2,15 +2,25 @@ import { invoke } from "@tauri-apps/api/core";
 import type {
   Config,
   CreateMemoryInput,
+  CreateInboxLinkInput,
+  CreateInboxTextInput,
   DailyEntry,
+  DiscoveredProvider,
   FileNode,
   GodNode,
   GraphData,
+  InferenceProviderConfig,
+  InferenceProviderStatus,
+  IngestProposal,
+  InboxItem,
   JournalDateInfo,
   JournalPage,
   Memory,
   MemoryFilter,
   MemoryMeta,
+  ApplyIngestProposalInput,
+  ProviderModel,
+  RecentOperationalContext,
   SaveMemoryInput,
   ScoredMemory,
   Conflict,
@@ -18,6 +28,10 @@ import type {
   TaskFilter,
   TaskItem,
   VaultEntry,
+  UpdateInboxItemInput,
+  ChatCompletionRequest,
+  ChatCompletionResponse,
+  ChatContextPayload,
 } from "./types";
 
 // Config
@@ -73,10 +87,60 @@ export const simulateContext = (query: string, tokenBudget: number) =>
     query,
     token_budget: tokenBudget,
   });
+export const buildChatContext = (query: string, tokenBudget: number) =>
+  invoke<ChatContextPayload>("build_chat_context", {
+    query,
+    token_budget: tokenBudget,
+  });
 
 // Graph
 export const getGraphData = () => invoke<GraphData>("get_graph_data");
 export const getGodNodes = () => invoke<GodNode[]>("get_god_nodes");
+
+// Inbox / ingest
+export const listInboxItems = () => invoke<InboxItem[]>("list_inbox_items");
+export const getInboxItem = (id: string) =>
+  invoke<InboxItem>("get_inbox_item", { id });
+export const createInboxText = (input: CreateInboxTextInput) =>
+  invoke<InboxItem>("create_inbox_text", { input });
+export const createInboxLink = (input: CreateInboxLinkInput) =>
+  invoke<InboxItem>("create_inbox_link", { input });
+export const importInboxFiles = (pathsToImport: string[]) =>
+  invoke<InboxItem[]>("import_inbox_files", { pathsToImport });
+export const updateInboxItem = (input: UpdateInboxItemInput) =>
+  invoke<InboxItem>("update_inbox_item", { input });
+export const normalizeInboxItem = (id: string) =>
+  invoke<InboxItem>("normalize_inbox_item", { id });
+export const normalizeInboxBatch = (ids: string[]) =>
+  invoke<InboxItem[]>("normalize_inbox_batch", { ids });
+export const listIngestProposals = () =>
+  invoke<IngestProposal[]>("list_ingest_proposals");
+export const generateIngestProposals = (itemIds: string[]) =>
+  invoke<IngestProposal[]>("generate_ingest_proposals", { itemIds });
+export const applyIngestProposal = (input: ApplyIngestProposalInput) =>
+  invoke<IngestProposal>("apply_ingest_proposal", { input });
+export const rejectIngestProposal = (proposalId: string) =>
+  invoke<IngestProposal>("reject_ingest_proposal", { proposalId });
+export const getRecentOperationalContext = () =>
+  invoke<RecentOperationalContext>("get_recent_operational_context");
+export const getInferenceProviderConfig = () =>
+  invoke<InferenceProviderConfig | null>("get_inference_provider_config");
+export const saveInferenceProviderConfig = (config: InferenceProviderConfig) =>
+  invoke<InferenceProviderConfig>("save_inference_provider_config", { config });
+export const getInferenceProviderStatus = () =>
+  invoke<InferenceProviderStatus>("get_inference_provider_status");
+export const testInferenceProvider = (config?: InferenceProviderConfig | null) =>
+  invoke<InferenceProviderStatus>("test_inference_provider", { config: config ?? null });
+export const chatCompletion = (request: ChatCompletionRequest) =>
+  invoke<ChatCompletionResponse>("chat_completion", { request });
+export const discoverLocalProviders = () =>
+  invoke<DiscoveredProvider[]>("discover_local_providers");
+export const listProviderModels = (config?: InferenceProviderConfig | null) =>
+  invoke<ProviderModel[]>("list_provider_models", { config: config ?? null });
+export const pullOllamaModel = (modelName: string) =>
+  invoke<string>("pull_ollama_model", { modelName });
+export const deleteOllamaModel = (modelName: string) =>
+  invoke<void>("delete_ollama_model", { modelName });
 
 // Governance
 export const getConflicts = () => invoke<Conflict[]>("get_conflicts");

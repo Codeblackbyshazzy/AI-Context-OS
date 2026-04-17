@@ -117,7 +117,6 @@ pub fn compute_score(
     let access_frequency =
         access_frequency_score(memory.meta.access_count, max_access_count(all_memories));
     let graph_proximity = graph_proximity_score(memory, all_memories, selected_ids, community_map);
-
     let final_score = weights.semantic * semantic
         + weights.bm25 * bm25
         + weights.recency * recency
@@ -172,7 +171,6 @@ fn ontology_bonus_score(query: &str, memory: &Memory) -> f64 {
         "investig",
         "tendencia",
     ];
-
     match memory.meta.system_role {
         Some(SystemRole::Skill) | Some(SystemRole::Rule) => {
             if code_terms.iter().any(|t| q.contains(t)) {
@@ -193,6 +191,10 @@ fn ontology_bonus_score(query: &str, memory: &Memory) -> f64 {
             }
             MemoryOntology::Concept => 0.3,
             MemoryOntology::Source => 0.1,
+            // Unknown ontologies (legacy / UI-generated types not in the 4
+            // canonical variants) still participate in retrieval with a
+            // neutral weight so useful content is not silently dropped.
+            MemoryOntology::Unknown => 0.25,
         },
     }
 }
@@ -292,7 +294,11 @@ fn graph_proximity_score(
                     .map(|&c| c == mem_community)
                     .unwrap_or(false)
             });
-            if shares_community { 0.08 } else { 0.0 }
+            if shares_community {
+                0.08
+            } else {
+                0.0
+            }
         }
         None => 0.0,
     };

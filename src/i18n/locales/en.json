@@ -1,6 +1,7 @@
 {
   "sidebar": {
     "explorer": "Explorer",
+    "inbox": "Inbox",
     "journal": "Journal",
     "tasks": "Tasks",
     "graph": "Graph",
@@ -9,6 +10,20 @@
     "observability": "Observability",
     "connectors": "Connectors",
     "settings": "Settings"
+  },
+  "chat": {
+    "title": "Chat",
+    "close": "Close chat",
+    "clear": "Clear",
+    "send": "Send",
+    "inputPlaceholder": "Ask something — Enter to send, Shift+Enter for newline",
+    "hint": "Responses may use ranked vault context as grounding.",
+    "useContext": "Use vault context",
+    "noProvider": "No inference provider configured. Open Settings → Local LLM or Cloud LLM to set one up.",
+    "empty": {
+      "title": "Start a conversation",
+      "description": "Ask a question. If \"Use vault context\" is on, your top-ranked memories are passed as grounding."
+    }
   },
   "settings": {
     "title": "Settings",
@@ -64,6 +79,103 @@
       "restoreSuccess": "Workspace restored successfully",
       "restoreError": "Error restoring backup",
       "restoreConfirm": "Restore backup? Current files will be overwritten."
+    },
+    "tabs": {
+      "general": "General",
+      "localLLM": "Local LLM",
+      "cloudLLM": "Cloud LLM"
+    },
+    "localLLM": {
+      "title": "Local LLM",
+      "desc": "Use Ollama or LM Studio for offline inference.",
+      "available": "Available",
+      "unavailable": "Unavailable",
+      "disabled": "Disabled",
+      "provider": "Local Provider",
+      "availableModels": "Available Models",
+      "noModels": "No models found. Start {{provider}} and click Refresh.",
+      "selectModelHint": "Select a model in the Chat Composer below",
+      "refresh": "Refresh",
+      "refreshing": "Refreshing...",
+      "modelManager": "Model Manager",
+      "openFolder": "Open Folder",
+      "pullNewModel": "Pull New Model",
+      "pullPlaceholder": "e.g. llama3:8b, qwen2.5:7b",
+      "pull": "Pull",
+      "pulling": "Pulling...",
+      "pullSuccess": "Model pulled successfully",
+      "pullError": "Pull failed",
+      "deleteModel": "Delete",
+      "deleting": "Deleting...",
+      "enable": "Enable local inference",
+      "enabled": "Active",
+      "save": "Save",
+      "saving": "Saving...",
+      "test": "Test Connection",
+      "testing": "Testing...",
+      "connectionOk": "Connected",
+      "connectionFailed": "Connection failed",
+      "startHint": "Make sure {{provider}} is running on your machine.",
+      "advancedSettings": "Show advanced settings",
+      "endpoint": "Endpoint",
+      "recommendedEndpoint": "Recommended endpoint: {{endpoint}}",
+      "restoreRecommended": "Restore recommended",
+      "endpointMismatchHint": "If you did not customize {{provider}}, restore the recommended endpoint and test again.",
+      "loaded": "Loaded",
+      "notLoaded": "Not loaded"
+    },
+    "cloudLLM": {
+      "title": "Cloud LLM",
+      "desc": "Connect to a cloud AI provider for proposals and inference.",
+      "provider": "Provider",
+      "model": "Model",
+      "modelPlaceholder": "e.g. gpt-4.1-mini, claude-sonnet, qwen2.5",
+      "endpoint": "Endpoint",
+      "apiKey": "API Key",
+      "apiKeyPlaceholder": "Required for cloud providers",
+      "enable": "Enable cloud inference",
+      "save": "Save",
+      "saving": "Saving...",
+      "test": "Test Connection",
+      "testing": "Testing...",
+      "connectionOk": "Connected",
+      "connectionFailed": "Connection failed",
+      "healthy": "Connected",
+      "optional": "Optional",
+      "heuristicFallback": "If no provider is active, Inbox will use heuristic proposals.",
+      "loadModels": "Load models",
+      "loadingModels": "Loading..."
+    },
+    "inference": {
+      "title": "Inference Provider",
+      "desc": "Configure optional BYO AI for inbox proposals today and local chat/runtime reuse later.",
+      "provider": "Provider kind",
+      "preset": "Preset",
+      "openaiCompatible": "OpenAI-compatible",
+      "custom": "Custom",
+      "model": "Model",
+      "modelPlaceholder": "e.g. gpt-4.1-mini, claude-sonnet, qwen2.5",
+      "endpoint": "Endpoint",
+      "apiKey": "API key",
+      "apiKeyPlaceholder": "Optional for Ollama / LM Studio",
+      "enable": "Enable provider",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "healthy": "Connected",
+      "optional": "Optional",
+      "heuristicFallback": "If no provider is active, Inbox will keep using heuristic proposals.",
+      "save": "Save provider",
+      "saving": "Saving...",
+      "test": "Test connection",
+      "testing": "Testing...",
+      "autoDetect": "Auto-detect local providers",
+      "discovering": "Scanning...",
+      "modelsAvailable": "models",
+      "connect": "Connect",
+      "loadModels": "Load available models",
+      "connectionOk": "Connected",
+      "connectionFailed": "Connection failed",
+      "connecting": "Connecting..."
     }
   },
   "search": {
@@ -159,6 +271,89 @@
     "errorCopyPath": "Could not copy path to clipboard",
     "folderColor": "Color",
     "clearColor": "No color"
+  },
+  "inbox": {
+    "subtitle": "Capture first, classify later, promote only when ready.",
+    "defaultTextTitle": "Quick capture",
+    "empty": "No inbox items yet. Capture text, links or files to start the pipeline.",
+    "emptySelection": "Select an inbox item to inspect or edit it.",
+    "noPreview": "No preview available yet.",
+    "yes": "Yes",
+    "no": "No",
+    "dropTitle": "Drop files here",
+    "dropDesc": "Desktop drops work when the OS exposes file paths. You can always use Import files.",
+    "dropUnavailable": "This drop source does not expose filesystem paths. Use Import files instead.",
+    "stats": {
+      "total": "Total",
+      "pending": "Pending",
+      "promoted": "Promoted"
+    },
+    "actions": {
+      "newText": "New text",
+      "newLink": "New link",
+      "importFiles": "Import files",
+      "cancel": "Cancel",
+      "capture": "Capture",
+      "normalize": "Normalize",
+      "generateProposal": "Generate proposal",
+      "approveProposal": "Approve proposal",
+      "rejectProposal": "Reject proposal",
+      "discard": "Discard",
+      "save": "Save"
+    },
+    "compose": {
+      "textTitle": "Title",
+      "textBody": "Paste notes, snippets or rough content here...",
+      "linkTitle": "Optional title override",
+      "linkNotes": "Optional notes for this link"
+    },
+    "filters": {
+      "allKinds": "All kinds",
+      "allStates": "All states"
+    },
+    "kinds": {
+      "text": "Text",
+      "link": "Link",
+      "file": "File"
+    },
+    "states": {
+      "new": "New",
+      "normalized": "Normalized",
+      "proposal_ready": "Proposal ready",
+      "processed": "Processed",
+      "promoted": "Promoted",
+      "discarded": "Discarded",
+      "error": "Error"
+    },
+    "editor": {
+      "title": "Item editor",
+      "l1": "L1 summary / normalized preview",
+      "l2": "L2 extended notes / extracted content"
+    },
+    "metadata": {
+      "title": "Metadata",
+      "created": "Created",
+      "modified": "Modified",
+      "captureState": "Capture state",
+      "proposalState": "Proposal state",
+      "extraction": "Needs extraction",
+      "inference": "Needs inference",
+      "attachments": "Attachments"
+    },
+    "proposal": {
+      "title": "Proposal",
+      "pending": "Pending",
+      "empty": "No pending proposal yet. You can normalize the item first or generate one now.",
+      "confidence": "Confidence",
+      "origin": "Origin"
+    },
+    "ai": {
+      "title": "Proposal engine",
+      "hint": "Works with heuristics or BYO AI",
+      "heuristic": "Heuristic mode",
+      "inferring": "AI is thinking...",
+      "working": "AI working"
+    }
   },
   "tasks": {
     "filterAllStatuses": "All statuses",
@@ -480,7 +675,8 @@
     "source": "Source",
     "entity": "Entity",
     "concept": "Concept",
-    "synthesis": "Synthesis"
+    "synthesis": "Synthesis",
+    "unknown": "Unknown"
   },
   "systemRoles": {
     "rule": "Rule",

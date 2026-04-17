@@ -1,8 +1,8 @@
-export type MemoryOntology = "source" | "entity" | "concept" | "synthesis";
+export type MemoryOntology = "source" | "entity" | "concept" | "synthesis" | "unknown";
 
 export type SystemRole = "rule" | "skill";
 
-export type MemoryStatus = "unprocessed" | "processed";
+export type MemoryStatus = "unprocessed" | "processed" | "unknown";
 
 export interface MemoryMeta {
   id: string;
@@ -66,6 +66,11 @@ export interface ScoredMemory {
   load_level: LoadLevel;
   score: ScoreBreakdown;
   token_estimate: number;
+}
+
+export interface ChatContextPayload {
+  prompt_context: string;
+  memory_ids: string[];
 }
 
 export interface GraphNode {
@@ -229,6 +234,199 @@ export interface MemoryFilter {
   min_importance?: number;
 }
 
+export type InboxItemKind = "text" | "link" | "file";
+export type InboxItemStatus =
+  | "new"
+  | "normalized"
+  | "proposal_ready"
+  | "processed"
+  | "promoted"
+  | "discarded"
+  | "error";
+export type ProposalAction =
+  | "promote_memory"
+  | "route_to_sources"
+  | "update_memory"
+  | "discard"
+  | "needs_review";
+export type ProposalState = "pending" | "approved" | "rejected" | "applied" | "error";
+export type InferenceProviderKind = "anthropic" | "openai_compatible";
+export type InferenceProviderPreset =
+  | "custom"
+  | "openai"
+  | "openrouter"
+  | "ollama"
+  | "lm_studio";
+export type InferenceCapability =
+  | "proposal"
+  | "classification"
+  | "summary"
+  | "vision"
+  | "chat"
+  | "streaming";
+
+export interface InboxAttachment {
+  path: string;
+  original_name: string;
+  mime: string | null;
+  size: number;
+  hash: string;
+}
+
+export interface InboxItem {
+  id: string;
+  kind: InboxItemKind;
+  status: InboxItemStatus;
+  capture_state: string;
+  proposal_state: ProposalState;
+  content_hash: string;
+  created: string;
+  modified: string;
+  path: string;
+  title: string;
+  summary: string;
+  l1_content: string;
+  l2_content: string;
+  source_url: string | null;
+  original_file: string | null;
+  mime: string | null;
+  tags: string[];
+  derived_from: string[];
+  needs_extraction: boolean;
+  needs_inference: boolean;
+  attachments: InboxAttachment[];
+}
+
+export interface IngestProposal {
+  id: string;
+  item_id: string;
+  item_path: string;
+  action: ProposalAction;
+  state: ProposalState;
+  confidence: number;
+  rationale: string;
+  created: string;
+  modified: string;
+  destination: string | null;
+  ontology: MemoryOntology | null;
+  l0: string | null;
+  l1_content: string | null;
+  l2_content: string | null;
+  tags: string[];
+  derived_from: string[];
+  inference_provider: InferenceProviderKind | null;
+  inference_preset: InferenceProviderPreset | null;
+  origin: string;
+}
+
+export interface InferenceProviderConfig {
+  enabled: boolean;
+  kind: InferenceProviderKind;
+  preset: InferenceProviderPreset;
+  model: string;
+  base_url?: string | null;
+  api_key?: string | null;
+  capabilities: InferenceCapability[];
+}
+
+export interface InferenceProviderStatus {
+  configured: boolean;
+  enabled: boolean;
+  healthy: boolean;
+  kind: InferenceProviderKind | null;
+  preset: InferenceProviderPreset | null;
+  base_url: string | null;
+  model: string | null;
+  capabilities: InferenceCapability[];
+  message: string;
+}
+
+export interface DiscoveredProvider {
+  preset: InferenceProviderPreset;
+  name: string;
+  base_url: string;
+  reachable: boolean;
+  models: ProviderModel[];
+}
+
+export interface ProviderModel {
+  id: string;
+  name: string;
+  size?: number | null;
+  family?: string | null;
+  loaded?: boolean | null;
+}
+
+export interface CreateInboxTextInput {
+  title: string;
+  content?: string;
+  tags?: string[];
+}
+
+export interface CreateInboxLinkInput {
+  url: string;
+  title?: string | null;
+  notes?: string | null;
+  tags?: string[];
+}
+
+export interface UpdateInboxItemInput {
+  id: string;
+  title?: string | null;
+  l1_content?: string | null;
+  l2_content?: string | null;
+  tags?: string[] | null;
+  status?: InboxItemStatus | null;
+}
+
+export interface ApplyIngestProposalInput {
+  proposal_id: string;
+  destination_dir?: string | null;
+  memory_id_override?: string | null;
+}
+
+export interface RecentOperationalContext {
+  recent_daily_entries: DailyEntry[];
+  pending_proposals: IngestProposal[];
+  recently_promoted: IngestProposal[];
+}
+
+export interface ChatMessage {
+  role: string;
+  content: string;
+}
+
+export interface ChatCompletionRequest {
+  messages: ChatMessage[];
+  system_prompt?: string | null;
+  include_vault_context?: boolean;
+  context_prompt?: string | null;
+  context_memory_ids?: string[];
+  model?: string | null;
+}
+
+export interface ChatCompletionResponse {
+  text: string;
+  model?: string | null;
+  context_memory_ids: string[];
+  context_debug?: ChatContextDebug | null;
+}
+
+export interface ChatContextDebugMemory {
+  id: string;
+  score?: number | null;
+  token_estimate?: number | null;
+  load_level?: LoadLevel | null;
+}
+
+export interface ChatContextDebug {
+  prompt_chars: number;
+  token_budget: number;
+  tokens_used: number;
+  memory_count: number;
+  memories: ChatContextDebugMemory[];
+}
+
 export interface ContextRequestRecord {
   id: number;
   timestamp: string;
@@ -329,5 +527,5 @@ export const MEMORY_ONTOLOGY_COLORS: Record<MemoryOntology, string> = {
   entity: "#10b981",
   concept: "#8b5cf6",
   synthesis: "#f59e0b",
+  unknown: "#64748b",
 };
-

@@ -1,6 +1,7 @@
 {
   "sidebar": {
     "explorer": "Explorador",
+    "inbox": "Inbox",
     "journal": "Diario",
     "tasks": "Tareas",
     "graph": "Grafo",
@@ -9,6 +10,20 @@
     "observability": "Observabilidad",
     "connectors": "Conectores",
     "settings": "Ajustes"
+  },
+  "chat": {
+    "title": "Chat",
+    "close": "Cerrar chat",
+    "clear": "Limpiar",
+    "send": "Enviar",
+    "inputPlaceholder": "Pregunta algo — Enter para enviar, Shift+Enter para nueva línea",
+    "hint": "Las respuestas pueden usar el contexto del vault como base.",
+    "useContext": "Usar contexto del vault",
+    "noProvider": "No hay proveedor de inferencia configurado. Abre Ajustes → Local LLM o Cloud LLM para configurarlo.",
+    "empty": {
+      "title": "Inicia una conversación",
+      "description": "Pregunta lo que quieras. Si \"Usar contexto del vault\" está activo, tus memorias mejor rankeadas se pasan como contexto."
+    }
   },
   "settings": {
     "title": "Ajustes",
@@ -64,6 +79,103 @@
       "restoreSuccess": "Espacio de trabajo restaurado correctamente",
       "restoreError": "Error al restaurar la copia",
       "restoreConfirm": "¿Restaurar copia? Los archivos actuales serán reemplazados."
+    },
+    "tabs": {
+      "general": "General",
+      "localLLM": "LLM Local",
+      "cloudLLM": "LLM Cloud"
+    },
+    "localLLM": {
+      "title": "LLM Local",
+      "desc": "Usa Ollama o LM Studio para inferencia sin conexión.",
+      "available": "Disponible",
+      "unavailable": "No disponible",
+      "disabled": "Desactivado",
+      "provider": "Proveedor local",
+      "availableModels": "Modelos disponibles",
+      "noModels": "Sin modelos. Abre {{provider}} y pulsa Refrescar.",
+      "selectModelHint": "Selecciona un modelo en el Chat Composer",
+      "refresh": "Refrescar",
+      "refreshing": "Refrescando...",
+      "modelManager": "Gestor de modelos",
+      "openFolder": "Abrir carpeta",
+      "pullNewModel": "Descargar nuevo modelo",
+      "pullPlaceholder": "ej. llama3:8b, qwen2.5:7b",
+      "pull": "Descargar",
+      "pulling": "Descargando...",
+      "pullSuccess": "Modelo descargado correctamente",
+      "pullError": "Error al descargar",
+      "deleteModel": "Eliminar",
+      "deleting": "Eliminando...",
+      "enable": "Activar inferencia local",
+      "enabled": "Activo",
+      "save": "Guardar",
+      "saving": "Guardando...",
+      "test": "Probar conexión",
+      "testing": "Probando...",
+      "connectionOk": "Conectado",
+      "connectionFailed": "Conexión fallida",
+      "startHint": "Asegúrate de que {{provider}} está en ejecución.",
+      "advancedSettings": "Ajustes avanzados",
+      "endpoint": "Endpoint",
+      "recommendedEndpoint": "Endpoint recomendado: {{endpoint}}",
+      "restoreRecommended": "Restaurar recomendado",
+      "endpointMismatchHint": "Si no has personalizado {{provider}}, restaura el endpoint recomendado y prueba otra vez.",
+      "loaded": "Cargado",
+      "notLoaded": "Sin cargar"
+    },
+    "cloudLLM": {
+      "title": "LLM Cloud",
+      "desc": "Conecta con un proveedor de IA en la nube para proposals e inferencia.",
+      "provider": "Proveedor",
+      "model": "Modelo",
+      "modelPlaceholder": "ej. gpt-4.1-mini, claude-sonnet, qwen2.5",
+      "endpoint": "Endpoint",
+      "apiKey": "API Key",
+      "apiKeyPlaceholder": "Obligatoria para proveedores cloud",
+      "enable": "Activar inferencia cloud",
+      "save": "Guardar",
+      "saving": "Guardando...",
+      "test": "Probar conexión",
+      "testing": "Probando...",
+      "connectionOk": "Conectado",
+      "connectionFailed": "Conexión fallida",
+      "healthy": "Conectado",
+      "optional": "Opcional",
+      "heuristicFallback": "Sin proveedor activo, Inbox usará proposals heurísticas.",
+      "loadModels": "Cargar modelos",
+      "loadingModels": "Cargando..."
+    },
+    "inference": {
+      "title": "Proveedor de inferencia",
+      "desc": "Configura una IA BYO opcional para proposals de Inbox ahora y para reutilizar el runtime en chat/IA local más adelante.",
+      "provider": "Tipo de proveedor",
+      "preset": "Preset",
+      "openaiCompatible": "Compatible con OpenAI",
+      "custom": "Personalizado",
+      "model": "Modelo",
+      "modelPlaceholder": "p. ej. gpt-4.1-mini, claude-sonnet, qwen2.5",
+      "endpoint": "Endpoint",
+      "apiKey": "API key",
+      "apiKeyPlaceholder": "Opcional para Ollama / LM Studio",
+      "enable": "Activar proveedor",
+      "enabled": "Activo",
+      "disabled": "Desactivado",
+      "healthy": "Conectado",
+      "optional": "Opcional",
+      "heuristicFallback": "Si no hay proveedor activo, Inbox seguirá usando proposals heurísticas.",
+      "save": "Guardar proveedor",
+      "saving": "Guardando...",
+      "test": "Probar conexión",
+      "testing": "Testing...",
+      "autoDetect": "Auto-detectar proveedores locales",
+      "discovering": "Escaneando...",
+      "modelsAvailable": "modelos",
+      "connect": "Conectar",
+      "loadModels": "Cargar modelos disponibles",
+      "connectionOk": "Conectado",
+      "connectionFailed": "Conexión fallida",
+      "connecting": "Conectando..."
     }
   },
   "search": {
@@ -159,6 +271,89 @@
     "errorCopyPath": "No se pudo copiar la ruta al portapapeles",
     "folderColor": "Color",
     "clearColor": "Sin color"
+  },
+  "inbox": {
+    "subtitle": "Captura primero, clasifica después, promociona solo cuando esté listo.",
+    "defaultTextTitle": "Captura rápida",
+    "empty": "Todavía no hay elementos en Inbox. Captura texto, links o archivos para arrancar el pipeline.",
+    "emptySelection": "Selecciona un elemento de Inbox para inspeccionarlo o editarlo.",
+    "noPreview": "Todavía no hay vista previa.",
+    "yes": "Sí",
+    "no": "No",
+    "dropTitle": "Suelta archivos aquí",
+    "dropDesc": "El arrastre funciona cuando el sistema expone rutas reales. Si no, usa Importar archivos.",
+    "dropUnavailable": "Este origen de arrastre no expone rutas de filesystem. Usa Importar archivos.",
+    "stats": {
+      "total": "Total",
+      "pending": "Pendientes",
+      "promoted": "Promovidos"
+    },
+    "actions": {
+      "newText": "Nuevo texto",
+      "newLink": "Nuevo link",
+      "importFiles": "Importar archivos",
+      "cancel": "Cancelar",
+      "capture": "Capturar",
+      "normalize": "Normalizar",
+      "generateProposal": "Generar proposal",
+      "approveProposal": "Aprobar proposal",
+      "rejectProposal": "Rechazar proposal",
+      "discard": "Descartar",
+      "save": "Guardar"
+    },
+    "compose": {
+      "textTitle": "Título",
+      "textBody": "Pega aquí notas, snippets o contenido en bruto...",
+      "linkTitle": "Título opcional",
+      "linkNotes": "Notas opcionales para este link"
+    },
+    "filters": {
+      "allKinds": "Todos los tipos",
+      "allStates": "Todos los estados"
+    },
+    "kinds": {
+      "text": "Texto",
+      "link": "Link",
+      "file": "Archivo"
+    },
+    "states": {
+      "new": "Nuevo",
+      "normalized": "Normalizado",
+      "proposal_ready": "Proposal lista",
+      "processed": "Procesado",
+      "promoted": "Promovido",
+      "discarded": "Descartado",
+      "error": "Error"
+    },
+    "editor": {
+      "title": "Editor del item",
+      "l1": "Resumen L1 / preview normalizada",
+      "l2": "Notas L2 / contenido extraído"
+    },
+    "metadata": {
+      "title": "Metadatos",
+      "created": "Creado",
+      "modified": "Modificado",
+      "captureState": "Estado de captura",
+      "proposalState": "Estado de proposal",
+      "extraction": "Necesita extracción",
+      "inference": "Necesita inferencia",
+      "attachments": "Adjuntos"
+    },
+    "proposal": {
+      "title": "Proposal",
+      "pending": "Pendiente",
+      "empty": "Todavía no hay una proposal pendiente. Puedes normalizar el item o generarla ahora.",
+      "confidence": "Confianza",
+      "origin": "Origen"
+    },
+    "ai": {
+      "title": "Motor de proposals",
+      "hint": "Funciona con heurísticas o con tu IA",
+      "heuristic": "Modo heurístico",
+      "inferring": "IA pensando...",
+      "working": "IA trabajando"
+    }
   },
   "tasks": {
     "filterAllStatuses": "Todos los estados",
@@ -480,7 +675,8 @@
     "source": "Fuente",
     "entity": "Entidad",
     "concept": "Concepto",
-    "synthesis": "Síntesis"
+    "synthesis": "Síntesis",
+    "unknown": "Desconocido"
   },
   "systemRoles": {
     "rule": "Regla",
