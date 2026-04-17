@@ -2294,39 +2294,27 @@ pub async fn chat_completion(
     let root = state.get_root();
     let config =
         load_provider_config(&root)?.ok_or_else(|| "No provider configured".to_string())?;
-    let latest_user_query = latest_user_query(&request.messages);
-
     let mut context_memory_ids = if request.include_vault_context {
         request.context_memory_ids.clone()
     } else {
         Vec::new()
     };
 
-    let suppress_vault_context = latest_user_query
-        .as_deref()
-        .map(crate::core::engine::is_trivial_chat_query)
-        .unwrap_or(false);
-
-    if !request.include_vault_context || suppress_vault_context {
+    if !request.include_vault_context {
         request.context_prompt = None;
         request.context_memory_ids.clear();
         context_memory_ids.clear();
     }
-    if suppress_vault_context {
-        log::info!(
-            "chat_completion skipped vault context for trivial chat query {:?}",
-            latest_user_query.as_deref().unwrap_or_default()
-        );
-    }
 
     // Fallback: when vault context is enabled but the frontend did not
     // pre-assemble it, do it here so the provider still receives grounding.
+    let latest_user_query = latest_user_query(&request.messages);
     let incoming_ctx_len = request
         .context_prompt
         .as_deref()
         .map(|s| s.trim().len())
         .unwrap_or(0);
-    if request.include_vault_context && !suppress_vault_context && incoming_ctx_len == 0 {
+    if request.include_vault_context && incoming_ctx_len == 0 {
         if let Some(query) = latest_user_query {
             let trimmed = query.trim();
             if !trimmed.is_empty() {
