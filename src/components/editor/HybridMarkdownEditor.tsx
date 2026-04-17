@@ -252,6 +252,31 @@ function normalizeInlineRange(
   return nextTo < nextFrom ? { from, to } : { from: nextFrom, to: nextTo };
 }
 
+function getContentSelectionForLine(
+  doc: { lineAt: (pos: number) => { from: number; to: number; text: string } },
+  pos: number,
+) {
+  const line = doc.lineAt(pos);
+  const prefixMatch = line.text.match(/^(\s*(?:[-*+]\s|\d+\.\s|- \[[ xX]\]\s|>\s))/);
+  const leadingTrimmed = line.text.replace(/^\s+/, "");
+  const trailingWhitespaceMatch = line.text.match(/\s+$/);
+
+  let from = line.from + (prefixMatch?.[0].length ?? 0);
+  let to = line.to - (trailingWhitespaceMatch?.[0].length ?? 0);
+
+  if (!leadingTrimmed.length) {
+    from = line.from;
+    to = line.to;
+  }
+
+  if (to < from) {
+    from = line.from;
+    to = line.to;
+  }
+
+  return { from, to };
+}
+
 function applyToggleLinePrefix(view: EditorView, prefix: string) {
   const { state } = view;
   const changes = state.changeByRange((range) => {
@@ -318,12 +343,13 @@ function wrapWith(mark: string): StateCommand {
 
     const changes = state.changeByRange((range) => {
       if (range.empty) return { range };
+      const normalized = normalizeInlineRange(state.doc, range.from, range.to);
       return {
         changes: [
-          { from: range.from, insert: mark },
-          { from: range.to, insert: mark },
+          { from: normalized.from, insert: mark },
+          { from: normalized.to, insert: mark },
         ],
-        range: EditorSelection.range(range.from + mark.length, range.to + mark.length),
+        range: EditorSelection.range(normalized.from + mark.length, normalized.to + mark.length),
       };
     });
 
@@ -428,6 +454,22 @@ const domHandlers = EditorView.domEventHandlers({
       console.error("Paste Turndown Error:", error);
       return false;
     }
+  },
+
+  dblclick(event, view) {
+    const pos = view.posAtCoords({ x: event.clientX, y: event.clientY });
+    if (pos === null) return false;
+
+    const selection = getContentSelectionForLine(view.state.doc, pos);
+    if (selection.from === selection.to) return false;
+
+    view.dispatch({
+      selection: EditorSelection.range(selection.from, selection.to),
+      scrollIntoView: true,
+      userEvent: "select.pointer",
+    });
+    event.preventDefault();
+    return true;
   },
 });
 
