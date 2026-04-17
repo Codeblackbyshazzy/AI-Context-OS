@@ -313,13 +313,10 @@ export function MemoryEditor() {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-[radial-gradient(circle_at_top,_color-mix(in_srgb,var(--accent)_7%,transparent),transparent_35%),var(--bg-0)]">
-      <div className="flex items-center gap-2 border-b border-[var(--border)] bg-[color:var(--bg-0)]/86 px-4 py-2 backdrop-blur">
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="flex items-center gap-2 border-b border-[var(--border)] px-4 py-1.5">
         <div className="min-w-0 flex-1">
           <div className="font-mono text-[11px] text-[color:var(--text-2)]">{meta.id}.md</div>
-          <div className="text-[11px] text-[color:var(--text-2)]">
-            Markdown live preview · Cmd+B negrita · Cmd+I cursiva · Aa mas opciones
-          </div>
         </div>
         <SaveStateBadge status={saveStatus} />
         <FormatToolbar viewRef={editorViewRef} disabled={isProtected} />
@@ -344,8 +341,8 @@ export function MemoryEditor() {
 
       <div className="flex min-h-0 flex-1">
         <div className="min-w-0 flex-1 overflow-y-auto">
-          <div className="mx-auto max-w-[880px] px-6 py-7 md:px-10">
-            <div className="rounded-[28px] border border-[color:color-mix(in_srgb,var(--border)_82%,transparent)] bg-[color:var(--bg-1)]/92 px-6 py-7 shadow-[0_28px_80px_-42px_rgba(15,23,42,0.35)] backdrop-blur md:px-10 md:py-9">
+          <div className="mx-auto max-w-[820px] px-8 py-6">
+            <div className="rounded-2xl border border-[var(--border)] bg-[color:var(--bg-1)] px-8 py-7 shadow-sm">
             <input
               type="text"
               value={meta.l0}
@@ -374,7 +371,7 @@ export function MemoryEditor() {
                 setSaveStatus("dirty");
               }}
               onBlur={() => void handleSave()}
-              className="min-h-[560px]"
+              className="min-h-[520px]"
               placeholder={t("memoryEditor.placeholders.typeHere")}
               editable={!isProtected}
               viewRef={editorViewRef}
