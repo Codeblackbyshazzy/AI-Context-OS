@@ -151,6 +151,18 @@ function createEditorTheme(variant: keyof typeof editorThemePresets) {
       position: "relative",
       paddingLeft: "1.15rem",
     },
+    ".cm-line.cm-list-depth-1": {
+      marginLeft: "0",
+    },
+    ".cm-line.cm-list-depth-2": {
+      marginLeft: "1rem",
+    },
+    ".cm-line.cm-list-depth-3": {
+      marginLeft: "2rem",
+    },
+    ".cm-line.cm-list-depth-4": {
+      marginLeft: "3rem",
+    },
     ".cm-line.cm-bullet-item::before": {
       content: '""',
       position: "absolute",
@@ -232,6 +244,9 @@ function createEditorTheme(variant: keyof typeof editorThemePresets) {
       letterSpacing: "0.06em",
       textTransform: "uppercase",
     },
+    ".cm-line.cm-codeblock-start::before": {
+      content: "attr(data-code-language)",
+    },
     ".cm-line.cm-codeblock-body": {
       borderLeft: "1px solid color-mix(in srgb, var(--border) 84%, transparent)",
       borderRight: "1px solid color-mix(in srgb, var(--border) 84%, transparent)",
@@ -252,6 +267,39 @@ function createEditorTheme(variant: keyof typeof editorThemePresets) {
       marginTop: "0.4rem",
       marginBottom: "1.1rem",
       borderTop: "1px solid color-mix(in srgb, var(--border) 88%, transparent)",
+    },
+    ".cm-line.cm-table-header, .cm-line.cm-table-row": {
+      paddingLeft: "0.75rem",
+      paddingRight: "0.75rem",
+      backgroundColor: "color-mix(in srgb, var(--bg-2) 78%, transparent)",
+      borderLeft: "1px solid color-mix(in srgb, var(--border) 84%, transparent)",
+      borderRight: "1px solid color-mix(in srgb, var(--border) 84%, transparent)",
+      fontFamily: '"JetBrains Mono", ui-monospace, monospace',
+      fontSize: "0.92em",
+    },
+    ".cm-line.cm-table-header": {
+      marginTop: "0.7rem",
+      paddingTop: "0.55rem",
+      paddingBottom: "0.45rem",
+      fontWeight: "700",
+      borderTopLeftRadius: "12px",
+      borderTopRightRadius: "12px",
+      borderTop: "1px solid color-mix(in srgb, var(--border) 84%, transparent)",
+    },
+    ".cm-line.cm-table-separator": {
+      height: "0",
+      paddingTop: "0",
+      marginBottom: "0",
+      borderTop: "1px solid color-mix(in srgb, var(--border) 84%, transparent)",
+      borderLeft: "1px solid color-mix(in srgb, var(--border) 84%, transparent)",
+      borderRight: "1px solid color-mix(in srgb, var(--border) 84%, transparent)",
+      backgroundColor: "color-mix(in srgb, var(--bg-2) 78%, transparent)",
+    },
+    ".cm-line.cm-table-row:last-of-type": {
+      borderBottom: "1px solid color-mix(in srgb, var(--border) 84%, transparent)",
+      borderBottomLeftRadius: "12px",
+      borderBottomRightRadius: "12px",
+      paddingBottom: "0.55rem",
     },
   });
 }
@@ -292,6 +340,16 @@ function addLineAttributes(
   attributes: Record<string, string>,
 ) {
   builder.add(lineFrom, lineFrom, Decoration.line({ attributes }));
+}
+
+function getListDepth(node: { parent: { name: string; parent: any } | null }) {
+  let depth = 0;
+  let current = node.parent;
+  while (current) {
+    if (current.name === "BulletList" || current.name === "OrderedList") depth += 1;
+    current = current.parent;
+  }
+  return Math.min(Math.max(depth, 1), 4);
 }
 
 const structuralDecorations = ViewPlugin.fromClass(
@@ -452,6 +510,82 @@ class LinkIconWidget extends WidgetType {
     });
 
     return span;
+  }
+}
+
+class ImagePreviewWidget extends WidgetType {
+  constructor(public alt: string, public url: string) {
+    super();
+  }
+
+  toDOM() {
+    const root = document.createElement("button");
+    root.type = "button";
+    root.className = "cm-image-card";
+    root.style.display = "flex";
+    root.style.width = "100%";
+    root.style.alignItems = "center";
+    root.style.gap = "0.75rem";
+    root.style.margin = "0.5rem 0";
+    root.style.padding = "0.8rem 0.9rem";
+    root.style.border = "1px solid color-mix(in srgb, var(--border) 84%, transparent)";
+    root.style.borderRadius = "14px";
+    root.style.background = "color-mix(in srgb, var(--bg-2) 78%, transparent)";
+    root.style.cursor = "pointer";
+    root.style.textAlign = "left";
+
+    const preview = document.createElement("div");
+    preview.style.display = "flex";
+    preview.style.height = "3rem";
+    preview.style.width = "3rem";
+    preview.style.flexShrink = "0";
+    preview.style.alignItems = "center";
+    preview.style.justifyContent = "center";
+    preview.style.borderRadius = "10px";
+    preview.style.background = "color-mix(in srgb, var(--bg-3) 88%, transparent)";
+    preview.style.color = "var(--text-2)";
+    preview.textContent = "🖼";
+
+    if (/\.(png|jpe?g|gif|webp|svg|avif)$/i.test(this.url) || this.url.startsWith("data:image/")) {
+      const img = document.createElement("img");
+      img.src = this.url;
+      img.alt = this.alt;
+      img.style.height = "100%";
+      img.style.width = "100%";
+      img.style.objectFit = "cover";
+      img.style.borderRadius = "10px";
+      preview.replaceChildren(img);
+    }
+
+    const text = document.createElement("div");
+    text.style.minWidth = "0";
+    text.style.display = "flex";
+    text.style.flexDirection = "column";
+    text.style.gap = "0.2rem";
+
+    const title = document.createElement("div");
+    title.textContent = this.alt || "Image";
+    title.style.color = "var(--text-0)";
+    title.style.fontWeight = "600";
+
+    const meta = document.createElement("div");
+    meta.textContent = this.url;
+    meta.style.color = "var(--text-2)";
+    meta.style.fontSize = "0.78rem";
+    meta.style.overflow = "hidden";
+    meta.style.textOverflow = "ellipsis";
+    meta.style.whiteSpace = "nowrap";
+
+    text.append(title, meta);
+    root.append(preview, text);
+
+    root.addEventListener("click", (e) => {
+      open(this.url).catch(console.error);
+      e.preventDefault();
+      e.stopPropagation();
+    });
+
+    return root;
   }
 }
 
