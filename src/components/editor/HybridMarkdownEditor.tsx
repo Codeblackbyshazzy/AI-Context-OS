@@ -668,25 +668,29 @@ function createLivePreviewPlugin(revealSyntaxOnActiveLine: boolean) {
             from,
             to,
             enter(node) {
-              const isHiddenMarker = [
+              const alwaysHiddenMarkers = [
+                "QuoteMark",
+                "HorizontalRule",
+                "ListMark",
+                "TaskMarker",
+                "TableDelimiter",
+              ];
+              const activeLineHiddenMarkers = [
                 "HeaderMark",
                 "EmphasisMark",
                 "StrongEmphasisMark",
                 "StrikethroughMark",
-              "CodeMark",
-              "LinkMark",
-              "QuoteMark",
-              "HorizontalRule",
-              "ListMark",
-              "TaskMarker",
-              "CodeInfo",
-              "TableDelimiter",
-            ].includes(node.name);
+                "CodeMark",
+                "LinkMark",
+                "CodeInfo",
+              ];
+              const isAlwaysHiddenMarker = alwaysHiddenMarkers.includes(node.name);
+              const isActiveLineHiddenMarker = activeLineHiddenMarkers.includes(node.name);
 
               const line = state.doc.lineAt(node.from).number;
-              if (activeLines.has(line)) return;
+              if (activeLines.has(line) && !isAlwaysHiddenMarker) return;
 
-              if (isHiddenMarker) {
+              if (isAlwaysHiddenMarker || isActiveLineHiddenMarker) {
                 decos.push({ from: node.from, to: node.to, deco: hideDeco });
               } else if (node.name === "URL" && node.node.parent?.name === "Link") {
                 const urlText = state
