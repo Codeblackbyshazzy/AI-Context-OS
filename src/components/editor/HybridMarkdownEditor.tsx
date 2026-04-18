@@ -1,5 +1,6 @@
 import { clsx } from "clsx";
 import TurndownService from "turndown";
+import { open } from "@tauri-apps/plugin-shell";
 import CodeMirror from "@uiw/react-codemirror";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { languages } from "@codemirror/language-data";
@@ -11,6 +12,7 @@ import {
   Decoration,
   type DecorationSet,
   type ViewUpdate,
+  WidgetType,
 } from "@codemirror/view";
 import { useEffect, useMemo, useRef } from "react";
 import { tags as t } from "@lezer/highlight";
@@ -25,8 +27,15 @@ interface Props {
   placeholder?: string;
   className?: string;
   editable?: boolean;
+  /** Typography preset — orthogonal to the app-level appearance mode. */
   themeVariant?: "classic" | "clean";
   viewRef?: React.MutableRefObject<EditorView | null>;
+  /**
+   * When true, markdown markers (#, **, etc.) remain visible on every line
+   * (raw view). When false — the default — markers are hidden except on the
+   * line under the cursor, like Obsidian's Live Preview.
+   */
+  showSyntax?: boolean;
 }
 
 const editorThemePresets = {
