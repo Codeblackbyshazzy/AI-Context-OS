@@ -2,6 +2,21 @@ import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useObservabilityStore } from "../../lib/observabilityStore";
 
+function healthSummaryKey(status: string) {
+  switch (status) {
+    case "empty":
+      return "observability.health.summary.empty" as const;
+    case "healthy":
+      return "observability.health.summary.healthy" as const;
+    case "needs_attention":
+      return "observability.health.summary.needs_attention" as const;
+    case "critical":
+      return "observability.health.summary.critical" as const;
+    default:
+      return "observability.health.summary.healthy" as const;
+  }
+}
+
 export function HealthBadge() {
   const { healthScore, loadHealthScore } = useObservabilityStore();
   const { t } = useTranslation();
@@ -28,7 +43,7 @@ export function HealthBadge() {
     `${t("observability.health.dimensions.balance")}: ${healthScore.breakdown.balance.toFixed(0)}%`,
     `${t("observability.health.dimensions.cleanliness")}: ${healthScore.breakdown.cleanliness.toFixed(0)}%`,
     "",
-    t(`observability.health.summary.${healthScore.status}`),
+    t(healthSummaryKey(healthScore.status)),
   ].join("\n");
 
   return (

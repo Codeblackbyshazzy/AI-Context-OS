@@ -601,6 +601,12 @@
       "needsUsageData": "Algunas puntuaciones necesitan datos de uso — conecta una herramienta de IA y envía algunas solicitudes para calibrar.",
       "fixIssue": "Corregir {{count}} problema",
       "fixIssue_plural": "Corregir {{count}} problemas",
+      "summary": {
+        "empty": "Sin memorias en el workspace.",
+        "healthy": "Workspace saludable.",
+        "needs_attention": "Workspace necesita atención. Revisa las optimizaciones.",
+        "critical": "Workspace en mal estado. Hay optimizaciones críticas pendientes."
+      },
       "dimensions": {
         "coverage": "Cobertura",
         "coverageDesc": "% de memorias mostradas por el enrutador",

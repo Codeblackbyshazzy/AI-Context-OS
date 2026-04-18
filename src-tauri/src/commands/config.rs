@@ -23,11 +23,7 @@ pub fn create_workspace_structure(root: &Path, active_tools: &[String]) -> Resul
     // Create config
     let config = Config {
         root_dir: root.to_string_lossy().to_string(),
-        active_tools: if active_tools.is_empty() {
-            vec!["claude".to_string()]
-        } else {
-            active_tools.to_vec()
-        },
+        active_tools: active_tools.to_vec(),
         ..Config::default()
     };
     let config_yaml =

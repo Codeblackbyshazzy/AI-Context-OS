@@ -37,6 +37,21 @@ import type {
 
 type Tab = "live" | "intelligence" | "optimizations";
 
+function healthSummaryKey(status: string) {
+  switch (status) {
+    case "empty":
+      return "observability.health.summary.empty" as const;
+    case "healthy":
+      return "observability.health.summary.healthy" as const;
+    case "needs_attention":
+      return "observability.health.summary.needs_attention" as const;
+    case "critical":
+      return "observability.health.summary.critical" as const;
+    default:
+      return "observability.health.summary.healthy" as const;
+  }
+}
+
 // ─── Health Banner ───
 
 interface HealthBannerProps {
@@ -129,7 +144,7 @@ function HealthBanner({ health, history, hasUsageData, highImpactCount, onNaviga
           <p style={{ fontSize: 11, color: "var(--text-2)", margin: 0 }}>
             {!hasUsageData
               ? t("observability.health.needsUsageData")
-              : t(`observability.health.summary.${health.status}`)}
+              : t(healthSummaryKey(health.status))}
           </p>
         </div>
 
