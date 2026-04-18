@@ -813,20 +813,21 @@ function wrapWith(mark: string): StateCommand {
 
 function createMarkdownKeymap(linkTextPlaceholder: string): KeyBinding[] {
   return [
-    { key: "Mod-b", run: toggleMark("**") },
-    { key: "Mod-i", run: toggleMark("*") },
-    { key: "Mod-e", run: toggleMark("`") },
+    { key: "Mod-b", run: toggleMark("**"), preventDefault: true },
+    { key: "Mod-i", run: toggleMark("*"), preventDefault: true },
+    { key: "Mod-e", run: toggleMark("`"), preventDefault: true },
     {
       key: "Mod-k",
+      preventDefault: true,
       run: (target) => {
         insertMarkdownLink(target as unknown as EditorView, linkTextPlaceholder);
         return true;
       },
     },
-    { key: "Mod-1", run: toggleLinePrefixCommand("# ") },
-    { key: "Mod-2", run: toggleLinePrefixCommand("## ") },
-    { key: "Mod-3", run: toggleLinePrefixCommand("### ") },
-    { key: "Mod-Shift-x", run: toggleMark("~~") },
+    { key: "Mod-1", run: toggleLinePrefixCommand("# "), preventDefault: true },
+    { key: "Mod-2", run: toggleLinePrefixCommand("## "), preventDefault: true },
+    { key: "Mod-3", run: toggleLinePrefixCommand("### "), preventDefault: true },
+    { key: "Mod-Shift-x", run: toggleMark("~~"), preventDefault: true },
     { key: "*", run: wrapWith("*") },
     { key: "_", run: wrapWith("_") },
     { key: "`", run: wrapWith("`") },
@@ -879,47 +880,8 @@ function getParagraphSelection(
   };
 }
 
-function createDomHandlers(linkTextPlaceholder: string) {
+function createDomHandlers() {
   return EditorView.domEventHandlers({
-    keydown(event, view) {
-      const isMod = event.metaKey || event.ctrlKey;
-      if (!isMod) return false;
-
-      const key = event.key.toLowerCase();
-      if (key === "b") {
-        event.preventDefault();
-        applyToggleMark(view, "**");
-        return true;
-      }
-      if (key === "i") {
-        event.preventDefault();
-        applyToggleMark(view, "*");
-        return true;
-      }
-      if (key === "e") {
-        event.preventDefault();
-        applyToggleMark(view, "`");
-        return true;
-      }
-      if (key === "k") {
-        event.preventDefault();
-        insertMarkdownLink(view, linkTextPlaceholder);
-        return true;
-      }
-      if (key === "1" || key === "2" || key === "3") {
-        event.preventDefault();
-        applyToggleLinePrefix(view, key === "1" ? "# " : key === "2" ? "## " : "### ");
-        return true;
-      }
-      if (event.shiftKey && key === "x") {
-        event.preventDefault();
-        applyToggleMark(view, "~~");
-        return true;
-      }
-
-      return false;
-    },
-
     paste(event, view) {
       const data = event.clipboardData;
       if (!data) return false;
@@ -1004,7 +966,7 @@ export function HybridMarkdownEditor({
       history(),
       keymap.of(createMarkdownKeymap(linkTextPlaceholder)),
       keymap.of([...defaultKeymap, ...historyKeymap]),
-      createDomHandlers(linkTextPlaceholder),
+      createDomHandlers(),
     ],
     [themeVariant, showSyntax, linkTextPlaceholder, revealSyntaxOnActiveLine],
   );
