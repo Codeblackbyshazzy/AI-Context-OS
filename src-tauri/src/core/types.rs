@@ -216,7 +216,7 @@ pub struct Config {
     pub decay_threshold: f64,
     #[serde(default = "default_scratch_ttl")]
     pub scratch_ttl_days: u32,
-    #[serde(default)]
+    #[serde(default = "default_active_tools")]
     pub active_tools: Vec<String>,
 }
 
@@ -231,6 +231,21 @@ fn default_decay_threshold() -> f64 {
 }
 fn default_scratch_ttl() -> u32 {
     7
+}
+fn default_active_tools() -> Vec<String> {
+    vec!["claude".to_string()]
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            root_dir: default_root_dir(),
+            default_token_budget: default_token_budget(),
+            decay_threshold: default_decay_threshold(),
+            scratch_ttl_days: default_scratch_ttl(),
+            active_tools: default_active_tools(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

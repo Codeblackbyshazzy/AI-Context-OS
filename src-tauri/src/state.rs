@@ -32,10 +32,7 @@ impl AppState {
             memory_index: Arc::new(RwLock::new(HashMap::new())),
             config: Arc::new(RwLock::new(Config {
                 root_dir: root.to_string_lossy().to_string(),
-                default_token_budget: 4000,
-                decay_threshold: 0.1,
-                scratch_ttl_days: 7,
-                active_tools: vec!["claude".to_string()],
+                ..Config::default()
             })),
             observability: Arc::new(Mutex::new(None)),
             watcher_handle: Arc::new(Mutex::new(None)),
