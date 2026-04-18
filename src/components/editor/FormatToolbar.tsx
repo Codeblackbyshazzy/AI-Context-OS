@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { clsx } from "clsx";
 import { useTranslation } from "react-i18next";
+import { applyLinePrefixToggle, insertMarkdownLink, normalizeInlineRange } from "./editorCommands";
 
 interface Props {
   viewRef: React.MutableRefObject<EditorView | null>;
@@ -45,110 +46,8 @@ function wrapSelection(view: EditorView, mark: string, placeholder = "") {
   view.focus();
 }
 
-function normalizeInlineRange(
-  doc: { lineAt: (pos: number) => { from: number; to: number; text: string }; sliceString: (from: number, to: number) => string },
-  from: number,
-  to: number,
-) {
-  let nextFrom = from;
-  let nextTo = to;
-
-  while (nextTo > nextFrom) {
-    const char = doc.sliceString(nextTo - 1, nextTo);
-    if (char !== "\n" && char !== "\r") break;
-    nextTo -= 1;
-  }
-
-  const line = doc.lineAt(nextFrom);
-  if (nextFrom === line.from && nextTo >= line.to) {
-    const prefixMatch = line.text.match(/^(\s*(?:[-*+]\s|\d+\.\s|- \[[ xX]\]\s|>\s))/);
-    if (prefixMatch) {
-      nextFrom += prefixMatch[0].length;
-    }
-  }
-
-  return nextTo < nextFrom ? { from, to } : { from: nextFrom, to: nextTo };
-}
-
 function toggleLinePrefix(view: EditorView, prefix: string) {
-  const { state } = view;
-  const changes = state.changeByRange((range) => {
-    const startLine = state.doc.lineAt(range.from);
-    const endLine = state.doc.lineAt(range.to);
-    const nextChanges: { from: number; to: number; insert: string }[] = [];
-
-    for (let lineNumber = startLine.number; lineNumber <= endLine.number; lineNumber += 1) {
-      const line = state.doc.line(lineNumber);
-      const headingMatch = line.text.match(/^#{1,6}\s+/);
-      const bulletMatch = line.text.match(/^(\s*)([-*+])\s+/);
-      const orderedMatch = line.text.match(/^(\s*)\d+\.\s+/);
-      const taskMatch = line.text.match(/^(\s*)-\s\[[ xX]\]\s+/);
-      const quoteMatch = line.text.match(/^>\s?/);
-
-      if (prefix.startsWith("#")) {
-        if (headingMatch && line.text.startsWith(prefix)) {
-          nextChanges.push({ from: line.from, to: line.from + prefix.length, insert: "" });
-        } else if (headingMatch) {
-          nextChanges.push({ from: line.from, to: line.from + headingMatch[0].length, insert: prefix });
-        } else {
-          nextChanges.push({ from: line.from, to: line.from, insert: prefix });
-        }
-        continue;
-      }
-
-      if (prefix === "> ") {
-        if (quoteMatch) {
-          nextChanges.push({ from: line.from, to: line.from + quoteMatch[0].length, insert: "" });
-        } else {
-          nextChanges.push({ from: line.from, to: line.from, insert: prefix });
-        }
-        continue;
-      }
-
-      if (prefix === "- ") {
-        if (taskMatch) {
-          nextChanges.push({ from: line.from, to: line.from + taskMatch[0].length, insert: prefix });
-        } else if (bulletMatch) {
-          nextChanges.push({ from: line.from, to: line.from + bulletMatch[0].length, insert: "" });
-        } else if (orderedMatch) {
-          nextChanges.push({ from: line.from, to: line.from + orderedMatch[0].length, insert: prefix });
-        } else {
-          nextChanges.push({ from: line.from, to: line.from, insert: prefix });
-        }
-        continue;
-      }
-
-      if (prefix === "1. ") {
-        if (orderedMatch) {
-          nextChanges.push({ from: line.from, to: line.from + orderedMatch[0].length, insert: "" });
-        } else if (bulletMatch) {
-          nextChanges.push({ from: line.from, to: line.from + bulletMatch[0].length, insert: prefix });
-        } else {
-          nextChanges.push({ from: line.from, to: line.from, insert: prefix });
-        }
-        continue;
-      }
-
-      if (prefix === "- [ ] ") {
-        if (taskMatch) {
-          nextChanges.push({ from: line.from, to: line.from + taskMatch[0].length, insert: "" });
-        } else if (bulletMatch) {
-          nextChanges.push({ from: line.from, to: line.from + bulletMatch[0].length, insert: prefix });
-        } else {
-          nextChanges.push({ from: line.from, to: line.from, insert: prefix });
-        }
-      }
-    }
-
-    const delta = nextChanges.reduce((acc, change) => acc + (change.insert.length - (change.to - change.from)), 0);
-    return {
-      changes: nextChanges,
-      range: EditorSelection.range(range.from, range.to + delta),
-    };
-  });
-
-  view.dispatch(state.update(changes, { scrollIntoView: true, userEvent: "input" }));
-  view.focus();
+  applyLinePrefixToggle(view, prefix);
 }
 
 function insertBlock(view: EditorView, text: string, cursorOffset?: number) {
@@ -161,21 +60,6 @@ function insertBlock(view: EditorView, text: string, cursorOffset?: number) {
   view.dispatch({
     changes: { from: range.from, to: range.to, insert },
     selection: EditorSelection.single(range.from + prefix.length + (cursorOffset ?? insert.length - prefix.length)),
-    scrollIntoView: true,
-    userEvent: "input",
-  });
-  view.focus();
-}
-
-function insertLink(view: EditorView, textPlaceholder: string) {
-  const { state } = view;
-  const range = state.selection.main;
-  const selected = state.sliceDoc(range.from, range.to) || textPlaceholder;
-  const insert = `[${selected}](url)`;
-
-  view.dispatch({
-    changes: { from: range.from, to: range.to, insert },
-    selection: EditorSelection.range(range.from + selected.length + 3, range.from + selected.length + 6),
     scrollIntoView: true,
     userEvent: "input",
   });
@@ -255,7 +139,7 @@ export function FormatToolbar({ viewRef, disabled = false }: Props) {
         shortcut: `${shortcutMod}+K`,
         keywords: ["url", "link", "enlace"],
         icon: <LinkIcon className="h-3.5 w-3.5" />,
-        run: (view) => insertLink(view, t("memoryEditor.toolbar.linkTextPlaceholder")),
+        run: (view) => insertMarkdownLink(view, t("memoryEditor.toolbar.linkTextPlaceholder")),
       },
       {
         key: "image",
@@ -364,7 +248,7 @@ export function FormatToolbar({ viewRef, disabled = false }: Props) {
         .filter(Boolean)
         .some((value) => value?.toLowerCase().includes(normalized)),
     );
-  }, [query]);
+  }, [items, query]);
 
   const run = (item: Item) => {
     const view = viewRef.current;

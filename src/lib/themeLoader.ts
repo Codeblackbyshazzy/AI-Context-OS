@@ -67,20 +67,37 @@ export function clearCustomTheme(): void {
   if (el) el.remove();
 }
 
-export async function applyCustomTheme(theme: VaultTheme): Promise<void> {
-  const raw = await readFile(theme.path);
+export function applyCustomThemeCss(id: string, rawCss: string): void {
   const el = ensureStyleElement();
-  el.dataset.themeId = theme.id;
-  el.textContent = sanitizeCss(raw);
+  el.dataset.themeId = id;
+  el.textContent = sanitizeCss(rawCss);
 }
 
-export async function applyCustomThemeById(id: string): Promise<boolean> {
+export async function loadCustomTheme(theme: VaultTheme): Promise<string> {
+  return readFile(theme.path);
+}
+
+export async function loadCustomThemeById(id: string): Promise<{ ok: true; css: string } | { ok: false }> {
   const themes = await listVaultThemes();
   const theme = themes.find((t) => t.id === id);
   if (!theme) {
+    return { ok: false };
+  }
+  const css = await loadCustomTheme(theme);
+  return { ok: true, css };
+}
+
+export async function applyCustomTheme(theme: VaultTheme): Promise<void> {
+  const raw = await loadCustomTheme(theme);
+  applyCustomThemeCss(theme.id, raw);
+}
+
+export async function applyCustomThemeById(id: string): Promise<boolean> {
+  const loaded = await loadCustomThemeById(id);
+  if (!loaded.ok) {
     clearCustomTheme();
     return false;
   }
-  await applyCustomTheme(theme);
+  applyCustomThemeCss(id, loaded.css);
   return true;
 }

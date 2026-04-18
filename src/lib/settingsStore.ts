@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { useEffect } from "react";
-import { applyCustomThemeById, clearCustomTheme } from "./themeLoader";
+import { applyCustomThemeCss, clearCustomTheme, loadCustomThemeById } from "./themeLoader";
 
 export type Theme = "dark" | "light" | "system";
 export type Language = "en" | "es";
@@ -122,12 +122,21 @@ export function useAppearanceEffect() {
       clearCustomTheme();
       return;
     }
+
     let cancelled = false;
-    void applyCustomThemeById(customThemeId).then((ok) => {
-      if (!ok && !cancelled) {
+
+    void loadCustomThemeById(customThemeId).then((result) => {
+      if (cancelled) return;
+
+      if (!result.ok) {
+        clearCustomTheme();
         useSettingsStore.setState({ customThemeId: null });
+        return;
       }
+
+      applyCustomThemeCss(customThemeId, result.css);
     });
+
     return () => {
       cancelled = true;
     };

@@ -20,6 +20,7 @@ import { HighlightStyle, syntaxHighlighting, syntaxTree } from "@codemirror/lang
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { type StateCommand, EditorSelection, RangeSetBuilder } from "@codemirror/state";
 import { useTranslation } from "react-i18next";
+import { applyLinePrefixToggle, insertMarkdownLink, normalizeInlineRange } from "./editorCommands";
 
 interface Props {
   content: string;
@@ -767,75 +768,8 @@ function applyToggleMark(view: EditorView, mark: string) {
   view.dispatch(state.update(changes, { scrollIntoView: true, userEvent: "input" }));
 }
 
-function normalizeInlineRange(
-  doc: { lineAt: (pos: number) => { from: number; to: number; text: string }; sliceString: (from: number, to: number) => string },
-  from: number,
-  to: number,
-) {
-  let nextFrom = from;
-  let nextTo = to;
-
-  while (nextTo > nextFrom) {
-    const char = doc.sliceString(nextTo - 1, nextTo);
-    if (char !== "\n" && char !== "\r") break;
-    nextTo -= 1;
-  }
-
-  const line = doc.lineAt(nextFrom);
-  if (nextFrom === line.from && nextTo >= line.to) {
-    const prefixMatch = line.text.match(/^(\s*(?:[-*+]\s|\d+\.\s|- \[[ xX]\]\s|>\s))/);
-    if (prefixMatch) {
-      nextFrom += prefixMatch[0].length;
-    }
-  }
-
-  return nextTo < nextFrom ? { from, to } : { from: nextFrom, to: nextTo };
-}
-
 function applyToggleLinePrefix(view: EditorView, prefix: string) {
-  const { state } = view;
-  const changes = state.changeByRange((range) => {
-    const startLine = state.doc.lineAt(range.from);
-    const endLine = state.doc.lineAt(range.to);
-    const nextChanges: { from: number; to: number; insert: string }[] = [];
-
-    for (let lineNumber = startLine.number; lineNumber <= endLine.number; lineNumber += 1) {
-      const line = state.doc.line(lineNumber);
-      const headingMatch = line.text.match(/^#{1,6}\s+/);
-      if (headingMatch && line.text.startsWith(prefix)) {
-        nextChanges.push({ from: line.from, to: line.from + prefix.length, insert: "" });
-      } else if (headingMatch) {
-        nextChanges.push({ from: line.from, to: line.from + headingMatch[0].length, insert: prefix });
-      } else {
-        nextChanges.push({ from: line.from, to: line.from, insert: prefix });
-      }
-    }
-
-    const delta = nextChanges.reduce(
-      (acc, change) => acc + (change.insert.length - (change.to - change.from)),
-      0,
-    );
-
-    return {
-      changes: nextChanges,
-      range: EditorSelection.range(range.from, range.to + delta),
-    };
-  });
-
-  view.dispatch(state.update(changes, { scrollIntoView: true, userEvent: "input" }));
-}
-
-function insertMarkdownLink(view: EditorView, textPlaceholder: string) {
-  const { state } = view;
-  const range = state.selection.main;
-  const selected = state.sliceDoc(range.from, range.to) || textPlaceholder;
-  const insert = `[${selected}](url)`;
-  view.dispatch({
-    changes: { from: range.from, to: range.to, insert },
-    selection: EditorSelection.range(range.from + selected.length + 3, range.from + selected.length + 6),
-    scrollIntoView: true,
-    userEvent: "input",
-  });
+  applyLinePrefixToggle(view, prefix);
 }
 
 function toggleMark(mark: string): StateCommand {
