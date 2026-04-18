@@ -162,6 +162,55 @@ function createEditorTheme(variant: keyof typeof editorThemePresets) {
       backgroundColor: "color-mix(in srgb, var(--text-1) 88%, transparent)",
       transform: "translateY(-50%)",
     },
+    ".cm-line.cm-ordered-item": {
+      position: "relative",
+      paddingLeft: "2rem",
+    },
+    ".cm-line.cm-ordered-item::before": {
+      content: "attr(data-list-index) '.'",
+      position: "absolute",
+      left: "0",
+      top: "0.12rem",
+      width: "1.5rem",
+      color: "var(--text-2)",
+      fontSize: "0.88em",
+      fontWeight: "700",
+      textAlign: "right",
+      fontVariantNumeric: "tabular-nums",
+    },
+    ".cm-line.cm-task-item": {
+      position: "relative",
+      paddingLeft: "1.75rem",
+    },
+    ".cm-line.cm-task-item::before": {
+      content: '""',
+      position: "absolute",
+      left: "0.1rem",
+      top: "0.82em",
+      width: "0.8rem",
+      height: "0.8rem",
+      borderRadius: "0.24rem",
+      border: "1.5px solid color-mix(in srgb, var(--text-2) 72%, transparent)",
+      backgroundColor: "transparent",
+      transform: "translateY(-50%)",
+      boxSizing: "border-box",
+    },
+    ".cm-line.cm-task-item.cm-task-checked::before": {
+      backgroundColor: "color-mix(in srgb, var(--accent) 90%, transparent)",
+      borderColor: "color-mix(in srgb, var(--accent) 90%, transparent)",
+      boxShadow: "inset 0 0 0 1px color-mix(in srgb, white 35%, transparent)",
+    },
+    ".cm-line.cm-task-item.cm-task-checked::after": {
+      content: '""',
+      position: "absolute",
+      left: "0.38rem",
+      top: "0.79em",
+      width: "0.22rem",
+      height: "0.45rem",
+      borderRight: "2px solid white",
+      borderBottom: "2px solid white",
+      transform: "translateY(-58%) rotate(45deg)",
+    },
     ".cm-line.cm-codeblock": {
       fontFamily: '"JetBrains Mono", ui-monospace, monospace',
       fontSize: "0.92em",
@@ -237,6 +286,14 @@ function addLineClass(
   builder.add(lineFrom, lineFrom, Decoration.line({ class: className }));
 }
 
+function addLineAttributes(
+  builder: RangeSetBuilder<Decoration>,
+  lineFrom: number,
+  attributes: Record<string, string>,
+) {
+  builder.add(lineFrom, lineFrom, Decoration.line({ attributes }));
+}
+
 const structuralDecorations = ViewPlugin.fromClass(
   class {
     decorations: DecorationSet;
@@ -278,15 +335,38 @@ const structuralDecorations = ViewPlugin.fromClass(
 
             if (node.name === "ListItem" && node.node.parent?.name === "BulletList") {
               let hasTaskChild = false;
+              let taskMarker: string | null = null;
               for (let child = node.node.firstChild; child; child = child.nextSibling) {
                 if (child.name === "Task") {
                   hasTaskChild = true;
+                  for (let taskChild = child.firstChild; taskChild; taskChild = taskChild.nextSibling) {
+                    if (taskChild.name === "TaskMarker") {
+                      taskMarker = view.state.doc.sliceString(taskChild.from, taskChild.to);
+                      break;
+                    }
+                  }
                   break;
                 }
               }
-              if (!hasTaskChild) {
+              if (hasTaskChild) {
+                addLineClass(builder, node.from, "cm-task-item");
+                if (taskMarker?.toLowerCase().includes("x")) {
+                  addLineClass(builder, node.from, "cm-task-checked");
+                }
+              } else {
                 addLineClass(builder, node.from, "cm-bullet-item");
               }
+              return;
+            }
+
+            if (node.name === "ListItem" && node.node.parent?.name === "OrderedList") {
+              const listMark = node.node.firstChild;
+              const markerText =
+                listMark?.name === "ListMark"
+                  ? view.state.doc.sliceString(listMark.from, listMark.to).replace(/\.$/, "")
+                  : "";
+              addLineClass(builder, node.from, "cm-ordered-item");
+              addLineAttributes(builder, node.from, { "data-list-index": markerText });
               return;
             }
 
@@ -420,6 +500,7 @@ function createLivePreviewPlugin(revealSyntaxOnActiveLine: boolean) {
               "QuoteMark",
               "HorizontalRule",
               "ListMark",
+              "TaskMarker",
             ].includes(node.name);
 
               const line = state.doc.lineAt(node.from).number;
