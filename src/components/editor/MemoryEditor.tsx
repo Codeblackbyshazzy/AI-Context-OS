@@ -356,12 +356,13 @@ export function MemoryEditor() {
 
       <div className="flex min-h-0 flex-1">
         <div className="min-w-0 flex-1 overflow-y-auto">
-          <div className="mx-auto max-w-[820px] px-8 py-6">
+          <div className="mx-auto max-w-[820px] px-3 py-6 sm:px-5 lg:px-8">
             <div
               className={clsx(
-                "px-8 py-7",
-                appearanceMode === "modern" &&
-                  "rounded-2xl border border-[var(--border)] bg-[color:var(--bg-1)] shadow-sm",
+                "py-7",
+                appearanceMode === "modern"
+                  ? "rounded-2xl border border-[var(--border)] bg-[color:var(--bg-1)] px-4 shadow-sm sm:px-6 lg:px-8"
+                  : "px-0 sm:px-1 lg:px-2",
               )}
             >
               <input
