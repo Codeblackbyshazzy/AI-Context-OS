@@ -6,7 +6,9 @@ use clap::{Parser, Subcommand};
 
 use std::sync::Arc;
 
-use core::compat::{render_claude_adapter, render_cursor_adapter, render_windsurf_adapter};
+use core::compat::{
+    render_agents_adapter, render_claude_adapter, render_cursor_adapter, render_windsurf_adapter,
+};
 use core::index::scan_memories;
 use core::memory::read_memory;
 use core::router::{
@@ -150,6 +152,7 @@ fn main() {
             std::fs::write(paths.claude_md(), render_claude_adapter(&neutral)).unwrap();
             std::fs::write(paths.cursorrules(), render_cursor_adapter(&neutral)).unwrap();
             std::fs::write(paths.windsurfrules(), render_windsurf_adapter(&neutral)).unwrap();
+            std::fs::write(paths.agents_md(), render_agents_adapter(&neutral)).unwrap();
             std::fs::write(paths.index_yaml(), generate_index_yaml(&manifest).unwrap()).unwrap();
             std::fs::write(paths.catalog_md(), render_catalog_markdown(&manifest)).unwrap();
 
@@ -244,9 +247,11 @@ fn main() {
             std::fs::write(root.join(".cursorrules"), &cursorrules).ok();
             let windsurfrules = render_windsurf_adapter(&neutral);
             std::fs::write(root.join(".windsurfrules"), &windsurfrules).ok();
+            let agents_md = render_agents_adapter(&neutral);
+            std::fs::write(paths.agents_md(), &agents_md).ok();
 
             println!(
-                "Regenerated: claude.md, .ai/index.yaml, .ai/catalog.md, .cursorrules, .windsurfrules ({} memories)",
+                "Regenerated: claude.md, AGENTS.md, .ai/index.yaml, .ai/catalog.md, .cursorrules, .windsurfrules ({} memories)",
                 scanned.len()
             );
         }

@@ -46,6 +46,11 @@ pub fn create_workspace_structure(root: &Path, active_tools: &[String]) -> Resul
         crate::core::compat::render_windsurf_adapter(&neutral_router),
     )
     .map_err(|e| format!("Failed to write .windsurfrules: {}", e))?;
+    fs::write(
+        paths.agents_md(),
+        crate::core::compat::render_agents_adapter(&neutral_router),
+    )
+    .map_err(|e| format!("Failed to write AGENTS.md: {}", e))?;
 
     // Create JSONL files with schema lines
     create_jsonl_with_schema(&paths.daily_log(), "timestamp,type,summary,tags,source")?;

@@ -36,8 +36,12 @@ pub(crate) fn regenerate_router_files(
     fs::write(root.join(".windsurfrules"), &windsurfrules)
         .map_err(|e| format!("Failed to write .windsurfrules: {}", e))?;
 
-    // Generate rich catalog/index artifacts (independent of adapters)
     let paths = crate::core::paths::SystemPaths::new(root);
+    let agents_md = render_agents_adapter(&neutral);
+    fs::write(paths.agents_md(), &agents_md)
+        .map_err(|e| format!("Failed to write AGENTS.md: {}", e))?;
+
+    // Generate rich catalog/index artifacts (independent of adapters)
     fs::create_dir_all(paths.ai_dir())
         .map_err(|e| format!("Failed to create .ai directory: {}", e))?;
     let index_yaml = generate_index_yaml(&manifest)?;
