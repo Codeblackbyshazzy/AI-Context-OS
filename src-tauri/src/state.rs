@@ -7,7 +7,6 @@ use std::time::{Duration, Instant};
 
 use crate::core::index::scan_memories;
 use crate::core::observability::ObservabilityDb;
-use crate::core::paths::expand_home;
 use crate::core::types::Config;
 use crate::core::watcher::{MemoryIndex, WatcherHandle};
 
@@ -122,15 +121,4 @@ impl AppState {
         })
     }
 
-    fn expand_home(path: &str) -> PathBuf {
-        if path == "~" {
-            return dirs::home_dir().unwrap_or_else(|| PathBuf::from("."));
-        }
-        if let Some(rest) = path.strip_prefix("~/") {
-            if let Some(home) = dirs::home_dir() {
-                return home.join(rest);
-            }
-        }
-        PathBuf::from(path)
-    }
 }

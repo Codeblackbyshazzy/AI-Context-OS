@@ -7,6 +7,7 @@ use std::sync::Arc;
 
 use tauri::{Emitter, Manager};
 
+use crate::core::paths::expand_home;
 use state::AppState;
 
 fn default_cli_root() -> PathBuf {
@@ -17,11 +18,7 @@ fn default_cli_root() -> PathBuf {
 
 fn expand_cli_root(root: Option<String>) -> PathBuf {
     match root {
-        Some(path) if path == "~" => dirs::home_dir().unwrap_or_else(|| PathBuf::from(".")),
-        Some(path) if path.starts_with("~/") => dirs::home_dir()
-            .unwrap_or_else(|| PathBuf::from("."))
-            .join(&path[2..]),
-        Some(path) => PathBuf::from(path),
+        Some(path) => expand_home(&path),
         None => default_cli_root(),
     }
 }
