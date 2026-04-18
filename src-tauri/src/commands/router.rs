@@ -3,7 +3,9 @@ use std::path::Path;
 
 use tauri::{AppHandle, Emitter, State};
 
-use crate::core::compat::{render_claude_adapter, render_cursor_adapter, render_windsurf_adapter};
+use crate::core::compat::{
+    render_agents_adapter, render_claude_adapter, render_cursor_adapter, render_windsurf_adapter,
+};
 use crate::core::index::scan_memories;
 use crate::core::router::{
     build_router_manifest, generate_index_yaml, render_catalog_markdown, render_static_router,
