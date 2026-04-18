@@ -147,6 +147,21 @@ function createEditorTheme(variant: keyof typeof editorThemePresets) {
       color: "var(--text-1)",
       backgroundColor: "color-mix(in srgb, var(--accent-muted) 55%, transparent)",
     },
+    ".cm-line.cm-bullet-item": {
+      position: "relative",
+      paddingLeft: "1.15rem",
+    },
+    ".cm-line.cm-bullet-item::before": {
+      content: '""',
+      position: "absolute",
+      left: "0.2rem",
+      top: "0.9em",
+      width: "0.36rem",
+      height: "0.36rem",
+      borderRadius: "999px",
+      backgroundColor: "color-mix(in srgb, var(--text-1) 88%, transparent)",
+      transform: "translateY(-50%)",
+    },
     ".cm-line.cm-codeblock": {
       fontFamily: '"JetBrains Mono", ui-monospace, monospace',
       fontSize: "0.92em",
@@ -257,6 +272,20 @@ const structuralDecorations = ViewPlugin.fromClass(
                 addLineClass(builder, line.from, "cm-blockquote");
                 if (line.number === endLine.number) break;
                 line = view.state.doc.line(line.number + 1);
+              }
+              return;
+            }
+
+            if (node.name === "ListItem" && node.node.parent?.name === "BulletList") {
+              let hasTaskChild = false;
+              for (let child = node.node.firstChild; child; child = child.nextSibling) {
+                if (child.name === "Task") {
+                  hasTaskChild = true;
+                  break;
+                }
+              }
+              if (!hasTaskChild) {
+                addLineClass(builder, node.from, "cm-bullet-item");
               }
               return;
             }
@@ -390,6 +419,7 @@ function createLivePreviewPlugin(revealSyntaxOnActiveLine: boolean) {
               "LinkMark",
               "QuoteMark",
               "HorizontalRule",
+              "ListMark",
             ].includes(node.name);
 
               const line = state.doc.lineAt(node.from).number;
