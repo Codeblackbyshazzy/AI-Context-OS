@@ -23,7 +23,6 @@ import {
   type VaultTheme,
 } from "../../../lib/themeLoader";
 import { showInFileManager } from "../../../lib/tauri";
-import { open as openShell } from "@tauri-apps/plugin-shell";
 
 export function AppearanceTab() {
   const { t } = useTranslation();
@@ -296,11 +295,7 @@ export function AppearanceTab() {
                   {t("settings.appearanceTab.createFolder")}
                 </button>
                 <button
-                  onClick={() =>
-                    void openShell(
-                      "https://github.com/alexdcd/AI-Context-OS/blob/main/docs/themes.md",
-                    ).catch(() => {})
-                  }
+                  onClick={() => void showInFileManager("docs/themes.md")}
                   className="flex items-center gap-1.5 rounded-md border border-[color:var(--border)] bg-[color:var(--bg-2)] px-2.5 py-1 text-xs text-[color:var(--text-1)] transition-colors hover:border-[color:var(--border-active)]"
                 >
                   <ExternalLink className="h-3.5 w-3.5" />
