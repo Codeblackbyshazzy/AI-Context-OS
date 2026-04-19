@@ -934,19 +934,29 @@ function createLivePreviewPlugin(
           let line = state.doc.lineAt(from);
           const endLine = state.doc.lineAt(Math.max(from, to - 1));
           while (line.number <= endLine.number) {
-            if (!activeLines.has(line.number) && !decoratedTaskPriorityLines.has(line.number)) {
-              const taskMatch = line.text.match(/^(\s*-\s\[[ xX]\]\s+)(\[#([ABCabc])\]\s+)?/);
-              if (taskMatch) {
-                const currentPriority = (taskMatch[3]?.toUpperCase() ?? "B") as "A" | "B" | "C";
-                const markerFrom = line.from + priorityMatch[1].length;
-                const markerTo = markerFrom + (taskMatch[2]?.length ?? 0);
-                if (taskMatch[2]) {
-                  decos.push({
-                    from: markerFrom,
-                    to: markerTo,
-                    deco: hideDeco,
-                  });
-                }
+            const taskMatch = line.text.match(/^(\s*-\s\[[ xX]\]\s+)(\[#([ABCabc])\]\s+)?/);
+            if (taskMatch) {
+              const currentPriority = (taskMatch[3]?.toUpperCase() ?? "B") as "A" | "B" | "C";
+              const prefixFrom = line.from;
+              const prefixTo = line.from + taskMatch[1].length;
+              const markerFrom = prefixTo;
+              const markerTo = markerFrom + (taskMatch[2]?.length ?? 0);
+
+              decos.push({
+                from: prefixFrom,
+                to: prefixTo,
+                deco: hideDeco,
+              });
+
+              if (taskMatch[2]) {
+                decos.push({
+                  from: markerFrom,
+                  to: markerTo,
+                  deco: hideDeco,
+                });
+              }
+
+              if (!decoratedTaskPriorityLines.has(line.number)) {
                 decos.push({
                   from: line.to,
                   to: line.to,
