@@ -1042,9 +1042,42 @@ function getParagraphSelection(
   };
 }
 
+/** CSS classes added to .cm-line that have pseudo-element decorations which
+ * shift the visual content relative to the DOM text node positions. On these
+ * lines CodeMirror's native click → cursor mapping fails, so we must
+ * intercept and resolve the position ourselves. */
+const DECORATED_LINE_CLASSES = [
+  "cm-bullet-item",
+  "cm-task-item",
+  "cm-ordered-item",
+  "cm-blockquote",
+  "cm-hr",
+  "cm-h1",
+  "cm-h2",
+  "cm-h3",
+  "cm-h4",
+  "cm-h5",
+  "cm-h6",
+  "cm-codeblock-start",
+  "cm-codeblock-end",
+] as const;
+
+function isDecoratedLine(lineElement: HTMLElement): boolean {
+  return DECORATED_LINE_CLASSES.some((cls) => lineElement.classList.contains(cls));
+}
+
 function createDomHandlers(editable: boolean) {
+  /** Position resolved on the most recent single-click, kept so that the
+   *  subsequent double/triple clicks on the *same* spot can reuse it instead
+   *  of re-resolving (which may give a different result because the decorations
+   *  may have changed between clicks). */
   let lastResolvedPos: number | null = null;
   let lastResolvedTime = 0;
+
+  /** Whether we took over the current mousedown and therefore need to
+   *  synthesize selection-extension on mousemove/mouseup ourselves. */
+  let dragging = false;
+  let dragAnchor = 0;
 
   function getSavedOrResolvedPos(view: EditorView, lineElement: HTMLElement, event: MouseEvent) {
     if (lastResolvedPos !== null && Date.now() - lastResolvedTime < 500) {
@@ -1053,12 +1086,23 @@ function createDomHandlers(editable: boolean) {
     return resolveDecoratedLineClickPosition(view, lineElement, event);
   }
 
+  function resolvePositionAtCoords(view: EditorView, event: MouseEvent): number | null {
+    const target = getEventTargetElement(event.target);
+    if (!target) return null;
+    const lineElement = target.closest(".cm-line");
+    if (lineElement instanceof HTMLElement && isDecoratedLine(lineElement)) {
+      return resolveDecoratedLineClickPosition(view, lineElement, event);
+    }
+    return view.posAtCoords({ x: event.clientX, y: event.clientY }, false);
+  }
+
   return EditorView.domEventHandlers({
     mousedown(event, view) {
       if (!editable || event.button !== 0) return false;
       const target = getEventTargetElement(event.target);
       if (!target) return false;
 
+      /* ── Task checkbox toggle ─────────────────────────── */
       const taskLineElement = target.closest(".cm-line.cm-task-item");
       if (taskLineElement instanceof HTMLElement) {
         const clickOffset = event.clientX - taskLineElement.getBoundingClientRect().left;
@@ -1077,10 +1121,25 @@ function createDomHandlers(editable: boolean) {
       const lineElement = target.closest(".cm-line");
       if (!(lineElement instanceof HTMLElement)) return false;
 
+      /* ── Only intercept on decorated lines ────────────── */
+      const decorated = isDecoratedLine(lineElement);
+
+      /* ── Single click ─────────────────────────────────── */
       if (event.detail === 1) {
+        if (!decorated) {
+          // Let CodeMirror handle single click natively – this preserves
+          // native drag-to-select, shift-click extend, etc.
+          lastResolvedPos = null;
+          dragging = false;
+          return false;
+        }
+
         const pos = resolveDecoratedLineClickPosition(view, lineElement, event);
         lastResolvedPos = pos;
         lastResolvedTime = Date.now();
+        dragAnchor = pos;
+        dragging = true;
+
         view.dispatch({
           selection: EditorSelection.cursor(pos),
           scrollIntoView: false,
@@ -1091,12 +1150,25 @@ function createDomHandlers(editable: boolean) {
         return true;
       }
 
+      /* ── Double click — word selection ─────────────────── */
       if (event.detail === 2) {
-        const pos = getSavedOrResolvedPos(view, lineElement, event);
+        dragging = false;
+        const pos = decorated
+          ? getSavedOrResolvedPos(view, lineElement, event)
+          : (view.posAtCoords({ x: event.clientX, y: event.clientY }, false) ?? getSavedOrResolvedPos(view, lineElement, event));
+
         const word = view.state.wordAt(pos);
         if (word) {
           view.dispatch({
             selection: EditorSelection.range(word.from, word.to),
+            scrollIntoView: false,
+            userEvent: "select.pointer",
+          });
+        } else {
+          // No word found (e.g. clicked on whitespace) — select nothing extra,
+          // just place cursor so the user gets feedback.
+          view.dispatch({
+            selection: EditorSelection.cursor(pos),
             scrollIntoView: false,
             userEvent: "select.pointer",
           });
@@ -1105,8 +1177,13 @@ function createDomHandlers(editable: boolean) {
         return true;
       }
 
+      /* ── Triple click — paragraph / line selection ────── */
       if (event.detail >= 3) {
-        const pos = getSavedOrResolvedPos(view, lineElement, event);
+        dragging = false;
+        const pos = decorated
+          ? getSavedOrResolvedPos(view, lineElement, event)
+          : (view.posAtCoords({ x: event.clientX, y: event.clientY }, false) ?? getSavedOrResolvedPos(view, lineElement, event));
+
         const paragraphSel = getParagraphSelection(view.state.doc, pos);
         view.dispatch({
           selection: EditorSelection.range(paragraphSel.from, paragraphSel.to),
@@ -1117,6 +1194,29 @@ function createDomHandlers(editable: boolean) {
         return true;
       }
 
+      return false;
+    },
+
+    /* ── Drag-to-select on decorated lines ───────────────── */
+    mousemove(event, view) {
+      if (!dragging || event.buttons !== 1) {
+        dragging = false;
+        return false;
+      }
+      const pos = resolvePositionAtCoords(view, event);
+      if (pos === null) return false;
+
+      view.dispatch({
+        selection: EditorSelection.range(dragAnchor, pos),
+        scrollIntoView: false,
+        userEvent: "select.pointer",
+      });
+      event.preventDefault();
+      return true;
+    },
+
+    mouseup(_event, _view) {
+      dragging = false;
       return false;
     },
     paste(event, view) {
