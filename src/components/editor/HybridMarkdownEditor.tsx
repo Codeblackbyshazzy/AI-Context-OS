@@ -1000,6 +1000,9 @@ const turndownService = new TurndownService({
   strongDelimiter: "**",
 });
 
+const STRUCTURAL_LINE_RE =
+  /^(\s*([-*+]|\d+[.)]) (\[[ xX]\] )?|#{1,6} |> |---+\s*$|\*\*\*+\s*$|___+\s*$|\|)/;
+
 function getParagraphSelection(
   doc: {
     lineAt: (pos: number) => { from: number; to: number; text: string; number: number };
@@ -1008,10 +1011,13 @@ function getParagraphSelection(
   },
   pos: number,
 ) {
-  const isBlankLine = (text: string) => text.trim().length === 0;
   const currentLine = doc.lineAt(pos);
 
-  if (isBlankLine(currentLine.text)) {
+  if (currentLine.text.trim().length === 0) {
+    return { from: currentLine.from, to: currentLine.to };
+  }
+
+  if (STRUCTURAL_LINE_RE.test(currentLine.text)) {
     return { from: currentLine.from, to: currentLine.to };
   }
 
@@ -1020,13 +1026,13 @@ function getParagraphSelection(
 
   while (startLine > 1) {
     const prevLine = doc.line(startLine - 1);
-    if (isBlankLine(prevLine.text)) break;
+    if (prevLine.text.trim().length === 0 || STRUCTURAL_LINE_RE.test(prevLine.text)) break;
     startLine -= 1;
   }
 
   while (endLine < doc.lines) {
     const nextLine = doc.line(endLine + 1);
-    if (isBlankLine(nextLine.text)) break;
+    if (nextLine.text.trim().length === 0 || STRUCTURAL_LINE_RE.test(nextLine.text)) break;
     endLine += 1;
   }
 
