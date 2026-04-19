@@ -966,6 +966,15 @@ function rewriteWikilinkText(body: string, rawText: string, newId: string): stri
   return body.replace(pattern, `[[${newId}]]`);
 }
 
+function filterTransientWikilinkWarnings(
+  warnings: WikilinkSaveWarning[],
+  pendingCreations: ReadonlySet<string>,
+) {
+  return warnings.filter(
+    (warning) => !(warning.kind === "unresolved" && pendingCreations.has(warning.text)),
+  );
+}
+
 type GroupedWarning = {
   key: string;
   level: "l1" | "l2";
@@ -1579,10 +1588,6 @@ function getFileName(path: string): string {
 
 function hasDerivedMemoryChanges(previous: Memory, next: MemoryMeta) {
   return JSON.stringify(toComparableMemoryMeta(previous.meta)) !== JSON.stringify(toComparableMemoryMeta(next));
-}
-
-function hasBodyChanges(previous: Memory, nextL1: string, nextL2: string) {
-  return previous.l1_content !== nextL1 || previous.l2_content !== nextL2;
 }
 
 function toComparableMemoryMeta(meta: MemoryMeta) {
