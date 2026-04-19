@@ -532,6 +532,62 @@ function stopWidgetEvent(event: Event) {
   event.stopPropagation();
 }
 
+function getEventTargetElement(target: EventTarget | null): HTMLElement | null {
+  if (target instanceof HTMLElement) return target;
+  if (target instanceof Node) {
+    return target.parentElement;
+  }
+  return null;
+}
+
+function getCaretPositionFromPoint(doc: Document, x: number, y: number) {
+  if (typeof doc.caretPositionFromPoint === "function") {
+    const caret = doc.caretPositionFromPoint(x, y);
+    if (caret) {
+      return { node: caret.offsetNode, offset: caret.offset };
+    }
+  }
+
+  const legacyDoc = doc as Document & {
+    caretRangeFromPoint?: (x: number, y: number) => Range | null;
+  };
+  if (typeof legacyDoc.caretRangeFromPoint === "function") {
+    const range = legacyDoc.caretRangeFromPoint(x, y);
+    if (range) {
+      return { node: range.startContainer, offset: range.startOffset };
+    }
+  }
+
+  return null;
+}
+
+function resolveDecoratedLineClickPosition(
+  view: EditorView,
+  lineElement: HTMLElement,
+  event: MouseEvent,
+) {
+  const doc = lineElement.ownerDocument;
+  const caret = getCaretPositionFromPoint(doc, event.clientX, event.clientY);
+
+  if (caret && lineElement.contains(caret.node)) {
+    try {
+      return view.posAtDOM(caret.node, caret.offset);
+    } catch {
+      // Fall through to line-level fallbacks below.
+    }
+  }
+
+  const lineStart = view.posAtDOM(lineElement, 0);
+  const line = view.state.doc.lineAt(lineStart);
+  const textRect = lineElement.getBoundingClientRect();
+  const midpoint = textRect.left + textRect.width / 2;
+
+  if (event.clientX <= midpoint) {
+    return line.from;
+  }
+  return line.to;
+}
+
 function buildLinkIconSvg(): SVGSVGElement {
   const svg = document.createElementNS(SVG_NS, "svg");
   svg.setAttribute("width", "12");
@@ -946,20 +1002,38 @@ function createDomHandlers(editable: boolean) {
   return EditorView.domEventHandlers({
     mousedown(event, view) {
       if (!editable || event.button !== 0) return false;
-      const target = event.target;
-      if (!(target instanceof HTMLElement)) return false;
+      const target = getEventTargetElement(event.target);
+      if (!target) return false;
 
-      const lineElement = target.closest(".cm-line.cm-task-item");
+      const taskLineElement = target.closest(".cm-line.cm-task-item");
+      if (taskLineElement instanceof HTMLElement) {
+        const clickOffset = event.clientX - taskLineElement.getBoundingClientRect().left;
+        if (clickOffset <= 28) {
+          event.preventDefault();
+          event.stopPropagation();
+
+          const lineNumber = view.state.doc.lineAt(view.posAtDOM(taskLineElement, 0)).number;
+          return toggleTaskCheckboxOnLine(view, lineNumber);
+        }
+      }
+
+      if (event.detail !== 1) return false;
+      if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return false;
+      if (target.closest(".cm-widget, .cm-tooltip, button, a")) return false;
+
+      const lineElement = target.closest(".cm-line");
       if (!(lineElement instanceof HTMLElement)) return false;
+      if (target !== lineElement) return false;
 
-      const clickOffset = event.clientX - lineElement.getBoundingClientRect().left;
-      if (clickOffset > 28) return false;
-
+      const pos = resolveDecoratedLineClickPosition(view, lineElement, event);
+      view.dispatch({
+        selection: EditorSelection.cursor(pos),
+        scrollIntoView: false,
+        userEvent: "select.pointer",
+      });
+      view.focus();
       event.preventDefault();
-      event.stopPropagation();
-
-      const lineNumber = view.state.doc.lineAt(view.posAtDOM(lineElement, 0)).number;
-      return toggleTaskCheckboxOnLine(view, lineNumber);
+      return true;
     },
     paste(event, view) {
       const data = event.clipboardData;
