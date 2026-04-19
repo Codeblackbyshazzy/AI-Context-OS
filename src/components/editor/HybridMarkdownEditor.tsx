@@ -1040,6 +1040,13 @@ function createDomHandlers(editable: boolean) {
   let lastResolvedPos: number | null = null;
   let lastResolvedTime = 0;
 
+  function getSavedOrResolvedPos(view: EditorView, lineElement: HTMLElement, event: MouseEvent) {
+    if (lastResolvedPos !== null && Date.now() - lastResolvedTime < 500) {
+      return lastResolvedPos;
+    }
+    return resolveDecoratedLineClickPosition(view, lineElement, event);
+  }
+
   return EditorView.domEventHandlers({
     mousedown(event, view) {
       if (!editable || event.button !== 0) return false;
@@ -1079,10 +1086,7 @@ function createDomHandlers(editable: boolean) {
       }
 
       if (event.detail === 2) {
-        const pos =
-          lastResolvedPos !== null && Date.now() - lastResolvedTime < 500
-            ? lastResolvedPos
-            : resolveDecoratedLineClickPosition(view, lineElement, event);
+        const pos = getSavedOrResolvedPos(view, lineElement, event);
         const word = view.state.wordAt(pos);
         if (word) {
           view.dispatch({
@@ -1091,6 +1095,18 @@ function createDomHandlers(editable: boolean) {
             userEvent: "select.pointer",
           });
         }
+        event.preventDefault();
+        return true;
+      }
+
+      if (event.detail >= 3) {
+        const pos = getSavedOrResolvedPos(view, lineElement, event);
+        const paragraphSel = getParagraphSelection(view.state.doc, pos);
+        view.dispatch({
+          selection: EditorSelection.range(paragraphSel.from, paragraphSel.to),
+          scrollIntoView: false,
+          userEvent: "select.pointer",
+        });
         event.preventDefault();
         return true;
       }
@@ -1123,24 +1139,6 @@ function createDomHandlers(editable: boolean) {
         console.error("Paste Turndown Error:", error);
         return false;
       }
-    },
-
-    click(event, view) {
-      if (!editable || event.button !== 0 || event.detail !== 3) return false;
-
-      const pos = view.posAtCoords({ x: event.clientX, y: event.clientY });
-      if (pos === null) return false;
-
-      const selection = getParagraphSelection(view.state.doc, pos);
-      if (selection.from === selection.to) return false;
-
-      view.dispatch({
-        selection: EditorSelection.range(selection.from, selection.to),
-        scrollIntoView: true,
-        userEvent: "select.pointer",
-      });
-      event.preventDefault();
-      return true;
     },
   });
 }
