@@ -29,7 +29,7 @@ import type {
   WikilinkCandidate,
   WikilinkSaveWarning,
 } from "../../lib/types";
-import { createMemory, getBacklinks } from "../../lib/tauri";
+import { createMemory, createMemoryAtPath, getBacklinks } from "../../lib/tauri";
 import {
   nextUniqueMemoryId,
   slugifyMemoryId,
@@ -356,7 +356,7 @@ export function MemoryEditor() {
       pendingWikilinkCreationsRef.current.add(draft.id);
       pendingWikilinkCreationsRef.current.add(draft.l0);
       try {
-        const created = await createMemory({
+        const input = {
           id: draft.id,
           ontology: draft.ontology,
           l0: draft.l0,
@@ -364,7 +364,11 @@ export function MemoryEditor() {
           tags: [],
           l1_content: "",
           l2_content: "",
-        });
+        };
+        const parentDir = getMemoryParentDirectory(activeMemory?.file_path);
+        const created = parentDir
+          ? await createMemoryAtPath(input, parentDir)
+          : await createMemory(input);
         markRecentLocalWriteForPath(created.file_path);
         useAppStore.setState((state) => ({
           memories: upsertMemoryMeta(state.memories, created.meta),
@@ -387,7 +391,7 @@ export function MemoryEditor() {
         pendingWikilinkCreationsRef.current.delete(draft.l0);
       }
     },
-    [setError],
+    [activeMemory?.file_path, setError],
   );
 
   const handleCreateWikilinkMemory = useCallback(
@@ -985,6 +989,19 @@ function upsertMemoryMeta(memories: MemoryMeta[], nextMeta: MemoryMeta) {
   const next = [...memories];
   next[existingIndex] = nextMeta;
   return next;
+}
+
+function getMemoryParentDirectory(filePath?: string | null) {
+  if (!filePath) return null;
+  const normalized = filePath.replace(/[\\/]+$/, "");
+  const separatorIndex = Math.max(normalized.lastIndexOf("/"), normalized.lastIndexOf("\\"));
+  if (separatorIndex < 0) {
+    return null;
+  }
+  if (separatorIndex === 0) {
+    return normalized.slice(0, 1);
+  }
+  return normalized.slice(0, separatorIndex);
 }
 
 type GroupedWarning = {
