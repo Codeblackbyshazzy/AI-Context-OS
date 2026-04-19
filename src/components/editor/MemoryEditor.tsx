@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { clsx } from "clsx";
 import { listen } from "@tauri-apps/api/event";
-import { useAppStore } from "../../lib/store";
+import { markRecentLocalWriteForPath, useAppStore } from "../../lib/store";
 import { useSettingsStore } from "../../lib/settingsStore";
 import { FrontmatterForm } from "./FrontmatterForm";
 import { HybridMarkdownEditor } from "./HybridMarkdownEditor";
@@ -365,6 +365,7 @@ export function MemoryEditor() {
           l1_content: "",
           l2_content: "",
         });
+        markRecentLocalWriteForPath(created.file_path);
         useAppStore.setState((state) => ({
           memories: upsertMemoryMeta(state.memories, created.meta),
         }));

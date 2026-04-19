@@ -250,6 +250,10 @@ function markRecentLocalWrite(path: string) {
   recentLocalWrites.set(path, now);
 }
 
+export function markRecentLocalWriteForPath(path: string) {
+  markRecentLocalWrite(path);
+}
+
 export function wasRecentlyWrittenLocally(path: string) {
   const now = Date.now();
   pruneRecentLocalWrites(now);
