@@ -22,6 +22,7 @@ import { FormatToolbar } from "./FormatToolbar";
 import type { EditorView } from "@codemirror/view";
 import type {
   BacklinkRef,
+  CascadeRewriteOutcome,
   FileNode,
   Memory,
   MemoryMeta,
@@ -794,10 +795,15 @@ function BacklinksPanel({
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(true);
   const currentIdRef = useRef(memoryId);
+  const backlinkSourcePathsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     currentIdRef.current = memoryId;
   }, [memoryId]);
+
+  useEffect(() => {
+    backlinkSourcePathsRef.current = new Set(backlinks.map((item) => item.source_path));
+  }, [backlinks]);
 
   const refetch = useCallback(async (id: string) => {
     setLoading(true);
@@ -833,9 +839,41 @@ function BacklinksPanel({
     };
 
     const setup = async () => {
-      unlisteners.push(await listen("wikilinks-cascade", schedule));
-      unlisteners.push(await listen("memory-changed", schedule));
-      unlisteners.push(await listen("file-deleted", schedule));
+      unlisteners.push(
+        await listen<CascadeRewriteOutcome>("wikilinks-cascade", (event) => {
+          const outcome = event.payload;
+          if (
+            outcome &&
+            outcome.old_id !== currentIdRef.current &&
+            outcome.new_id !== currentIdRef.current
+          ) {
+            return;
+          }
+          schedule();
+        }),
+      );
+      unlisteners.push(
+        await listen<string>("memory-changed", (event) => {
+          if (event.payload === currentIdRef.current) {
+            return;
+          }
+          schedule();
+        }),
+      );
+      unlisteners.push(
+        await listen<string>("file-deleted", (event) => {
+          const deletedPath = event.payload ?? "";
+          if (!deletedPath) {
+            schedule();
+            return;
+          }
+          const currentSourcePaths = backlinkSourcePathsRef.current;
+          if (currentSourcePaths.size === 0 || !currentSourcePaths.has(deletedPath)) {
+            return;
+          }
+          schedule();
+        }),
+      );
     };
 
     void setup();

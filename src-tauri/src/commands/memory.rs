@@ -779,7 +779,22 @@ pub fn get_backlinks(id: String, state: State<AppState>) -> Result<Vec<BacklinkR
     }
 
     let root = state.get_root();
-    let scanned = scan_memories(&root);
+    let scanned = {
+        let index = state.memory_index.read().unwrap();
+        if index.is_empty() {
+            drop(index);
+            state.refresh_memory_index();
+            state
+                .memory_index
+                .read()
+                .unwrap()
+                .values()
+                .cloned()
+                .collect::<Vec<_>>()
+        } else {
+            index.values().cloned().collect::<Vec<_>>()
+        }
+    };
     let mut refs = Vec::new();
 
     for (meta, path_str) in scanned {
