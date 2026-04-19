@@ -248,6 +248,30 @@ function createEditorTheme(variant: keyof typeof editorThemePresets) {
       borderBottom: "2px solid white",
       transform: "translateY(-58%) rotate(45deg)",
     },
+    ".cm-task-priority-badge": {
+      display: "inline-flex",
+      alignItems: "center",
+      marginRight: "0.42rem",
+      padding: "0.02rem 0.32rem",
+      borderRadius: "999px",
+      fontFamily: '"JetBrains Mono", ui-monospace, monospace',
+      fontSize: "0.72rem",
+      fontWeight: "700",
+      lineHeight: "1.2",
+      verticalAlign: "baseline",
+    },
+    ".cm-task-priority-a": {
+      color: "var(--danger)",
+      backgroundColor: "color-mix(in srgb, var(--danger) 12%, transparent)",
+    },
+    ".cm-task-priority-b": {
+      color: "var(--warning)",
+      backgroundColor: "color-mix(in srgb, var(--warning) 16%, transparent)",
+    },
+    ".cm-task-priority-c": {
+      color: "var(--text-2)",
+      backgroundColor: "color-mix(in srgb, var(--text-2) 12%, transparent)",
+    },
     ".cm-line.cm-codeblock": {
       fontFamily: '"JetBrains Mono", ui-monospace, monospace',
       fontSize: "0.92em",
@@ -676,6 +700,24 @@ class ImagePreviewWidget extends WidgetType {
   }
 }
 
+class TaskPriorityWidget extends WidgetType {
+  constructor(public priority: "A" | "B" | "C") {
+    super();
+  }
+
+  toDOM() {
+    const span = document.createElement("span");
+    span.className = `cm-task-priority-badge cm-task-priority-${this.priority.toLowerCase()}`;
+    span.textContent = `#${this.priority}`;
+    span.setAttribute("aria-label", `Priority ${this.priority}`);
+    return span;
+  }
+
+  ignoreEvent() {
+    return true;
+  }
+}
+
 function createLivePreviewPlugin(revealSyntaxOnActiveLine: boolean) {
   return ViewPlugin.fromClass(
     class {
@@ -705,6 +747,7 @@ function createLivePreviewPlugin(revealSyntaxOnActiveLine: boolean) {
         const hideDeco = Decoration.replace({});
         const linkPreviewMark = Decoration.mark({ class: "cm-link-preview" });
         const decos: { from: number; to: number; deco: Decoration }[] = [];
+        const decoratedTaskPriorityLines = new Set<number>();
 
         for (const { from, to } of view.visibleRanges) {
           syntaxTree(state).iterate({
@@ -761,6 +804,31 @@ function createLivePreviewPlugin(revealSyntaxOnActiveLine: boolean) {
               }
             },
           });
+
+          let line = state.doc.lineAt(from);
+          const endLine = state.doc.lineAt(Math.max(from, to - 1));
+          while (line.number <= endLine.number) {
+            if (!activeLines.has(line.number) && !decoratedTaskPriorityLines.has(line.number)) {
+              const priorityMatch = line.text.match(/^(\s*-\s\[[ xX]\]\s+)(\[#([ABCabc])\]\s+)/);
+              if (priorityMatch) {
+                const markerFrom = line.from + priorityMatch[1].length;
+                const markerTo = markerFrom + priorityMatch[2].length;
+                decos.push({
+                  from: markerFrom,
+                  to: markerTo,
+                  deco: Decoration.replace({
+                    widget: new TaskPriorityWidget(
+                      priorityMatch[3].toUpperCase() as "A" | "B" | "C",
+                    ),
+                  }),
+                });
+                decoratedTaskPriorityLines.add(line.number);
+              }
+            }
+
+            if (line.number === endLine.number) break;
+            line = state.doc.line(line.number + 1);
+          }
         }
 
         decos.sort((a, b) => a.from - b.from || a.to - b.to);
@@ -817,6 +885,25 @@ function applyToggleMark(view: EditorView, mark: string) {
 
 function applyToggleLinePrefix(view: EditorView, prefix: string) {
   applyLinePrefixToggle(view, prefix);
+}
+
+function toggleTaskCheckboxOnLine(view: EditorView, lineNumber: number) {
+  const line = view.state.doc.line(lineNumber);
+  const match = line.text.match(/^(\s*-\s\[)( |x|X)(\]\s+)/);
+  if (!match) return false;
+
+  const markerFrom = line.from + match[1].length;
+  const markerTo = markerFrom + 1;
+  const nextMarker = match[2].toLowerCase() === "x" ? " " : "x";
+
+  view.dispatch({
+    changes: { from: markerFrom, to: markerTo, insert: nextMarker },
+    selection: view.state.selection,
+    scrollIntoView: false,
+    userEvent: "input",
+  });
+  view.focus();
+  return true;
 }
 
 function toggleMark(mark: string): StateCommand {
@@ -923,8 +1010,25 @@ function getParagraphSelection(
   };
 }
 
-function createDomHandlers() {
+function createDomHandlers(editable: boolean) {
   return EditorView.domEventHandlers({
+    mousedown(event, view) {
+      if (!editable || event.button !== 0) return false;
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return false;
+
+      const lineElement = target.closest(".cm-line.cm-task-item");
+      if (!(lineElement instanceof HTMLElement)) return false;
+
+      const clickOffset = event.clientX - lineElement.getBoundingClientRect().left;
+      if (clickOffset > 28) return false;
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      const lineNumber = view.state.doc.lineAt(view.posAtDOM(lineElement, 0)).number;
+      return toggleTaskCheckboxOnLine(view, lineNumber);
+    },
     paste(event, view) {
       const data = event.clipboardData;
       if (!data) return false;
@@ -1025,11 +1129,12 @@ export function HybridMarkdownEditor({
       history(),
       keymap.of(createMarkdownKeymap(linkTextPlaceholder)),
       keymap.of([...defaultKeymap, ...historyKeymap]),
-      createDomHandlers(),
+      createDomHandlers(editable),
     ],
     [
       themeVariant,
       showSyntax,
+      editable,
       linkTextPlaceholder,
       createMemoryLabel,
       revealSyntaxOnActiveLine,

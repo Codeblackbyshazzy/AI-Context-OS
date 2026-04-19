@@ -102,12 +102,26 @@ export function applyLinePrefixToggle(view: EditorView, prefix: string) {
 
   if (changes.length === 0) return;
 
+  const mainSelection = state.selection.main;
+  const mainLine = state.doc.lineAt(mainSelection.from);
+  const mainLineChange = getLinePrefixChange(mainLine, prefix);
+  const shouldMoveMainCursor =
+    mainSelection.empty &&
+    mainSelection.from === mainLine.from &&
+    Boolean(mainLineChange.insert);
+  const nextMainCursor = shouldMoveMainCursor
+    ? mainLineChange.from + (mainLineChange.insert?.length ?? 0)
+    : null;
+
   view.dispatch({
     changes,
-    selection: EditorSelection.create(
-      state.selection.ranges.map((range) => range.map(state.changes(changes))),
-      state.selection.mainIndex,
-    ),
+    selection:
+      nextMainCursor === null
+        ? EditorSelection.create(
+            state.selection.ranges.map((range) => range.map(state.changes(changes))),
+            state.selection.mainIndex,
+          )
+        : EditorSelection.cursor(nextMainCursor),
     scrollIntoView: true,
     userEvent: "input",
   });
