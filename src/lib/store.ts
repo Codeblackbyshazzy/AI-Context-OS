@@ -226,9 +226,6 @@ export const useAppStore = create<AppStore>((set, get) => ({
   regenerateRouter: async () => {
     try {
       await api.regenerateRouter();
-      await get().loadMemories();
-      await get().loadFileTree();
-      await get().loadGraph();
     } catch (e) {
       set({ error: String(e) });
     }
@@ -251,6 +248,10 @@ function markRecentLocalWrite(path: string) {
   const now = Date.now();
   pruneRecentLocalWrites(now);
   recentLocalWrites.set(path, now);
+}
+
+export function markRecentLocalWriteForPath(path: string) {
+  markRecentLocalWrite(path);
 }
 
 export function wasRecentlyWrittenLocally(path: string) {

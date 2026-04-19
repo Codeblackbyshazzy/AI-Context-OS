@@ -340,7 +340,10 @@ function TreeNode({
   onRenameCancel,
 }: TreeNodeProps) {
   const { t } = useTranslation();
-  const { selectedPath, selectFile, selectRawFile, memories } = useAppStore();
+  const selectedPath = useAppStore((state) => state.selectedPath);
+  const selectFile = useAppStore((state) => state.selectFile);
+  const selectRawFile = useAppStore((state) => state.selectRawFile);
+  const memories = useAppStore((state) => state.memories);
   const folderColor = useSettingsStore((s: SettingsStore) => s.folderColors[node.path]);
   const isExpanded = expanded.has(node.path);
   const isSelected = selectedPath === node.path;
@@ -727,20 +730,18 @@ function filterExplorerTree(
 
 export function FileExplorer() {
   const { t } = useTranslation();
-  const {
-    fileTree,
-    memories,
-    selectedPath,
-    loadFileTree,
-    loadMemories,
-    regenerateRouter,
-    clearSelection,
-    selectFile,
-    selectRawFile,
-    setError,
-    pendingCreate,
-    setPendingCreate,
-  } = useAppStore();
+  const fileTree = useAppStore((state) => state.fileTree);
+  const memories = useAppStore((state) => state.memories);
+  const selectedPath = useAppStore((state) => state.selectedPath);
+  const loadFileTree = useAppStore((state) => state.loadFileTree);
+  const loadMemories = useAppStore((state) => state.loadMemories);
+  const regenerateRouter = useAppStore((state) => state.regenerateRouter);
+  const clearSelection = useAppStore((state) => state.clearSelection);
+  const selectFile = useAppStore((state) => state.selectFile);
+  const selectRawFile = useAppStore((state) => state.selectRawFile);
+  const setError = useAppStore((state) => state.setError);
+  const pendingCreate = useAppStore((state) => state.pendingCreate);
+  const setPendingCreate = useAppStore((state) => state.setPendingCreate);
   const expertModeEnabled = useSettingsStore((s) => s.expertModeEnabled);
   const showSystemFiles = useSettingsStore((s) => s.showSystemFiles);
   const toggleShowSystemFiles = useSettingsStore((s) => s.toggleShowSystemFiles);

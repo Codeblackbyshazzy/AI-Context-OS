@@ -363,7 +363,10 @@ function ViewModeToggle({ mode, onChange }: { mode: ViewMode; onChange: (m: View
 export function GraphViewPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { graphData, loadGraph, selectFile, setError } = useAppStore();
+  const graphData = useAppStore((state) => state.graphData);
+  const loadGraph = useAppStore((state) => state.loadGraph);
+  const selectFile = useAppStore((state) => state.selectFile);
+  const setError = useAppStore((state) => state.setError);
   const [nodes, setNodes, onNodesChange] = useNodesState<FlowNode>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<FlowEdge>([]);
   const [layouting, setLayouting] = useState(false);
@@ -410,7 +413,10 @@ export function GraphViewPage() {
 
   useEffect(() => {
     if (!graphData || !selectedNode) return;
-    setSelectedNode(graphData.nodes.find((n) => n.id === selectedNode.id) ?? null);
+    const nextSelectedNode = graphData.nodes.find((n) => n.id === selectedNode.id) ?? null;
+    if (nextSelectedNode !== selectedNode) {
+      setSelectedNode(nextSelectedNode);
+    }
   }, [graphData, selectedNode]);
 
   const backlinksMap = useMemo(() => {

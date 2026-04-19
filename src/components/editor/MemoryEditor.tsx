@@ -1,17 +1,41 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
-import { FileText, PanelRightClose, PanelRightOpen, Trash2, ChevronRight } from "lucide-react";
+import {
+  AlertTriangle,
+  ChevronRight,
+  FileText,
+  Link2Off,
+  PanelRightClose,
+  PanelRightOpen,
+  Plus,
+  Trash2,
+  X,
+} from "lucide-react";
 import { clsx } from "clsx";
-import { useAppStore } from "../../lib/store";
+import { listen } from "@tauri-apps/api/event";
+import { markRecentLocalWriteForPath, useAppStore } from "../../lib/store";
 import { useSettingsStore } from "../../lib/settingsStore";
 import { FrontmatterForm } from "./FrontmatterForm";
 import { HybridMarkdownEditor } from "./HybridMarkdownEditor";
 import { FormatToolbar } from "./FormatToolbar";
 import type { EditorView } from "@codemirror/view";
-import type { Memory, MemoryMeta, MemoryOntology, RawFileDocument } from "../../lib/types";
-import { createMemory } from "../../lib/tauri";
-import type { WikilinkDraftMemory } from "./editorWikilinks";
+import type {
+  BacklinkRef,
+  Memory,
+  MemoryMeta,
+  MemoryOntology,
+  RawFileDocument,
+  WikilinkCandidate,
+  WikilinkSaveWarning,
+} from "../../lib/types";
+import { createMemory, createMemoryAtPath, getBacklinks } from "../../lib/tauri";
+import {
+  nextUniqueMemoryId,
+  slugifyMemoryId,
+  type WikilinkDraftMemory,
+  type WikilinkTarget,
+} from "./editorWikilinks";
 
 type InspectorTab = "properties" | "links" | "history";
 type SaveStatus = "saved" | "dirty" | "saving" | "error";
@@ -45,20 +69,15 @@ interface RawFileDraft {
 
 export function MemoryEditor() {
   const { t } = useTranslation();
-  const {
-    activeMemory,
-    activeRawFile,
-    saveActiveMemory,
-    saveRawFile,
-    deleteMemory,
-    loading,
-    memories,
-    loadFileTree,
-    loadGraph,
-    loadMemories,
-    selectFile,
-    setError,
-  } = useAppStore();
+  const activeMemory = useAppStore((state) => state.activeMemory);
+  const activeRawFile = useAppStore((state) => state.activeRawFile);
+  const saveActiveMemory = useAppStore((state) => state.saveActiveMemory);
+  const saveRawFile = useAppStore((state) => state.saveRawFile);
+  const deleteMemory = useAppStore((state) => state.deleteMemory);
+  const loading = useAppStore((state) => state.loading);
+  const memories = useAppStore((state) => state.memories);
+  const selectFile = useAppStore((state) => state.selectFile);
+  const setError = useAppStore((state) => state.setError);
   const showMarkdownSyntax = useSettingsStore((s) => s.showMarkdownSyntax);
   const appearanceMode = useSettingsStore((s) => s.appearanceMode);
   const [meta, setMeta] = useState<MemoryMeta | null>(null);
@@ -70,11 +89,15 @@ export function MemoryEditor() {
   const [showInspector, setShowInspector] = useState(false);
   const [inspectorTab, setInspectorTab] = useState<InspectorTab>("properties");
   const [l1Open, setL1Open] = useState(false);
+  const [wikilinkWarnings, setWikilinkWarnings] = useState<WikilinkSaveWarning[]>([]);
+  const [warningsCollapsed, setWarningsCollapsed] = useState(false);
+  const [brokenLinkDraft, setBrokenLinkDraft] = useState<WikilinkSaveWarning | null>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latestDraftRef = useRef<MemoryDraft | null>(null);
   const queuedDraftRef = useRef<MemoryDraft | null>(null);
   const isSavingRef = useRef(false);
   const editorViewRef = useRef<EditorView | null>(null);
+  const pendingWikilinkCreationsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     if (!activeMemory) return;
@@ -88,6 +111,9 @@ export function MemoryEditor() {
       setDirty(false);
       setSaveStatus("saved");
       setInspectorTab("properties");
+      setWikilinkWarnings([]);
+      setWarningsCollapsed(false);
+      setBrokenLinkDraft(null);
       return;
     }
 
@@ -117,8 +143,7 @@ export function MemoryEditor() {
       l1,
       l2,
       meta,
-      refreshDerivedState:
-        hasDerivedMemoryChanges(activeMemory, meta) || hasBodyChanges(activeMemory, l1, l2),
+      refreshDerivedState: hasDerivedMemoryChanges(activeMemory, meta),
     };
   }, [activeMemory, sourceId, meta, l1, l2, dirty]);
 
@@ -133,7 +158,7 @@ export function MemoryEditor() {
       setSaveStatus("saving");
 
       try {
-        await saveActiveMemory(
+        const result = await saveActiveMemory(
           draft.sourceId,
           draft.l1,
           draft.l2,
@@ -143,8 +168,16 @@ export function MemoryEditor() {
 
         const currentActiveId = useAppStore.getState().activeMemory?.meta.id;
         if (currentActiveId === draft.sourceId || currentActiveId === draft.meta.id) {
+          const visibleWarnings = filterTransientWikilinkWarnings(
+            result.wikilink_warnings,
+            pendingWikilinkCreationsRef.current,
+          );
           setDirty(false);
           setSaveStatus("saved");
+          setWikilinkWarnings(visibleWarnings);
+          if (visibleWarnings.length > 0) {
+            setWarningsCollapsed(false);
+          }
         }
       } catch {
         setSaveStatus("error");
@@ -318,26 +351,83 @@ export function MemoryEditor() {
     [memories],
   );
 
-  const handleCreateWikilinkMemory = useCallback(
-    async ({ id, l0 }: WikilinkDraftMemory) => {
+  const createLinkedMemory = useCallback(
+    async (draft: { id: string; l0: string; ontology: MemoryOntology }) => {
+      pendingWikilinkCreationsRef.current.add(draft.id);
+      pendingWikilinkCreationsRef.current.add(draft.l0);
       try {
-        await createMemory({
-          id,
-          ontology: "unknown",
-          l0,
+        const input = {
+          id: draft.id,
+          ontology: draft.ontology,
+          l0: draft.l0,
           importance: 0.5,
           tags: [],
           l1_content: "",
           l2_content: "",
-        });
-        await loadMemories();
-        await loadFileTree();
-        await loadGraph();
+        };
+        const parentDir = getMemoryParentDirectory(activeMemory?.file_path);
+        const created = parentDir
+          ? await createMemoryAtPath(input, parentDir)
+          : await createMemory(input);
+        markRecentLocalWriteForPath(created.file_path);
+        useAppStore.setState((state) => ({
+          memories: upsertMemoryMeta(state.memories, created.meta),
+        }));
+        setWikilinkWarnings((prev) =>
+          prev.filter(
+            (warning) =>
+              !(
+                warning.kind === "unresolved" &&
+                (warning.text === draft.id || warning.text === draft.l0)
+              ),
+          ),
+        );
+        return created;
       } catch (error) {
         setError(String(error));
+        return null;
+      } finally {
+        pendingWikilinkCreationsRef.current.delete(draft.id);
+        pendingWikilinkCreationsRef.current.delete(draft.l0);
       }
     },
-    [loadFileTree, loadGraph, loadMemories, setError],
+    [activeMemory?.file_path, setError],
+  );
+
+  const handleCreateWikilinkMemory = useCallback(
+    async ({ id, l0 }: WikilinkDraftMemory) => {
+      await createLinkedMemory({ id, l0, ontology: "unknown" });
+    },
+    [createLinkedMemory],
+  );
+
+  const applyWikilinkCandidate = useCallback(
+    (warning: WikilinkSaveWarning, candidateId: string) => {
+      const rewrite = (body: string) => rewriteWikilinkText(body, warning.text, candidateId);
+      if (warning.level === "l1") {
+        setL1((prev) => rewrite(prev));
+      } else {
+        setL2((prev) => rewrite(prev));
+      }
+      setDirty(true);
+      setSaveStatus("dirty");
+      setWikilinkWarnings((prev) =>
+        prev.filter(
+          (w) => !(w.level === warning.level && w.text === warning.text),
+        ),
+      );
+    },
+    [],
+  );
+
+  const confirmBrokenLinkCreation = useCallback(
+    async (warning: WikilinkSaveWarning, draft: { id: string; l0: string; ontology: MemoryOntology }) => {
+      setBrokenLinkDraft(null);
+      const created = await createLinkedMemory(draft);
+      if (!created) return;
+      applyWikilinkCandidate(warning, draft.id);
+    },
+    [applyWikilinkCandidate, createLinkedMemory],
   );
 
   if (!activeMemory || !meta) {
@@ -423,6 +513,16 @@ export function MemoryEditor() {
                 {` · ${t("memoryEditor.meta.l2Content")} · v${meta.version}`}
               </p>
 
+              {wikilinkWarnings.length > 0 && (
+                <WikilinkWarningsBanner
+                  warnings={wikilinkWarnings}
+                  collapsed={warningsCollapsed}
+                  onToggleCollapsed={() => setWarningsCollapsed((prev) => !prev)}
+                  onPickCandidate={applyWikilinkCandidate}
+                  onCreateMemory={(warning) => setBrokenLinkDraft(warning)}
+                />
+              )}
+
               <HybridMarkdownEditor
                 key={`${activeMemory.meta.id}-l2-${showMarkdownSyntax ? "raw" : "preview"}`}
                 content={l2}
@@ -440,6 +540,15 @@ export function MemoryEditor() {
                 onOpenWikilink={handleOpenMemory}
                 onCreateWikilinkMemory={handleCreateWikilinkMemory}
               />
+
+              {brokenLinkDraft && (
+                <BrokenLinkCreateDialog
+                  warning={brokenLinkDraft}
+                  targets={wikilinkTargets}
+                  onCancel={() => setBrokenLinkDraft(null)}
+                  onConfirm={(draft) => void confirmBrokenLinkCreation(brokenLinkDraft, draft)}
+                />
+              )}
 
               <div className="mt-10 border-t border-[color:color-mix(in_srgb,var(--accent)_12%,var(--border))] pt-4">
                 <button
@@ -514,6 +623,7 @@ export function MemoryEditor() {
               )}
               {inspectorTab === "links" && (
                 <LinksPanel
+                  memoryId={meta.id}
                   outgoing={outgoingLinks}
                   incoming={incomingLinks}
                   onOpenMemory={handleOpenMemory}
@@ -556,10 +666,12 @@ function InspectorTabButton({
 }
 
 function LinksPanel({
+  memoryId,
   outgoing,
   incoming,
   onOpenMemory,
 }: {
+  memoryId: string;
   outgoing: OutgoingLink[];
   incoming: IncomingLink[];
   onOpenMemory: (id: string) => void;
@@ -603,7 +715,173 @@ function LinksPanel({
           </button>
         ))}
       </div>
+      <BacklinksPanel memoryId={memoryId} onOpenMemory={onOpenMemory} />
     </div>
+  );
+}
+
+const BACKLINKS_REFRESH_DEBOUNCE_MS = 250;
+
+function BacklinksPanel({
+  memoryId,
+  onOpenMemory,
+}: {
+  memoryId: string;
+  onOpenMemory: (id: string) => void;
+}) {
+  const { t } = useTranslation();
+  const [backlinks, setBacklinks] = useState<BacklinkRef[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [open, setOpen] = useState(true);
+  const currentIdRef = useRef(memoryId);
+
+  useEffect(() => {
+    currentIdRef.current = memoryId;
+  }, [memoryId]);
+
+  const refetch = useCallback(async (id: string) => {
+    setLoading(true);
+    try {
+      const next = await getBacklinks(id);
+      if (currentIdRef.current === id) {
+        setBacklinks(next);
+      }
+    } catch {
+      if (currentIdRef.current === id) {
+        setBacklinks([]);
+      }
+    } finally {
+      if (currentIdRef.current === id) {
+        setLoading(false);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    void refetch(memoryId);
+  }, [memoryId, refetch]);
+
+  useEffect(() => {
+    const unlisteners: Array<() => void> = [];
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const schedule = () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        void refetch(currentIdRef.current);
+      }, BACKLINKS_REFRESH_DEBOUNCE_MS);
+    };
+
+    const setup = async () => {
+      unlisteners.push(await listen("wikilinks-cascade", schedule));
+      unlisteners.push(await listen("memory-changed", schedule));
+      unlisteners.push(await listen("file-deleted", schedule));
+      unlisteners.push(await listen("router-regenerated", schedule));
+    };
+
+    void setup();
+
+    return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      for (const fn of unlisteners) fn();
+    };
+  }, [refetch]);
+
+  const occurrenceCount = useMemo(
+    () => backlinks.reduce((sum, item) => sum + item.occurrences.length, 0),
+    [backlinks],
+  );
+  const sourceCount = backlinks.length;
+  const isEmpty = !loading && sourceCount === 0;
+
+  return (
+    <div className="space-y-2 pt-1">
+      <button
+        type="button"
+        onClick={() => setOpen((prev) => !prev)}
+        className="flex w-full items-center gap-1.5 text-[10px] uppercase tracking-[0.12em] text-[color:var(--text-2)] transition-colors hover:text-[color:var(--text-1)]"
+      >
+        <ChevronRight
+          className={clsx(
+            "h-3 w-3 shrink-0 transition-transform",
+            open && "rotate-90",
+          )}
+        />
+        <span>{t("memoryEditor.links.backlinksTitle")}</span>
+        {sourceCount > 0 && (
+          <span className="ml-auto rounded-full border border-[var(--border)] bg-[color:var(--bg-2)] px-1.5 py-[1px] text-[9px] font-medium normal-case tracking-normal text-[color:var(--text-1)]">
+            {sourceCount} · {occurrenceCount}
+          </span>
+        )}
+      </button>
+      {open && (
+        <div className="space-y-2">
+          <p className="text-[10px] leading-4 text-[color:var(--text-2)]">
+            {t("memoryEditor.links.backlinksHint")}
+          </p>
+          {loading && sourceCount === 0 && (
+            <p className="rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-2.5 py-2 text-xs text-[color:var(--text-2)]">
+              {t("memoryEditor.links.backlinksLoading")}
+            </p>
+          )}
+          {isEmpty && (
+            <p className="rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-2.5 py-2 text-xs text-[color:var(--text-2)]">
+              {t("memoryEditor.links.backlinksEmpty")}
+            </p>
+          )}
+          {backlinks.map((backlink) => (
+            <BacklinkCard
+              key={backlink.source_id}
+              backlink={backlink}
+              onOpenMemory={onOpenMemory}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function BacklinkCard({
+  backlink,
+  onOpenMemory,
+}: {
+  backlink: BacklinkRef;
+  onOpenMemory: (id: string) => void;
+}) {
+  const { t } = useTranslation();
+
+  return (
+    <button
+      type="button"
+      onClick={() => onOpenMemory(backlink.source_id)}
+      className="w-full rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-2.5 py-2 text-left transition-colors hover:bg-[color:var(--bg-3)]"
+    >
+      <p className="truncate text-xs font-semibold text-[color:var(--text-0)]">
+        {backlink.source_id}
+      </p>
+      {backlink.source_l0 && backlink.source_l0 !== backlink.source_id && (
+        <p className="mt-0.5 truncate text-[11px] text-[color:var(--text-2)]">
+          {backlink.source_l0}
+        </p>
+      )}
+      <ul className="mt-1.5 space-y-1">
+        {backlink.occurrences.map((occ, idx) => (
+          <li
+            key={`${occ.level}-${occ.line}-${idx}`}
+            className="flex items-start gap-1.5 text-[11px] leading-4 text-[color:var(--text-1)]"
+          >
+            <span
+              className="shrink-0 rounded bg-[color:var(--bg-3)] px-1 py-[1px] font-mono text-[9px] uppercase tracking-wide text-[color:var(--text-2)]"
+              title={t("memoryEditor.links.backlinksLineLabel", { line: occ.line })}
+            >
+              {occ.level}:{occ.line}
+            </span>
+            <span className="break-words">{occ.excerpt}</span>
+          </li>
+        ))}
+      </ul>
+    </button>
   );
 }
 
@@ -685,6 +963,385 @@ function formatTimestamp(value: string, t: TFunction): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return t("memoryEditor.history.notAvailable");
   return date.toLocaleString();
+}
+
+function rewriteWikilinkText(body: string, rawText: string, newId: string): string {
+  const escaped = rawText.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const pattern = new RegExp(`\\[\\[\\s*${escaped}\\s*\\]\\]`, "g");
+  return body.replace(pattern, `[[${newId}]]`);
+}
+
+function filterTransientWikilinkWarnings(
+  warnings: WikilinkSaveWarning[],
+  pendingCreations: ReadonlySet<string>,
+) {
+  return warnings.filter(
+    (warning) => !(warning.kind === "unresolved" && pendingCreations.has(warning.text)),
+  );
+}
+
+function upsertMemoryMeta(memories: MemoryMeta[], nextMeta: MemoryMeta) {
+  const existingIndex = memories.findIndex((memory) => memory.id === nextMeta.id);
+  if (existingIndex === -1) {
+    return [...memories, nextMeta].sort((a, b) => a.id.localeCompare(b.id));
+  }
+
+  const next = [...memories];
+  next[existingIndex] = nextMeta;
+  return next;
+}
+
+function getMemoryParentDirectory(filePath?: string | null) {
+  if (!filePath) return null;
+  const normalized = filePath.replace(/[\\/]+$/, "");
+  const separatorIndex = Math.max(normalized.lastIndexOf("/"), normalized.lastIndexOf("\\"));
+  if (separatorIndex < 0) {
+    return null;
+  }
+  if (separatorIndex === 0) {
+    return normalized.slice(0, 1);
+  }
+  return normalized.slice(0, separatorIndex);
+}
+
+type GroupedWarning = {
+  key: string;
+  level: "l1" | "l2";
+  text: string;
+  kind: "ambiguous" | "unresolved";
+  candidates: WikilinkCandidate[];
+  occurrences: number;
+  representative: WikilinkSaveWarning;
+};
+
+function groupWikilinkWarnings(warnings: WikilinkSaveWarning[]): GroupedWarning[] {
+  const byKey = new Map<string, GroupedWarning>();
+  for (const warning of warnings) {
+    const key = `${warning.level}::${warning.text}::${warning.kind}`;
+    const existing = byKey.get(key);
+    if (existing) {
+      existing.occurrences += 1;
+      continue;
+    }
+    byKey.set(key, {
+      key,
+      level: warning.level,
+      text: warning.text,
+      kind: warning.kind,
+      candidates: warning.candidates ?? [],
+      occurrences: 1,
+      representative: warning,
+    });
+  }
+  return Array.from(byKey.values());
+}
+
+function WikilinkWarningsBanner({
+  warnings,
+  collapsed,
+  onToggleCollapsed,
+  onPickCandidate,
+  onCreateMemory,
+}: {
+  warnings: WikilinkSaveWarning[];
+  collapsed: boolean;
+  onToggleCollapsed: () => void;
+  onPickCandidate: (warning: WikilinkSaveWarning, candidateId: string) => void;
+  onCreateMemory: (warning: WikilinkSaveWarning) => void;
+}) {
+  const { t } = useTranslation();
+  const grouped = useMemo(() => groupWikilinkWarnings(warnings), [warnings]);
+  const totalCount = warnings.length;
+
+  return (
+    <div className="mb-3 rounded-lg border border-[color:var(--warning)]/40 bg-[color:var(--warning)]/5 px-3 py-2 text-[11px] text-[color:var(--text-1)]">
+      <button
+        type="button"
+        onClick={onToggleCollapsed}
+        className="flex w-full items-center gap-2 text-left"
+      >
+        <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-[color:var(--warning)]" />
+        <span className="font-semibold text-[color:var(--warning)]">
+          {t("memoryEditor.warnings.title")}
+        </span>
+        <span className="rounded-full border border-[color:var(--warning)]/40 bg-[color:var(--warning)]/10 px-1.5 py-[1px] text-[10px] font-medium text-[color:var(--warning)]">
+          {totalCount}
+        </span>
+        <span className="ml-auto text-[10px] uppercase tracking-[0.12em] text-[color:var(--text-2)]">
+          {collapsed
+            ? t("memoryEditor.warnings.show", { count: totalCount })
+            : t("memoryEditor.warnings.hide")}
+        </span>
+        <ChevronRight
+          className={clsx(
+            "h-3 w-3 shrink-0 text-[color:var(--text-2)] transition-transform",
+            !collapsed && "rotate-90",
+          )}
+        />
+      </button>
+      {!collapsed && (
+        <>
+          <p className="mt-2 text-[10px] leading-4 text-[color:var(--text-2)]">
+            {t("memoryEditor.warnings.hint")}
+          </p>
+          <ul className="mt-2 space-y-2">
+            {grouped.map((group) => (
+              <WarningRow
+                key={group.key}
+                group={group}
+                onPickCandidate={onPickCandidate}
+                onCreateMemory={onCreateMemory}
+              />
+            ))}
+          </ul>
+        </>
+      )}
+    </div>
+  );
+}
+
+function WarningRow({
+  group,
+  onPickCandidate,
+  onCreateMemory,
+}: {
+  group: GroupedWarning;
+  onPickCandidate: (warning: WikilinkSaveWarning, candidateId: string) => void;
+  onCreateMemory: (warning: WikilinkSaveWarning) => void;
+}) {
+  const { t } = useTranslation();
+  const pillClass =
+    group.kind === "ambiguous"
+      ? "bg-[color:var(--warning)]/20 text-[color:var(--warning)]"
+      : "bg-[color:var(--danger)]/20 text-[color:var(--danger)]";
+  return (
+    <li className="rounded-md border border-[color:var(--border)] bg-[color:var(--bg-1)] px-2 py-1.5">
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span
+          className={clsx(
+            "rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+            pillClass,
+          )}
+        >
+          {group.kind === "ambiguous"
+            ? t("memoryEditor.warnings.ambiguous")
+            : t("memoryEditor.warnings.unresolved")}
+        </span>
+        <span className="rounded bg-[color:var(--bg-3)] px-1.5 py-0.5 font-mono text-[10px] text-[color:var(--text-2)]">
+          {group.level.toUpperCase()}
+        </span>
+        <code className="truncate font-mono text-[11px] text-[color:var(--text-0)]">
+          [[{group.text}]]
+        </code>
+        {group.occurrences > 1 && (
+          <span className="text-[10px] text-[color:var(--text-2)]">
+            ×{group.occurrences}
+          </span>
+        )}
+      </div>
+      {group.kind === "ambiguous" && group.candidates.length > 0 && (
+        <div className="mt-1.5 space-y-1">
+          <p className="text-[10px] uppercase tracking-[0.12em] text-[color:var(--text-2)]">
+            {t("memoryEditor.warnings.pickCandidate")}
+          </p>
+          <div className="flex flex-wrap gap-1">
+            {group.candidates.map((candidate) => (
+              <button
+                key={candidate.id}
+                type="button"
+                onClick={() => onPickCandidate(group.representative, candidate.id)}
+                className="inline-flex items-center gap-1 rounded border border-[color:var(--border)] bg-[color:var(--bg-2)] px-1.5 py-0.5 text-[11px] text-[color:var(--text-1)] transition-colors hover:border-[color:var(--accent)] hover:text-[color:var(--accent)]"
+              >
+                <span className="font-mono">{candidate.id}</span>
+                {candidate.l0 && candidate.l0 !== candidate.id && (
+                  <span className="text-[color:var(--text-2)]">· {candidate.l0}</span>
+                )}
+                <span className="rounded bg-[color:var(--bg-3)] px-1 py-[1px] text-[9px] uppercase tracking-wide text-[color:var(--text-2)]">
+                  {candidate.match_type === "exact_l0"
+                    ? t("memoryEditor.warnings.matchExact")
+                    : t("memoryEditor.warnings.matchFuzzy")}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      {group.kind === "unresolved" && (
+        <div className="mt-1.5">
+          <button
+            type="button"
+            onClick={() => onCreateMemory(group.representative)}
+            className="inline-flex items-center gap-1.5 rounded border border-[color:var(--border)] bg-[color:var(--bg-2)] px-2 py-0.5 text-[11px] text-[color:var(--text-1)] transition-colors hover:border-[color:var(--accent)] hover:text-[color:var(--accent)]"
+          >
+            <Plus className="h-3 w-3" />
+            {t("memoryEditor.warnings.createMemory")}
+          </button>
+        </div>
+      )}
+    </li>
+  );
+}
+
+function BrokenLinkCreateDialog({
+  warning,
+  targets,
+  onCancel,
+  onConfirm,
+}: {
+  warning: WikilinkSaveWarning;
+  targets: ReadonlyArray<WikilinkTarget>;
+  onCancel: () => void;
+  onConfirm: (draft: { id: string; l0: string; ontology: MemoryOntology }) => void;
+}) {
+  const { t } = useTranslation();
+  const [l0, setL0] = useState(warning.text);
+  const [id, setId] = useState(() =>
+    nextUniqueMemoryId(warning.text, targets),
+  );
+  const [idTouched, setIdTouched] = useState(false);
+  const [ontology, setOntology] = useState<MemoryOntology>("unknown");
+
+  useEffect(() => {
+    if (!idTouched) {
+      setId(nextUniqueMemoryId(l0 || warning.text, targets));
+    }
+  }, [l0, warning.text, targets, idTouched]);
+
+  const hasCollision = useMemo(
+    () => targets.some((target) => target.id === id.trim()),
+    [targets, id],
+  );
+  const trimmedId = id.trim();
+  const trimmedL0 = l0.trim();
+  const canConfirm = trimmedId.length > 0 && trimmedL0.length > 0 && !hasCollision;
+
+  useEffect(() => {
+    const handler = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onCancel();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onCancel]);
+
+  const handleBackdropClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (event.target === event.currentTarget) onCancel();
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/40 backdrop-blur-sm"
+      onMouseDown={handleBackdropClick}
+      role="dialog"
+      aria-modal="true"
+    >
+      <div className="w-full max-w-md rounded-lg border border-[color:var(--border)] bg-[color:var(--bg-1)] p-5 shadow-xl">
+        <div className="mb-3 flex items-center gap-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[color:var(--accent-muted)]">
+            <Link2Off className="h-4 w-4 text-[color:var(--accent)]" />
+          </div>
+          <h2 className="text-sm font-semibold text-[color:var(--text-0)]">
+            {t("memoryEditor.brokenLink.title", { text: warning.text })}
+          </h2>
+          <button
+            type="button"
+            onClick={onCancel}
+            className="ml-auto rounded p-1 text-[color:var(--text-2)] transition-colors hover:text-[color:var(--text-0)]"
+            aria-label={t("memoryEditor.brokenLink.cancel")}
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+
+        <p className="mb-3 text-xs leading-5 text-[color:var(--text-2)]">
+          {t("memoryEditor.brokenLink.description")}
+        </p>
+
+        <div className="space-y-2">
+          <label className="block space-y-1">
+            <span className="text-[10px] uppercase tracking-[0.12em] text-[color:var(--text-2)]">
+              {t("memoryEditor.brokenLink.l0Label")}
+            </span>
+            <input
+              type="text"
+              value={l0}
+              onChange={(event) => setL0(event.target.value)}
+              autoFocus
+              className="w-full rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-2 py-1.5 text-xs text-[color:var(--text-0)]"
+            />
+          </label>
+          <label className="block space-y-1">
+            <span className="text-[10px] uppercase tracking-[0.12em] text-[color:var(--text-2)]">
+              {t("memoryEditor.brokenLink.idLabel")}
+            </span>
+            <input
+              type="text"
+              value={id}
+              onChange={(event) => {
+                setIdTouched(true);
+                setId(slugifyMemoryId(event.target.value));
+              }}
+              className={clsx(
+                "w-full rounded-md border bg-[color:var(--bg-2)] px-2 py-1.5 font-mono text-xs text-[color:var(--text-0)]",
+                hasCollision
+                  ? "border-[color:var(--danger)]"
+                  : "border-[var(--border)]",
+              )}
+            />
+            {hasCollision && (
+              <p className="text-[10px] text-[color:var(--danger)]">
+                {t("memoryEditor.brokenLink.idCollision")}
+              </p>
+            )}
+          </label>
+          <label className="block space-y-1">
+            <span className="text-[10px] uppercase tracking-[0.12em] text-[color:var(--text-2)]">
+              {t("memoryEditor.brokenLink.ontologyLabel")}
+            </span>
+            <select
+              value={ontology}
+              onChange={(event) => setOntology(event.target.value as MemoryOntology)}
+              className="w-full rounded-md border border-[var(--border)] bg-[color:var(--bg-2)] px-2 py-1.5 text-xs text-[color:var(--text-1)]"
+            >
+              {(["unknown", "source", "entity", "concept", "synthesis"] as MemoryOntology[]).map(
+                (value) => (
+                  <option key={value} value={value}>
+                    {t(`ontologies.${value}`)}
+                  </option>
+                ),
+              )}
+            </select>
+          </label>
+        </div>
+
+        <div className="mt-5 flex gap-2">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="flex-1 rounded-md border border-[color:var(--border)] bg-[color:var(--bg-2)] px-4 py-1.5 text-xs font-medium text-[color:var(--text-1)] transition-colors hover:border-[color:var(--border-active)]"
+          >
+            {t("memoryEditor.brokenLink.cancel")}
+          </button>
+          <button
+            type="button"
+            disabled={!canConfirm}
+            onClick={() =>
+              onConfirm({
+                id: trimmedId,
+                l0: trimmedL0,
+                ontology,
+              })
+            }
+            className="flex-1 rounded-md bg-[color:var(--accent)] px-4 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {t("memoryEditor.brokenLink.confirm")}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function SaveStateBadge({ status }: { status: SaveStatus }) {
@@ -960,10 +1617,6 @@ function getFileName(path: string): string {
 
 function hasDerivedMemoryChanges(previous: Memory, next: MemoryMeta) {
   return JSON.stringify(toComparableMemoryMeta(previous.meta)) !== JSON.stringify(toComparableMemoryMeta(next));
-}
-
-function hasBodyChanges(previous: Memory, nextL1: string, nextL2: string) {
-  return previous.l1_content !== nextL1 || previous.l2_content !== nextL2;
 }
 
 function toComparableMemoryMeta(meta: MemoryMeta) {

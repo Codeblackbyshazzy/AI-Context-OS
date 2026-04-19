@@ -14,16 +14,14 @@ const MemoryEditor = lazy(() =>
 
 export function ExplorerView() {
   const { t } = useTranslation();
-  const {
-    initialized,
-    initialize,
-    loadFileTree,
-    loadMemories,
-    regenerateRouter,
-    memories,
-    explorerOpen,
-    setPendingCreate,
-  } = useAppStore();
+  const initialized = useAppStore((state) => state.initialized);
+  const initialize = useAppStore((state) => state.initialize);
+  const loadFileTree = useAppStore((state) => state.loadFileTree);
+  const loadMemories = useAppStore((state) => state.loadMemories);
+  const regenerateRouter = useAppStore((state) => state.regenerateRouter);
+  const memories = useAppStore((state) => state.memories);
+  const explorerOpen = useAppStore((state) => state.explorerOpen);
+  const setPendingCreate = useAppStore((state) => state.setPendingCreate);
   const expertModeEnabled = useSettingsStore((s) => s.expertModeEnabled);
   const showSystemFiles = useSettingsStore((s) => s.showSystemFiles);
   const toggleShowSystemFiles = useSettingsStore((s) => s.toggleShowSystemFiles);

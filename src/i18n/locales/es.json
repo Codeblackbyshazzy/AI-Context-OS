@@ -470,11 +470,38 @@
       "pending": "Pendiente",
       "saved": "Guardado"
     },
+    "warnings": {
+      "title": "Avisos de wikilinks",
+      "hint": "Estos wikilinks no se pudieron resolver a una memoria canónica. Resuélvelos para mantener el grafo consistente.",
+      "ambiguous": "Ambiguo",
+      "unresolved": "Roto",
+      "pickCandidate": "Elige la memoria destino:",
+      "createMemory": "Crear nueva memoria",
+      "hide": "Ocultar",
+      "show": "Mostrar {{count}}",
+      "matchExact": "exacto",
+      "matchFuzzy": "aprox."
+    },
+    "brokenLink": {
+      "title": "Crear memoria desde [[{{text}}]]",
+      "description": "Esto crea una nueva memoria y reescribe el wikilink roto al ID canónico.",
+      "idLabel": "ID",
+      "l0Label": "Resumen L0",
+      "ontologyLabel": "Tipo",
+      "idCollision": "Ya existe una memoria con este ID.",
+      "cancel": "Cancelar",
+      "confirm": "Crear memoria"
+    },
     "links": {
       "outgoing": "Salientes",
       "incoming": "Entrantes",
       "noBacklinks": "Sin enlaces entrantes.",
-      "noLinks": "Sin enlaces."
+      "noLinks": "Sin enlaces.",
+      "backlinksTitle": "Retroenlaces de wikilinks",
+      "backlinksHint": "Memorias que referencian esta mediante [[wikilink]] en su cuerpo.",
+      "backlinksLoading": "Cargando retroenlaces…",
+      "backlinksEmpty": "Ninguna memoria enlaza aquí todavía.",
+      "backlinksLineLabel": "Línea {{line}}"
     },
     "history": {
       "created": "Creado",
@@ -487,7 +514,22 @@
     },
     "frontmatter": {
       "id": "Nombre del archivo (ID)",
+      "idHint": "Identificador canónico. Cambiarlo renombra el archivo y reescribe todos los [[wikilinks]] que apuntan a esta memoria.",
       "memoryIdPlaceholder": "memory-id",
+      "renameIdTitle": "Renombrar ID de memoria",
+      "renameIdDescription": "Esto renombra el archivo en disco y reescribe todos los [[wikilinks]] en otras memorias del id antiguo al nuevo.",
+      "renameIdOldLabel": "ID actual",
+      "renameIdNewLabel": "ID nuevo",
+      "renameIdImpactLoading": "Comprobando referencias…",
+      "renameIdImpactNone": "Ninguna otra memoria referencia este ID.",
+      "renameIdImpact_one": "Se reescribirá {{count}} memoria",
+      "renameIdImpact_other": "Se reescribirán {{count}} memorias",
+      "renameIdImpactOccurrences_one": "{{count}} aparición",
+      "renameIdImpactOccurrences_other": "{{count}} apariciones",
+      "renameIdPreviewTitle": "Memorias afectadas",
+      "renameIdProtectedWarning": "Las memorias protegidas se omiten y deberán actualizarse manualmente.",
+      "renameIdCancel": "Cancelar",
+      "renameIdConfirm": "Renombrar",
       "status": "Estado",
       "unprocessed": "Sin procesar",
       "processed": "Procesado",

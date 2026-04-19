@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { listen } from "@tauri-apps/api/event";
 import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
@@ -93,6 +93,7 @@ function AppContent() {
   const setExplorerOpen = useAppStore((s) => s.setExplorerOpen);
   const chatOpen = useAppStore((s) => s.chatOpen);
   const toggleChat = useAppStore((s) => s.toggleChat);
+  const dismissError = useCallback(() => setError(null), [setError]);
 
   const navigate = useNavigate();
   const [onboarded, setOnboarded] = useState<boolean | null>(null);
@@ -308,7 +309,7 @@ function AppContent() {
             </Suspense>
           </div>
           {chatOpen && <ChatPanel />}
-          <Toast message={error} onDismiss={() => setError(null)} />
+          <Toast message={error} onDismiss={dismissError} />
         </main>
       </div>
       <Suspense fallback={null}>

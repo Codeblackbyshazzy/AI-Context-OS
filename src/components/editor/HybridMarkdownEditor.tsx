@@ -50,6 +50,22 @@ interface Props {
   onCreateWikilinkMemory?: (draft: WikilinkDraftMemory) => void | Promise<void>;
 }
 
+const EMPTY_WIKILINK_TARGETS: WikilinkTarget[] = [];
+const EDITOR_BASIC_SETUP = {
+  lineNumbers: false,
+  foldGutter: false,
+  dropCursor: false,
+  allowMultipleSelections: true,
+  indentOnInput: false,
+  highlightActiveLine: false,
+  highlightActiveLineGutter: false,
+  crosshairCursor: false,
+  bracketMatching: true,
+  autocompletion: false,
+  closeBrackets: true,
+  highlightSelectionMatches: false,
+} as const;
+
 const editorThemePresets = {
   classic: {
     baseFontSize: "1rem",
@@ -511,6 +527,11 @@ const structuralDecorations = ViewPlugin.fromClass(
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
+function stopWidgetEvent(event: Event) {
+  event.preventDefault();
+  event.stopPropagation();
+}
+
 function buildLinkIconSvg(): SVGSVGElement {
   const svg = document.createElementNS(SVG_NS, "svg");
   svg.setAttribute("width", "12");
@@ -555,13 +576,20 @@ class LinkIconWidget extends WidgetType {
     span.style.cursor = "pointer";
     span.appendChild(buildLinkIconSvg());
 
+    span.addEventListener("mousedown", stopWidgetEvent);
+    span.addEventListener("mouseup", stopWidgetEvent);
+    span.addEventListener("pointerdown", stopWidgetEvent);
+    span.addEventListener("pointerup", stopWidgetEvent);
     span.addEventListener("click", (e) => {
+      stopWidgetEvent(e);
       open(this.url).catch(console.error);
-      e.preventDefault();
-      e.stopPropagation();
     });
 
     return span;
+  }
+
+  ignoreEvent() {
+    return true;
   }
 }
 
@@ -631,13 +659,20 @@ class ImagePreviewWidget extends WidgetType {
     text.append(title, meta);
     root.append(preview, text);
 
+    root.addEventListener("mousedown", stopWidgetEvent);
+    root.addEventListener("mouseup", stopWidgetEvent);
+    root.addEventListener("pointerdown", stopWidgetEvent);
+    root.addEventListener("pointerup", stopWidgetEvent);
     root.addEventListener("click", (e) => {
+      stopWidgetEvent(e);
       open(this.url).catch(console.error);
-      e.preventDefault();
-      e.stopPropagation();
     });
 
     return root;
+  }
+
+  ignoreEvent() {
+    return true;
   }
 }
 
@@ -949,13 +984,16 @@ export function HybridMarkdownEditor({
   viewRef,
   showSyntax = false,
   revealSyntaxOnActiveLine = true,
-  wikilinkTargets = [],
+  wikilinkTargets = EMPTY_WIKILINK_TARGETS,
   onOpenWikilink,
   onCreateWikilinkMemory,
 }: Props) {
   const { t } = useTranslation();
   const localRef = useRef<EditorView | null>(null);
   const linkTextPlaceholder = t("memoryEditor.toolbar.linkTextPlaceholder");
+  const createMemoryLabel = t("memoryEditor.warnings.createMemory");
+  const stableWikilinkTargets =
+    wikilinkTargets.length > 0 ? wikilinkTargets : EMPTY_WIKILINK_TARGETS;
 
   useEffect(
     () => () => {
@@ -976,10 +1014,12 @@ export function HybridMarkdownEditor({
       ...(showSyntax
         ? []
         : createWikilinkExtensions({
-            targets: wikilinkTargets,
+            targets: stableWikilinkTargets,
             revealSyntaxOnActiveLine,
             onOpenMemory: onOpenWikilink,
             onCreateMemory: onCreateWikilinkMemory,
+            getCreateMemoryLabel: ({ l0 }) => `${createMemoryLabel} "${l0}"`,
+            getCreateMemoryDetail: ({ id }) => id,
           })),
       syntaxHighlighting(markdownHighlightStyle),
       history(),
@@ -991,8 +1031,9 @@ export function HybridMarkdownEditor({
       themeVariant,
       showSyntax,
       linkTextPlaceholder,
+      createMemoryLabel,
       revealSyntaxOnActiveLine,
-      wikilinkTargets,
+      stableWikilinkTargets,
       onOpenWikilink,
       onCreateWikilinkMemory,
     ],
@@ -1002,7 +1043,7 @@ export function HybridMarkdownEditor({
     <div className={clsx("h-full w-full text-[0.9375rem] leading-[1.65]", className)}>
       <CodeMirror
         value={content}
-        onChange={(value) => onChange(value)}
+        onChange={onChange}
         onBlur={onBlur}
         editable={editable}
         placeholder={placeholder}
@@ -1011,20 +1052,7 @@ export function HybridMarkdownEditor({
           localRef.current = view;
           if (viewRef) viewRef.current = view;
         }}
-        basicSetup={{
-          lineNumbers: false,
-          foldGutter: false,
-          dropCursor: false,
-          allowMultipleSelections: true,
-          indentOnInput: false,
-          highlightActiveLine: false,
-          highlightActiveLineGutter: false,
-          crosshairCursor: false,
-          bracketMatching: true,
-          autocompletion: false,
-          closeBrackets: true,
-          highlightSelectionMatches: false,
-        }}
+        basicSetup={EDITOR_BASIC_SETUP}
       />
     </div>
   );
