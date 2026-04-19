@@ -262,13 +262,15 @@ pub fn create_memory_at_path(
     create_memory_internal(input, parent_dir, app, state)
 }
 
-/// Save/update an existing memory.
+/// Save/update an existing memory. Normalizes `[[wikilinks]]` in L1/L2 to
+/// canonical `[[id]]` form before writing; returns warnings for unresolved
+/// or ambiguous links without blocking the save.
 #[tauri::command]
 pub fn save_memory(
     input: SaveMemoryInput,
     app: AppHandle,
     state: State<AppState>,
-) -> Result<Memory, String> {
+) -> Result<SaveMemoryResult, String> {
     let root = state.get_root();
     let index = state.memory_index.read().unwrap();
     let (old_meta, path) = index
@@ -282,12 +284,22 @@ pub fn save_memory(
     if input.meta.id != input.id && index.contains_key(&input.meta.id) {
         return Err(format!("Memory already exists: {}", input.meta.id));
     }
+    // Snapshot every canonical meta for wikilink resolution before releasing
+    // the read lock.
+    let memories_snapshot: Vec<MemoryMeta> =
+        index.values().map(|(meta, _)| meta.clone()).collect();
     drop(index);
+
+    let (normalized_l1, normalized_l2, wikilink_warnings) = normalize_memory_bodies(
+        &input.l1_content,
+        &input.l2_content,
+        &memories_snapshot,
+        &input.id,
+    );
 
     if old_meta.protected {
         let current = read_memory(&root, &old_file_path)?;
-        if !can_unlock_protected_memory(&current, &input.meta, &input.l1_content, &input.l2_content)
-        {
+        if !can_unlock_protected_memory(&current, &input.meta, &normalized_l1, &normalized_l2) {
             return Err(format!(
                 "Memory '{}' is protected. Unprotect it first, then retry the edit.",
                 old_meta.id
@@ -318,8 +330,8 @@ pub fn save_memory(
 
     let memory = Memory {
         meta,
-        l1_content: input.l1_content,
-        l2_content: input.l2_content,
+        l1_content: normalized_l1,
+        l2_content: normalized_l2,
         raw_content: String::new(),
         file_path: target_file_path.to_string_lossy().to_string(),
     };
@@ -353,7 +365,10 @@ pub fn save_memory(
         crate::commands::router::regenerate_router_internal(&app, &state)?;
     }
 
-    Ok(memory)
+    Ok(SaveMemoryResult {
+        memory,
+        wikilink_warnings,
+    })
 }
 
 /// Delete a memory file.
