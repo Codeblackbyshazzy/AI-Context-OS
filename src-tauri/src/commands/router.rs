@@ -74,7 +74,7 @@ pub fn regenerate_router_internal(
     Ok(claude_md)
 }
 
-/// Regenerate claude.md, .ai/index.yaml, .cursorrules, .windsurfrules.
+/// Regenerate router adapter artifacts and rich catalog files.
 #[tauri::command]
 pub fn regenerate_router(app: AppHandle, state: State<AppState>) -> Result<String, String> {
     regenerate_router_internal(&app, &state)
