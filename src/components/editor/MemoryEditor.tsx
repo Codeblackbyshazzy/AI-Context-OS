@@ -70,6 +70,7 @@ interface RawFileDraft {
 
 interface CreateMemoryDialogState {
   sourceText: string;
+  level: "l1" | "l2";
   warning?: WikilinkSaveWarning;
   suggestedDraft: WikilinkDraftMemory;
 }
@@ -407,9 +408,10 @@ export function MemoryEditor() {
   );
 
   const handleCreateWikilinkMemory = useCallback(
-    async (draft: WikilinkDraftMemory) => {
+    async (level: "l1" | "l2", draft: WikilinkDraftMemory) => {
       setCreateMemoryDialog({
         sourceText: draft.l0,
+        level,
         suggestedDraft: draft,
       });
     },
@@ -451,6 +453,10 @@ export function MemoryEditor() {
 
       if (createMemoryDialog.warning) {
         applyWikilinkCandidate(createMemoryDialog.warning, draft.id);
+      } else if (createMemoryDialog.level === "l1") {
+        setL1((prev) => rewriteWikilinkText(prev, createMemoryDialog.sourceText, draft.id));
+        setDirty(true);
+        setSaveStatus("dirty");
       } else {
         setL2((prev) => rewriteWikilinkText(prev, createMemoryDialog.sourceText, draft.id));
         setDirty(true);
@@ -554,6 +560,7 @@ export function MemoryEditor() {
                   onCreateMemory={(warning) =>
                     setCreateMemoryDialog({
                       sourceText: warning.text,
+                      level: warning.level,
                       warning,
                       suggestedDraft: {
                         id: nextUniqueMemoryId(warning.text, wikilinkTargets),
@@ -579,7 +586,7 @@ export function MemoryEditor() {
                 showSyntax={showMarkdownSyntax}
                 wikilinkTargets={wikilinkTargets}
                 onOpenWikilink={handleOpenMemory}
-                onCreateWikilinkMemory={handleCreateWikilinkMemory}
+                onCreateWikilinkMemory={(draft) => void handleCreateWikilinkMemory("l2", draft)}
               />
 
               {createMemoryDialog && (
@@ -610,24 +617,33 @@ export function MemoryEditor() {
                 </button>
                 {l1Open && (
                   <div className="mt-2">
-                    <textarea
-                      value={l1}
-                      onChange={(e) => {
-                        setL1(e.target.value);
-                        setDirty(true);
-                        setSaveStatus("dirty");
-                      }}
-                      onBlur={() => void handleSave()}
-                      readOnly={isProtected}
-                      placeholder={t("memoryEditor.placeholders.l1Summary")}
-                      rows={3}
+                    <div
                       className={clsx(
-                        "w-full resize-y px-4 py-3 text-sm leading-relaxed text-[color:var(--text-1)] placeholder:text-[color:var(--text-2)]/40 focus:outline-none",
+                        "rounded-lg px-4 py-3",
                         appearanceMode === "modern"
                           ? "rounded-2xl border border-[var(--border)] bg-[color:var(--bg-0)]"
                           : "rounded-lg border border-[color:color-mix(in_srgb,var(--border)_78%,transparent)] bg-transparent",
                       )}
-                    />
+                    >
+                      <HybridMarkdownEditor
+                        key={`${activeMemory.meta.id}-l1-${showMarkdownSyntax ? "raw" : "preview"}`}
+                        content={l1}
+                        onChange={(value) => {
+                          setL1(value);
+                          setDirty(true);
+                          setSaveStatus("dirty");
+                        }}
+                        onBlur={() => void handleSave()}
+                        className="min-h-[110px]"
+                        placeholder={t("memoryEditor.placeholders.l1Summary")}
+                        editable={!isProtected}
+                        themeVariant="clean"
+                        showSyntax={showMarkdownSyntax}
+                        wikilinkTargets={wikilinkTargets}
+                        onOpenWikilink={handleOpenMemory}
+                        onCreateWikilinkMemory={(draft) => void handleCreateWikilinkMemory("l1", draft)}
+                      />
+                    </div>
                   </div>
                 )}
               </div>
@@ -1093,7 +1109,11 @@ function collectMemoryDirectoryOptions(fileTree: ReadonlyArray<FileNode>): Memor
   };
 
   visit(fileTree);
-  return options;
+  return options.sort((a, b) => {
+    if (a.label === "/") return -1;
+    if (b.label === "/") return 1;
+    return a.label.localeCompare(b.label);
+  });
 }
 
 function getPreferredMemoryDirectory(
@@ -1130,6 +1150,18 @@ function formatMemoryDirectoryLabel(path: string, rootPath: string | null) {
 function canStoreMemoryInDirectoryPath(path: string) {
   const segments = pathSegments(path);
   if (segments.includes("inbox") || segments.includes("sources")) {
+    return false;
+  }
+
+  const blockedSegments = new Set([
+    ".cache",
+    "node_modules",
+    "dist",
+    "build",
+    "coverage",
+    "target",
+  ]);
+  if (segments.some((segment) => blockedSegments.has(segment))) {
     return false;
   }
 
