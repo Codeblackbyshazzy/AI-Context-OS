@@ -561,6 +561,33 @@ function getCaretPositionFromPoint(doc: Document, x: number, y: number) {
   return null;
 }
 
+function getLineTextRects(lineElement: HTMLElement) {
+  const rects: DOMRect[] = [];
+  const doc = lineElement.ownerDocument;
+  const walker = doc.createTreeWalker(lineElement, NodeFilter.SHOW_TEXT);
+
+  for (let current = walker.nextNode(); current; current = walker.nextNode()) {
+    if (!current.textContent?.trim()) continue;
+    const range = doc.createRange();
+    range.selectNodeContents(current);
+    rects.push(
+      ...Array.from(range.getClientRects()).filter((rect) => rect.width > 0 || rect.height > 0),
+    );
+  }
+
+  if (rects.length > 0) {
+    return rects;
+  }
+
+  return Array.from(lineElement.getClientRects()).filter((rect) => rect.width > 0 || rect.height > 0);
+}
+
+function distanceToRect(x: number, y: number, rect: DOMRect) {
+  const dx = x < rect.left ? rect.left - x : x > rect.right ? x - rect.right : 0;
+  const dy = y < rect.top ? rect.top - y : y > rect.bottom ? y - rect.bottom : 0;
+  return dx + dy * 1000;
+}
+
 function resolveDecoratedLineClickPosition(
   view: EditorView,
   lineElement: HTMLElement,
@@ -574,6 +601,17 @@ function resolveDecoratedLineClickPosition(
       return view.posAtDOM(caret.node, caret.offset);
     } catch {
       // Fall through to line-level fallbacks below.
+    }
+  }
+
+  const nearestRect = getLineTextRects(lineElement)
+    .sort((left, right) => distanceToRect(event.clientX, event.clientY, left) - distanceToRect(event.clientX, event.clientY, right))[0];
+  if (nearestRect) {
+    const x = Math.min(Math.max(event.clientX, nearestRect.left + 1), Math.max(nearestRect.left + 1, nearestRect.right - 1));
+    const y = Math.min(Math.max(event.clientY, nearestRect.top + 1), Math.max(nearestRect.top + 1, nearestRect.bottom - 1));
+    const pos = view.posAtCoords({ x, y }, false);
+    if (pos !== null) {
+      return pos;
     }
   }
 
