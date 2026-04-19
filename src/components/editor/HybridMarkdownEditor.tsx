@@ -1061,7 +1061,6 @@ function createDomHandlers(editable: boolean) {
 
       const lineElement = target.closest(".cm-line");
       if (!(lineElement instanceof HTMLElement)) return false;
-      if (target !== lineElement) return false;
 
       const pos = resolveDecoratedLineClickPosition(view, lineElement, event);
       view.dispatch({
