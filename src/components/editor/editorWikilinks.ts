@@ -137,7 +137,7 @@ function rankTargets(query: string, targets: WikilinkTarget[]): RankedTarget[] {
     });
 }
 
-function slugifyMemoryId(value: string): string {
+export function slugifyMemoryId(value: string): string {
   const ascii = value
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -153,7 +153,7 @@ function slugifyMemoryId(value: string): string {
   return slug || "untitled";
 }
 
-function nextUniqueMemoryId(text: string, targets: WikilinkTarget[]): string {
+export function nextUniqueMemoryId(text: string, targets: WikilinkTarget[]): string {
   const base = slugifyMemoryId(text);
   const used = new Set(targets.map((target) => target.id));
   if (!used.has(base)) {
