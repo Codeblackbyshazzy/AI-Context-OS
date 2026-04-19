@@ -991,6 +991,8 @@ export function HybridMarkdownEditor({
   const { t } = useTranslation();
   const localRef = useRef<EditorView | null>(null);
   const linkTextPlaceholder = t("memoryEditor.toolbar.linkTextPlaceholder");
+  const createMemoryLabel = t("memoryEditor.warnings.createMemory");
+  const createMemoryDetail = t("memoryEditor.brokenLink.ontologyLabel");
   const stableWikilinkTargets =
     wikilinkTargets.length > 0 ? wikilinkTargets : EMPTY_WIKILINK_TARGETS;
 
@@ -1017,6 +1019,8 @@ export function HybridMarkdownEditor({
             revealSyntaxOnActiveLine,
             onOpenMemory: onOpenWikilink,
             onCreateMemory: onCreateWikilinkMemory,
+            getCreateMemoryLabel: ({ l0 }) => `${createMemoryLabel} "${l0}"`,
+            getCreateMemoryDetail: ({ id }) => `${id} · ${createMemoryDetail.toLowerCase()}`,
           })),
       syntaxHighlighting(markdownHighlightStyle),
       history(),
@@ -1028,6 +1032,8 @@ export function HybridMarkdownEditor({
       themeVariant,
       showSyntax,
       linkTextPlaceholder,
+      createMemoryLabel,
+      createMemoryDetail,
       revealSyntaxOnActiveLine,
       stableWikilinkTargets,
       onOpenWikilink,

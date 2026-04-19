@@ -55,6 +55,8 @@ interface WikilinkEditorOptions {
   revealSyntaxOnActiveLine: boolean;
   onOpenMemory?: (id: string) => void;
   onCreateMemory?: (draft: WikilinkDraftMemory) => void | Promise<void>;
+  getCreateMemoryLabel?: (draft: WikilinkDraftMemory) => string;
+  getCreateMemoryDetail?: (draft: WikilinkDraftMemory) => string;
 }
 
 interface RankedTarget {
@@ -459,9 +461,10 @@ function createWikilinkCompletionSource(options: WikilinkEditorOptions) {
     if (completions.length === 0 && trimmedQuery && options.onCreateMemory) {
       const l0 = trimmedQuery;
       const id = nextUniqueMemoryId(l0, options.targets);
+      const draft = { id, l0 };
       completions.push({
-        label: `Create memory \"${l0}\"`,
-        detail: `${id} · unknown`,
+        label: options.getCreateMemoryLabel?.(draft) ?? `Create memory "${l0}"`,
+        detail: options.getCreateMemoryDetail?.(draft) ?? `${id} · unknown`,
         type: "new",
         apply(view, _completion, applyFrom, applyTo) {
           insertCanonicalWikilink(view, applyFrom, applyTo, id);
