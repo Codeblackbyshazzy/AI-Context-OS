@@ -9,7 +9,55 @@ use crate::core::memory::{read_memory, write_memory};
 use crate::core::paths::{enrich_memory_meta, SystemPaths};
 use crate::core::types::{CreateMemoryInput, Memory, MemoryFilter, MemoryMeta, SaveMemoryInput};
 use crate::core::usage::record_access;
+use crate::core::wikilinks::{
+    normalize_wikilinks, NormalizationOutcome, SaveMemoryResult, WikilinkSaveWarning,
+};
 use crate::state::AppState;
+
+/// Normalize wikilinks in L1 and L2 against the current memory index.
+/// Returns normalized bodies and warnings tagged per body section.
+/// `self_id` is excluded so a memory doesn't canonicalize links to itself
+/// using its own l0 when the edit is also renaming l0.
+fn normalize_memory_bodies(
+    l1: &str,
+    l2: &str,
+    memories: &[MemoryMeta],
+    self_id: &str,
+) -> (String, String, Vec<WikilinkSaveWarning>) {
+    let filtered: Vec<MemoryMeta> = memories
+        .iter()
+        .filter(|m| m.id != self_id)
+        .cloned()
+        .collect();
+
+    let NormalizationOutcome {
+        body: new_l1,
+        warnings: l1_warnings,
+        ..
+    } = normalize_wikilinks(l1, &filtered);
+    let NormalizationOutcome {
+        body: new_l2,
+        warnings: l2_warnings,
+        ..
+    } = normalize_wikilinks(l2, &filtered);
+
+    let mut warnings: Vec<WikilinkSaveWarning> =
+        Vec::with_capacity(l1_warnings.len() + l2_warnings.len());
+    for w in l1_warnings {
+        warnings.push(WikilinkSaveWarning {
+            level: "l1".to_string(),
+            warning: w,
+        });
+    }
+    for w in l2_warnings {
+        warnings.push(WikilinkSaveWarning {
+            level: "l2".to_string(),
+            warning: w,
+        });
+    }
+
+    (new_l1, new_l2, warnings)
+}
 
 fn should_regenerate_router(
     old_meta: &MemoryMeta,

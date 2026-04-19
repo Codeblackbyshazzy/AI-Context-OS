@@ -150,6 +150,24 @@ pub enum WikilinkWarningKind {
     Ambiguous { candidates: Vec<WikilinkCandidate> },
 }
 
+/// Save-time wikilink warning tagged with which body section it came from.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WikilinkSaveWarning {
+    /// "l1" or "l2" — identifies which body section the warning applies to.
+    pub level: String,
+    #[serde(flatten)]
+    pub warning: WikilinkWarning,
+}
+
+/// Return value of `save_memory`. Warnings are non-fatal — the save still
+/// proceeds, but the UI can surface unresolved / ambiguous links to the user.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SaveMemoryResult {
+    pub memory: Memory,
+    #[serde(default)]
+    pub wikilink_warnings: Vec<WikilinkSaveWarning>,
+}
+
 /// Outcome of normalizing a body: canonical form, warnings, and rewrite count.
 #[derive(Debug, Clone)]
 pub struct NormalizationOutcome {
