@@ -223,8 +223,16 @@ class WikilinkWidget extends WidgetType {
     return button;
   }
 
-  ignoreEvent() {
-    return false;
+  ignoreEvent(event?: Event) {
+    if (!this.isClickable) return false;
+    const type = event?.type;
+    return (
+      type === "mousedown" ||
+      type === "pointerdown" ||
+      type === "mouseup" ||
+      type === "pointerup" ||
+      type === "click"
+    );
   }
 
   private get isClickable() {
