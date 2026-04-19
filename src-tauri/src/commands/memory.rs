@@ -10,56 +10,11 @@ use crate::core::paths::{enrich_memory_meta, SystemPaths};
 use crate::core::types::{CreateMemoryInput, Memory, MemoryFilter, MemoryMeta, SaveMemoryInput};
 use crate::core::usage::record_access;
 use crate::core::wikilinks::{
-    find_backlink_occurrences, normalize_wikilinks, resolve_wikilink, rewrite_wikilink_target,
-    BacklinkOccurrence, CascadeRewriteOutcome, NormalizationOutcome, SaveMemoryResult,
-    WikilinkResolution, WikilinkSaveWarning,
+    find_backlink_occurrences, normalize_memory_bodies, resolve_wikilink, rewrite_wikilink_target,
+    BacklinkOccurrence, CascadeRewriteOutcome, NormalizedMemoryBodies, SaveMemoryResult,
+    WikilinkResolution,
 };
 use crate::state::AppState;
-
-/// Normalize wikilinks in L1 and L2 against the current memory index.
-/// Returns normalized bodies and warnings tagged per body section.
-/// `self_id` is excluded so a memory doesn't canonicalize links to itself
-/// using its own l0 when the edit is also renaming l0.
-fn normalize_memory_bodies(
-    l1: &str,
-    l2: &str,
-    memories: &[MemoryMeta],
-    self_id: &str,
-) -> (String, String, Vec<WikilinkSaveWarning>) {
-    let filtered: Vec<MemoryMeta> = memories
-        .iter()
-        .filter(|m| m.id != self_id)
-        .cloned()
-        .collect();
-
-    let NormalizationOutcome {
-        body: new_l1,
-        warnings: l1_warnings,
-        ..
-    } = normalize_wikilinks(l1, &filtered);
-    let NormalizationOutcome {
-        body: new_l2,
-        warnings: l2_warnings,
-        ..
-    } = normalize_wikilinks(l2, &filtered);
-
-    let mut warnings: Vec<WikilinkSaveWarning> =
-        Vec::with_capacity(l1_warnings.len() + l2_warnings.len());
-    for w in l1_warnings {
-        warnings.push(WikilinkSaveWarning {
-            level: "l1".to_string(),
-            warning: w,
-        });
-    }
-    for w in l2_warnings {
-        warnings.push(WikilinkSaveWarning {
-            level: "l2".to_string(),
-            warning: w,
-        });
-    }
-
-    (new_l1, new_l2, warnings)
-}
 
 /// Rewrite every `[[old_id]]` occurrence in every canonical memory's body to
 /// `[[new_id]]`. Runs *after* the renamed memory has been written, so the new
@@ -367,11 +322,16 @@ pub fn save_memory(
         index.values().map(|(meta, _)| meta.clone()).collect();
     drop(index);
 
-    let (normalized_l1, normalized_l2, wikilink_warnings) = normalize_memory_bodies(
+    let NormalizedMemoryBodies {
+        l1_content: normalized_l1,
+        l2_content: normalized_l2,
+        warnings: wikilink_warnings,
+    } = normalize_memory_bodies(
         &input.l1_content,
         &input.l2_content,
         &memories_snapshot,
-        &input.id,
+        Some(&input.meta),
+        Some(&input.id),
     );
 
     if old_meta.protected {
@@ -725,6 +685,7 @@ fn create_memory_internal(
     if index.contains_key(trimmed_id) {
         return Err(format!("Memory already exists: {}", trimmed_id));
     }
+    let memories_snapshot: Vec<MemoryMeta> = index.values().map(|(meta, _)| meta.clone()).collect();
     drop(index);
 
     let file_path = parent_dir.join(format!("{}.md", trimmed_id));
@@ -759,10 +720,22 @@ fn create_memory_internal(
     };
     enrich_memory_meta(&mut meta, &file_path, &state.get_root());
 
+    let NormalizedMemoryBodies {
+        l1_content: normalized_l1,
+        l2_content: normalized_l2,
+        warnings: _warnings,
+    } = normalize_memory_bodies(
+        &input.l1_content,
+        &input.l2_content,
+        &memories_snapshot,
+        Some(&meta),
+        None,
+    );
+
     let memory = Memory {
         meta,
-        l1_content: input.l1_content,
-        l2_content: input.l2_content,
+        l1_content: normalized_l1,
+        l2_content: normalized_l2,
         raw_content: String::new(),
         file_path: file_path.to_string_lossy().to_string(),
     };

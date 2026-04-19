@@ -204,6 +204,15 @@ pub struct NormalizationOutcome {
     pub rewrites: u32,
 }
 
+/// Outcome of normalizing both body sections of a memory in one pass.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NormalizedMemoryBodies {
+    pub l1_content: String,
+    pub l2_content: String,
+    #[serde(default)]
+    pub warnings: Vec<WikilinkSaveWarning>,
+}
+
 /// Rewrite every `[[text]]` in `body` to `[[id]]` when the resolution is
 /// unique. Leaves ambiguous and unresolved links untouched and collects them
 /// as warnings. After this the body is canonical for every link that resolved
@@ -269,6 +278,56 @@ pub fn normalize_wikilinks(body: &str, memories: &[MemoryMeta]) -> Normalization
         body: out,
         warnings,
         rewrites,
+    }
+}
+
+/// Normalize L1 and L2 against a resolution set that can include the memory
+/// currently being created or saved. When `old_id` is set, that prior identity
+/// is removed from `memories` before `current_meta` is inserted, so save-time
+/// self-links can resolve against the requested post-save id/l0.
+pub fn normalize_memory_bodies(
+    l1: &str,
+    l2: &str,
+    memories: &[MemoryMeta],
+    current_meta: Option<&MemoryMeta>,
+    old_id: Option<&str>,
+) -> NormalizedMemoryBodies {
+    let mut resolution_memories: Vec<MemoryMeta> = memories.to_vec();
+
+    if let Some(previous_id) = old_id {
+        resolution_memories.retain(|m| m.id != previous_id);
+    }
+
+    if let Some(meta) = current_meta {
+        resolution_memories.retain(|m| m.id != meta.id);
+        resolution_memories.push(meta.clone());
+    }
+
+    let NormalizationOutcome {
+        body: normalized_l1,
+        warnings: l1_warnings,
+        ..
+    } = normalize_wikilinks(l1, &resolution_memories);
+    let NormalizationOutcome {
+        body: normalized_l2,
+        warnings: l2_warnings,
+        ..
+    } = normalize_wikilinks(l2, &resolution_memories);
+
+    let mut warnings = Vec::with_capacity(l1_warnings.len() + l2_warnings.len());
+    warnings.extend(l1_warnings.into_iter().map(|warning| WikilinkSaveWarning {
+        level: "l1".to_string(),
+        warning,
+    }));
+    warnings.extend(l2_warnings.into_iter().map(|warning| WikilinkSaveWarning {
+        level: "l2".to_string(),
+        warning,
+    }));
+
+    NormalizedMemoryBodies {
+        l1_content: normalized_l1,
+        l2_content: normalized_l2,
+        warnings,
     }
 }
 
@@ -628,6 +687,39 @@ mod tests {
         let out = normalize_wikilinks(body, &ms);
         assert_eq!(out.body, "¡Sí! [[cafe-mem]] está aquí");
         assert_eq!(out.rewrites, 1);
+    }
+
+    #[test]
+    fn normalize_memory_bodies_preserves_exact_self_id_links() {
+        let current = meta("self-note", "Self Note");
+        let out = normalize_memory_bodies(
+            "See [[self-note]]",
+            "",
+            &[],
+            Some(&current),
+            None,
+        );
+        assert_eq!(out.l1_content, "See [[self-note]]");
+        assert!(out.warnings.is_empty());
+    }
+
+    #[test]
+    fn normalize_memory_bodies_resolves_requested_new_id_during_save() {
+        let old_self = meta("old-note", "Old Note");
+        let mut new_self = old_self.clone();
+        new_self.id = "new-note".to_string();
+        new_self.l0 = "New Note".to_string();
+
+        let out = normalize_memory_bodies(
+            "[[new-note]] and [[New Note]]",
+            "",
+            &[old_self],
+            Some(&new_self),
+            Some("old-note"),
+        );
+
+        assert_eq!(out.l1_content, "[[new-note]] and [[new-note]]");
+        assert!(out.warnings.is_empty());
     }
 
     // ─── rewrite_wikilink_target ───
