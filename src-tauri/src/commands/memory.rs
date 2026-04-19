@@ -316,6 +316,8 @@ pub fn save_memory(
     if input.meta.id != input.id && index.contains_key(&input.meta.id) {
         return Err(format!("Memory already exists: {}", input.meta.id));
     }
+    let mut requested_meta = input.meta.clone();
+    requested_meta.id = requested_meta.id.trim().to_string();
     // Snapshot every canonical meta for wikilink resolution before releasing
     // the read lock.
     let memories_snapshot: Vec<MemoryMeta> =
@@ -330,13 +332,13 @@ pub fn save_memory(
         &input.l1_content,
         &input.l2_content,
         &memories_snapshot,
-        Some(&input.meta),
+        Some(&requested_meta),
         Some(&input.id),
     );
 
     if old_meta.protected {
         let current = read_memory(&root, &old_file_path)?;
-        if !can_unlock_protected_memory(&current, &input.meta, &normalized_l1, &normalized_l2) {
+        if !can_unlock_protected_memory(&current, &requested_meta, &normalized_l1, &normalized_l2) {
             return Err(format!(
                 "Memory '{}' is protected. Unprotect it first, then retry the edit.",
                 old_meta.id
@@ -344,7 +346,7 @@ pub fn save_memory(
         }
     }
 
-    let mut meta = input.meta;
+    let mut meta = requested_meta;
     meta.modified = Utc::now();
     meta.version += 1;
     meta.id = meta.id.trim().to_string();
