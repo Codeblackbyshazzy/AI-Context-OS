@@ -5,6 +5,25 @@ import type { CascadeRewriteOutcome } from "../lib/types";
 
 const WATCHER_REFRESH_DEBOUNCE_MS = 120;
 
+function isGeneratedRouterArtifactPath(path: string) {
+  return (
+    path.endsWith("/claude.md") ||
+    path.endsWith("\\claude.md") ||
+    path.endsWith("/AGENTS.md") ||
+    path.endsWith("\\AGENTS.md") ||
+    path.endsWith("/.ai/index.yaml") ||
+    path.endsWith("\\.ai\\index.yaml") ||
+    path.endsWith("/.ai/catalog.md") ||
+    path.endsWith("\\.ai\\catalog.md") ||
+    path.endsWith("/.ai/config.yaml") ||
+    path.endsWith("\\.ai\\config.yaml") ||
+    path.endsWith("/.cursorrules") ||
+    path.endsWith("\\.cursorrules") ||
+    path.endsWith("/.windsurfrules") ||
+    path.endsWith("\\.windsurfrules")
+  );
+}
+
 /** Listen to Tauri events from the Rust file watcher and refresh state. */
 export function useFileWatcher() {
   const loadFileTree = useAppStore((state) => state.loadFileTree);
@@ -70,6 +89,9 @@ export function useFileWatcher() {
         const payload = event.payload ?? "";
         const looksLikePath = payload.includes("/") || payload.includes("\\");
         if (looksLikePath) {
+          if (isGeneratedRouterArtifactPath(payload)) {
+            return;
+          }
           if (wasRecentlyWrittenLocally(payload)) {
             return;
           }

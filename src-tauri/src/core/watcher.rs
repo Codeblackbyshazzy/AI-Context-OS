@@ -75,6 +75,8 @@ pub fn start_watcher(
                         }
                         if path_str.ends_with("/claude.md")
                             || path_str.ends_with("\\claude.md")
+                            || path_str.ends_with("/AGENTS.md")
+                            || path_str.ends_with("\\AGENTS.md")
                             || path_str.ends_with("/.ai/index.yaml")
                             || path_str.ends_with("\\.ai\\index.yaml")
                             || path_str.ends_with("/.ai/catalog.md")
