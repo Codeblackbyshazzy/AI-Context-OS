@@ -102,6 +102,11 @@ export function MemoryEditor() {
   const editorViewRef = useRef<EditorView | null>(null);
   const pendingWikilinkCreationsRef = useRef<Set<string>>(new Set());
 
+  const loadWorkspaceIndexes = useCallback(async () => {
+    await loadMemories();
+    await loadFileTree();
+  }, [loadFileTree, loadMemories]);
+
   useEffect(() => {
     if (!activeMemory) return;
 
@@ -367,9 +372,8 @@ export function MemoryEditor() {
           l1_content: "",
           l2_content: "",
         });
-        await loadMemories();
-        await loadFileTree();
-        await loadGraph();
+        await loadWorkspaceIndexes();
+        void loadGraph();
         setWikilinkWarnings((prev) =>
           prev.filter((warning) => !(warning.kind === "unresolved" && warning.text === id)),
         );
@@ -379,7 +383,7 @@ export function MemoryEditor() {
         pendingWikilinkCreationsRef.current.delete(id);
       }
     },
-    [loadFileTree, loadGraph, loadMemories, setError],
+    [loadGraph, loadWorkspaceIndexes, setError],
   );
 
   const applyWikilinkCandidate = useCallback(
@@ -413,16 +417,15 @@ export function MemoryEditor() {
           l1_content: "",
           l2_content: "",
         });
-        await loadMemories();
-        await loadFileTree();
-        await loadGraph();
+        await loadWorkspaceIndexes();
+        void loadGraph();
         applyWikilinkCandidate(warning, draft.id);
         setBrokenLinkDraft(null);
       } catch (error) {
         setError(String(error));
       }
     },
-    [applyWikilinkCandidate, loadFileTree, loadGraph, loadMemories, setError],
+    [applyWikilinkCandidate, loadGraph, loadWorkspaceIndexes, setError],
   );
 
   if (!activeMemory || !meta) {

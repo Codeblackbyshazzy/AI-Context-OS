@@ -156,7 +156,7 @@ export function slugifyMemoryId(value: string): string {
   return slug || "untitled";
 }
 
-export function nextUniqueMemoryId(text: string, targets: WikilinkTarget[]): string {
+export function nextUniqueMemoryId(text: string, targets: ReadonlyArray<WikilinkTarget>): string {
   const base = slugifyMemoryId(text);
   const used = new Set(targets.map((target) => target.id));
   if (!used.has(base)) {
