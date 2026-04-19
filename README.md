@@ -96,7 +96,6 @@ Key notes:
 
 - System infrastructure is fixed: `inbox/`, `sources/`, and `.ai/` — everything else is user-defined.
 - Journal pages live in `.ai/journal/YYYY-MM-DD.md`.
-- Tasks are markdown files in `.ai/tasks/` with YAML frontmatter.
 - `claude.md` and `AGENTS.md` are generated adapter artifacts, not canonical memories or note files.
 - `claude.md` exists for compatibility, but the architecture target is adapter-first with neutral core output.
 - Moving a memory file between user folders does **not** break indexing — classification comes from `type:` in frontmatter.

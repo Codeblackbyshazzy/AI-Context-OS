@@ -819,6 +819,25 @@ function applyToggleLinePrefix(view: EditorView, prefix: string) {
   applyLinePrefixToggle(view, prefix);
 }
 
+function toggleTaskCheckboxOnLine(view: EditorView, lineNumber: number) {
+  const line = view.state.doc.line(lineNumber);
+  const match = line.text.match(/^(\s*-\s\[)( |x|X)(\]\s+)/);
+  if (!match) return false;
+
+  const markerFrom = line.from + match[1].length;
+  const markerTo = markerFrom + 1;
+  const nextMarker = match[2].toLowerCase() === "x" ? " " : "x";
+
+  view.dispatch({
+    changes: { from: markerFrom, to: markerTo, insert: nextMarker },
+    selection: view.state.selection,
+    scrollIntoView: false,
+    userEvent: "input",
+  });
+  view.focus();
+  return true;
+}
+
 function toggleMark(mark: string): StateCommand {
   return (target) => {
     applyToggleMark(target as unknown as EditorView, mark);
@@ -923,8 +942,25 @@ function getParagraphSelection(
   };
 }
 
-function createDomHandlers() {
+function createDomHandlers(editable: boolean) {
   return EditorView.domEventHandlers({
+    mousedown(event, view) {
+      if (!editable || event.button !== 0) return false;
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return false;
+
+      const lineElement = target.closest(".cm-line.cm-task-item");
+      if (!(lineElement instanceof HTMLElement)) return false;
+
+      const clickOffset = event.clientX - lineElement.getBoundingClientRect().left;
+      if (clickOffset > 28) return false;
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      const lineNumber = view.state.doc.lineAt(view.posAtDOM(lineElement, 0)).number;
+      return toggleTaskCheckboxOnLine(view, lineNumber);
+    },
     paste(event, view) {
       const data = event.clipboardData;
       if (!data) return false;
@@ -1025,7 +1061,7 @@ export function HybridMarkdownEditor({
       history(),
       keymap.of(createMarkdownKeymap(linkTextPlaceholder)),
       keymap.of([...defaultKeymap, ...historyKeymap]),
-      createDomHandlers(),
+      createDomHandlers(editable),
     ],
     [
       themeVariant,
