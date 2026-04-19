@@ -292,7 +292,7 @@ export function MemoryEditor() {
   }, [meta]);
 
   const incomingLinks = useMemo<IncomingLink[]>(() => {
-    if (!meta) return [];
+    if (!meta || inspectorTab !== "links") return [];
     const targetId = meta.id;
     const results: IncomingLink[] = [];
 
@@ -314,7 +314,7 @@ export function MemoryEditor() {
     }
 
     return results.sort((a, b) => a.id.localeCompare(b.id));
-  }, [memories, meta]);
+  }, [memories, meta, inspectorTab]);
 
   const historyEntries = useMemo(() => {
     if (!meta) return [] as Array<{ label: string; value: string }>;
@@ -340,16 +340,7 @@ export function MemoryEditor() {
     [selectFile, setError],
   );
 
-  const wikilinkTargets = useMemo(
-    () =>
-      memories.map((memory) => ({
-        id: memory.id,
-        l0: memory.l0,
-        ontology: memory.type,
-        folderCategory: memory.folder_category,
-      })),
-    [memories],
-  );
+  const wikilinkTargets = useStableWikilinkTargets(memories);
 
   const createLinkedMemory = useCallback(
     async (draft: { id: string; l0: string; ontology: MemoryOntology }) => {
@@ -776,7 +767,6 @@ function BacklinksPanel({
       unlisteners.push(await listen("wikilinks-cascade", schedule));
       unlisteners.push(await listen("memory-changed", schedule));
       unlisteners.push(await listen("file-deleted", schedule));
-      unlisteners.push(await listen("router-regenerated", schedule));
     };
 
     void setup();
@@ -989,6 +979,36 @@ function upsertMemoryMeta(memories: MemoryMeta[], nextMeta: MemoryMeta) {
   const next = [...memories];
   next[existingIndex] = nextMeta;
   return next;
+}
+
+function useStableWikilinkTargets(memories: ReadonlyArray<MemoryMeta>) {
+  const cacheRef = useRef<{ signature: string; targets: WikilinkTarget[] }>({
+    signature: "",
+    targets: [],
+  });
+
+  return useMemo(() => {
+    const signature = memories
+      .map(
+        (memory) =>
+          `${memory.id}\u0000${memory.l0}\u0000${memory.type}\u0000${memory.folder_category ?? ""}`,
+      )
+      .join("\u0001");
+
+    if (cacheRef.current.signature === signature) {
+      return cacheRef.current.targets;
+    }
+
+    const targets = memories.map((memory) => ({
+      id: memory.id,
+      l0: memory.l0,
+      ontology: memory.type,
+      folderCategory: memory.folder_category,
+    }));
+
+    cacheRef.current = { signature, targets };
+    return targets;
+  }, [memories]);
 }
 
 function getMemoryParentDirectory(filePath?: string | null) {
