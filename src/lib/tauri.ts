@@ -22,6 +22,7 @@ import type {
   ProviderModel,
   RecentOperationalContext,
   SaveMemoryInput,
+  SaveMemoryResult,
   ScoredMemory,
   Conflict,
   ConsolidationSuggestion,
@@ -50,7 +51,7 @@ export const createMemory = (input: CreateMemoryInput) =>
 export const createMemoryAtPath = (input: CreateMemoryInput, parentDir: string) =>
   invoke<Memory>("create_memory_at_path", { input, parentDir });
 export const saveMemory = (input: SaveMemoryInput) =>
-  invoke<Memory>("save_memory", { input });
+  invoke<SaveMemoryResult>("save_memory", { input });
 export const deleteMemory = (id: string) =>
   invoke<void>("delete_memory", { id });
 export const renameMemoryFile = (path: string, newId: string) =>

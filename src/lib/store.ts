@@ -39,7 +39,7 @@ interface AppStore {
     l2: string,
     meta: MemoryMeta,
     refreshDerivedState?: boolean,
-  ) => Promise<Memory>;
+  ) => Promise<SaveMemoryResult>;
   deleteMemory: (id: string) => Promise<void>;
   loadGraph: () => Promise<void>;
   regenerateRouter: () => Promise<void>;
