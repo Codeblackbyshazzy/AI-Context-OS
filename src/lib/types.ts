@@ -228,6 +228,36 @@ export interface SaveMemoryInput {
   l2_content: string;
 }
 
+export interface WikilinkCandidate {
+  id: string;
+  l0: string;
+  match_type: "exact_l0" | "fuzzy_l0";
+}
+
+export type WikilinkWarningKind =
+  | { kind: "unresolved" }
+  | { kind: "ambiguous"; candidates: WikilinkCandidate[] };
+
+export type WikilinkWarning = {
+  text: string;
+  start: number;
+  end: number;
+} & WikilinkWarningKind;
+
+export interface WikilinkSaveWarning {
+  level: "l1" | "l2";
+  text: string;
+  start: number;
+  end: number;
+  kind: "unresolved" | "ambiguous";
+  candidates?: WikilinkCandidate[];
+}
+
+export interface SaveMemoryResult {
+  memory: Memory;
+  wikilink_warnings: WikilinkSaveWarning[];
+}
+
 export interface MemoryFilter {
   ontology?: MemoryOntology;
   tags?: string[];
