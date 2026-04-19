@@ -62,6 +62,10 @@ export const duplicateMemoryFile = (path: string, newId: string) =>
   invoke<Memory>("duplicate_memory_file", { path, newId });
 export const moveMemoryFile = (path: string, destinationDir: string) =>
   invoke<Memory>("move_memory_file", { path, destinationDir });
+export const getBacklinks = (id: string) =>
+  invoke<BacklinkRef[]>("get_backlinks", { id });
+export const resolveWikilinkText = (text: string) =>
+  invoke<WikilinkResolution>("resolve_wikilink_text", { text });
 
 // Filesystem
 export const getFileTree = () => invoke<FileNode[]>("get_file_tree");
