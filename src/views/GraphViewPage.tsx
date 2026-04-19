@@ -413,7 +413,10 @@ export function GraphViewPage() {
 
   useEffect(() => {
     if (!graphData || !selectedNode) return;
-    setSelectedNode(graphData.nodes.find((n) => n.id === selectedNode.id) ?? null);
+    const nextSelectedNode = graphData.nodes.find((n) => n.id === selectedNode.id) ?? null;
+    if (nextSelectedNode !== selectedNode) {
+      setSelectedNode(nextSelectedNode);
+    }
   }, [graphData, selectedNode]);
 
   const backlinksMap = useMemo(() => {

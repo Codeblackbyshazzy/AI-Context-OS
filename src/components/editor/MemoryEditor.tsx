@@ -1170,14 +1170,14 @@ function BrokenLinkCreateDialog({
   const { t } = useTranslation();
   const [l0, setL0] = useState(warning.text);
   const [id, setId] = useState(() =>
-    nextUniqueMemoryId(warning.text, [...targets]),
+    nextUniqueMemoryId(warning.text, targets),
   );
   const [idTouched, setIdTouched] = useState(false);
   const [ontology, setOntology] = useState<MemoryOntology>("unknown");
 
   useEffect(() => {
     if (!idTouched) {
-      setId(nextUniqueMemoryId(l0 || warning.text, [...targets]));
+      setId(nextUniqueMemoryId(l0 || warning.text, targets));
     }
   }, [l0, warning.text, targets, idTouched]);
 
