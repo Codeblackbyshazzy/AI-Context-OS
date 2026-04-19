@@ -5,8 +5,11 @@ import type { CascadeRewriteOutcome } from "../lib/types";
 
 /** Listen to Tauri events from the Rust file watcher and refresh state. */
 export function useFileWatcher() {
-  const { loadFileTree, loadMemories, loadGraph, regenerateRouter, selectFile } =
-    useAppStore();
+  const loadFileTree = useAppStore((state) => state.loadFileTree);
+  const loadMemories = useAppStore((state) => state.loadMemories);
+  const loadGraph = useAppStore((state) => state.loadGraph);
+  const regenerateRouter = useAppStore((state) => state.regenerateRouter);
+  const selectFile = useAppStore((state) => state.selectFile);
 
   useEffect(() => {
     const unlisteners: (() => void)[] = [];

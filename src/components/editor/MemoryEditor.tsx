@@ -69,20 +69,18 @@ interface RawFileDraft {
 
 export function MemoryEditor() {
   const { t } = useTranslation();
-  const {
-    activeMemory,
-    activeRawFile,
-    saveActiveMemory,
-    saveRawFile,
-    deleteMemory,
-    loading,
-    memories,
-    loadFileTree,
-    loadGraph,
-    loadMemories,
-    selectFile,
-    setError,
-  } = useAppStore();
+  const activeMemory = useAppStore((state) => state.activeMemory);
+  const activeRawFile = useAppStore((state) => state.activeRawFile);
+  const saveActiveMemory = useAppStore((state) => state.saveActiveMemory);
+  const saveRawFile = useAppStore((state) => state.saveRawFile);
+  const deleteMemory = useAppStore((state) => state.deleteMemory);
+  const loading = useAppStore((state) => state.loading);
+  const memories = useAppStore((state) => state.memories);
+  const loadFileTree = useAppStore((state) => state.loadFileTree);
+  const loadGraph = useAppStore((state) => state.loadGraph);
+  const loadMemories = useAppStore((state) => state.loadMemories);
+  const selectFile = useAppStore((state) => state.selectFile);
+  const setError = useAppStore((state) => state.setError);
   const showMarkdownSyntax = useSettingsStore((s) => s.showMarkdownSyntax);
   const appearanceMode = useSettingsStore((s) => s.appearanceMode);
   const [meta, setMeta] = useState<MemoryMeta | null>(null);
@@ -102,6 +100,7 @@ export function MemoryEditor() {
   const queuedDraftRef = useRef<MemoryDraft | null>(null);
   const isSavingRef = useRef(false);
   const editorViewRef = useRef<EditorView | null>(null);
+  const pendingWikilinkCreationsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     if (!activeMemory) return;
@@ -147,8 +146,7 @@ export function MemoryEditor() {
       l1,
       l2,
       meta,
-      refreshDerivedState:
-        hasDerivedMemoryChanges(activeMemory, meta) || hasBodyChanges(activeMemory, l1, l2),
+      refreshDerivedState: hasDerivedMemoryChanges(activeMemory, meta),
     };
   }, [activeMemory, sourceId, meta, l1, l2, dirty]);
 
@@ -173,10 +171,14 @@ export function MemoryEditor() {
 
         const currentActiveId = useAppStore.getState().activeMemory?.meta.id;
         if (currentActiveId === draft.sourceId || currentActiveId === draft.meta.id) {
+          const visibleWarnings = filterTransientWikilinkWarnings(
+            result.wikilink_warnings,
+            pendingWikilinkCreationsRef.current,
+          );
           setDirty(false);
           setSaveStatus("saved");
-          setWikilinkWarnings(result.wikilink_warnings);
-          if (result.wikilink_warnings.length > 0) {
+          setWikilinkWarnings(visibleWarnings);
+          if (visibleWarnings.length > 0) {
             setWarningsCollapsed(false);
           }
         }
@@ -354,6 +356,7 @@ export function MemoryEditor() {
 
   const handleCreateWikilinkMemory = useCallback(
     async ({ id, l0 }: WikilinkDraftMemory) => {
+      pendingWikilinkCreationsRef.current.add(id);
       try {
         await createMemory({
           id,
@@ -367,8 +370,13 @@ export function MemoryEditor() {
         await loadMemories();
         await loadFileTree();
         await loadGraph();
+        setWikilinkWarnings((prev) =>
+          prev.filter((warning) => !(warning.kind === "unresolved" && warning.text === id)),
+        );
       } catch (error) {
         setError(String(error));
+      } finally {
+        pendingWikilinkCreationsRef.current.delete(id);
       }
     },
     [loadFileTree, loadGraph, loadMemories, setError],

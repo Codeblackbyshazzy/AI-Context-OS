@@ -72,7 +72,7 @@ export function GovernanceView() {
   const [godNodes, setGodNodes] = useState<GodNode[]>([]);
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogProps | null>(null);
   const [boostingId, setBoostingId] = useState<string | null>(null);
-  const { memories } = useAppStore();
+  const memories = useAppStore((state) => state.memories);
 
   const loadAll = useCallback(() => {
     getConflicts().then(setConflicts).catch(console.error);
