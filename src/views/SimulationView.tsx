@@ -5,6 +5,7 @@ import { getConfig, simulateContext } from "../lib/tauri";
 import type { ScoredMemory } from "../lib/types";
 import { MEMORY_ONTOLOGY_COLORS } from "../lib/types";
 import { useAppStore } from "../lib/store";
+import { useVaultStore } from "../lib/vaultStore";
 
 const HISTORY_KEY = "simulation_history";
 const MAX_HISTORY = 8;
@@ -32,6 +33,7 @@ function saveHistory(runs: SimulationRun[]) {
 export function SimulationView() {
   const { t } = useTranslation();
   const indexedMemories = useAppStore((state) => state.memories.length);
+  const activeVaultPath = useVaultStore((state) => state.activeVaultPath);
   const [query, setQuery] = useState("");
   const [budget, setBudget] = useState(4000);
   const [results, setResults] = useState<ScoredMemory[]>([]);
@@ -63,6 +65,12 @@ export function SimulationView() {
       .then((config) => setVaultRoot(config.root_dir))
       .catch(() => setVaultRoot(null));
   }, []);
+
+  useEffect(() => {
+    if (activeVaultPath) {
+      setVaultRoot(activeVaultPath);
+    }
+  }, [activeVaultPath]);
 
   const handleSimulate = async () => {
     if (!query.trim()) return;
