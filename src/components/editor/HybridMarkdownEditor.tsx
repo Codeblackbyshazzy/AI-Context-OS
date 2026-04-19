@@ -50,12 +50,6 @@ interface Props {
   onCreateWikilinkMemory?: (draft: WikilinkDraftMemory) => void | Promise<void>;
 }
 
-interface TaskPriorityLabels {
-  high: string;
-  medium: string;
-  low: string;
-}
-
 const EMPTY_WIKILINK_TARGETS: WikilinkTarget[] = [];
 const EDITOR_BASIC_SETUP = {
   lineNumbers: false,
@@ -253,36 +247,6 @@ function createEditorTheme(variant: keyof typeof editorThemePresets) {
       borderRight: "2px solid white",
       borderBottom: "2px solid white",
       transform: "translateY(-58%) rotate(45deg)",
-    },
-    ".cm-task-priority-badge": {
-      display: "inline-flex",
-      alignItems: "center",
-      marginRight: "0",
-      padding: "0.02rem 0.32rem",
-      borderRadius: "999px",
-      fontFamily: '"JetBrains Mono", ui-monospace, monospace',
-      fontSize: "0.72rem",
-      fontWeight: "700",
-      lineHeight: "1.2",
-      verticalAlign: "baseline",
-    },
-    ".cm-task-priority-a": {
-      color: "var(--danger)",
-      backgroundColor: "color-mix(in srgb, var(--danger) 12%, transparent)",
-    },
-    ".cm-task-priority-b": {
-      color: "var(--warning)",
-      backgroundColor: "color-mix(in srgb, var(--warning) 16%, transparent)",
-    },
-    ".cm-task-priority-c": {
-      color: "var(--text-2)",
-      backgroundColor: "color-mix(in srgb, var(--text-2) 12%, transparent)",
-    },
-    ".cm-task-priority-hidden": {
-      display: "inline-block",
-      width: "0",
-      overflow: "hidden",
-      color: "transparent",
     },
     ".cm-line.cm-codeblock": {
       fontFamily: '"JetBrains Mono", ui-monospace, monospace',
@@ -712,146 +676,7 @@ class ImagePreviewWidget extends WidgetType {
   }
 }
 
-class TaskPriorityWidget extends WidgetType {
-  constructor(
-    public priority: "A" | "B" | "C",
-    public labels: TaskPriorityLabels,
-    public editable: boolean,
-    public onSelect: (priority: "A" | "B" | "C") => void,
-  ) {
-    super();
-  }
-
-  toDOM() {
-    const root = document.createElement("span");
-    root.style.position = "relative";
-    root.style.display = "inline-flex";
-    root.style.float = "right";
-    root.style.marginLeft = "0.75rem";
-    root.style.verticalAlign = "middle";
-
-    const trigger = document.createElement("button");
-    trigger.type = "button";
-    trigger.className = `cm-task-priority-badge cm-task-priority-${this.priority.toLowerCase()}`;
-    trigger.textContent = this.priority;
-    trigger.title = this.getLabel(this.priority);
-    trigger.disabled = !this.editable;
-    trigger.style.cursor = this.editable ? "pointer" : "default";
-    trigger.style.border = "none";
-
-    const menu = document.createElement("div");
-    menu.style.position = "absolute";
-    menu.style.right = "0";
-    menu.style.top = "calc(100% + 0.35rem)";
-    menu.style.display = "none";
-    menu.style.minWidth = "7.5rem";
-    menu.style.padding = "0.3rem";
-    menu.style.borderRadius = "0.65rem";
-    menu.style.border = "1px solid color-mix(in srgb, var(--border) 84%, transparent)";
-    menu.style.background = "var(--bg-0)";
-    menu.style.boxShadow = "0 8px 24px rgba(0, 0, 0, 0.12)";
-    menu.style.zIndex = "20";
-
-    const closeMenu = () => {
-      menu.style.display = "none";
-    };
-
-    const toggleMenu = (event: Event) => {
-      stopWidgetEvent(event);
-      if (!this.editable) return;
-      menu.style.display = menu.style.display === "none" ? "block" : "none";
-    };
-
-    trigger.addEventListener("mousedown", stopWidgetEvent);
-    trigger.addEventListener("mouseup", stopWidgetEvent);
-    trigger.addEventListener("pointerdown", stopWidgetEvent);
-    trigger.addEventListener("pointerup", stopWidgetEvent);
-    trigger.addEventListener("click", toggleMenu);
-
-    const options: Array<["A" | "B" | "C", string]> = [
-      ["A", this.labels.high],
-      ["B", this.labels.medium],
-      ["C", this.labels.low],
-    ];
-
-    for (const [priority, label] of options) {
-      const option = document.createElement("button");
-      option.type = "button";
-      option.style.display = "flex";
-      option.style.width = "100%";
-      option.style.alignItems = "center";
-      option.style.gap = "0.55rem";
-      option.style.padding = "0.38rem 0.5rem";
-      option.style.border = "none";
-      option.style.borderRadius = "0.5rem";
-      option.style.background = priority === this.priority ? "var(--bg-2)" : "transparent";
-      option.style.cursor = "pointer";
-
-      const badge = document.createElement("span");
-      badge.className = `cm-task-priority-badge cm-task-priority-${priority.toLowerCase()}`;
-      badge.textContent = priority;
-
-      const text = document.createElement("span");
-      text.textContent = label;
-      text.style.color = "var(--text-1)";
-      text.style.fontSize = "0.8rem";
-
-      option.append(badge, text);
-      option.addEventListener("mousedown", stopWidgetEvent);
-      option.addEventListener("mouseup", stopWidgetEvent);
-      option.addEventListener("pointerdown", stopWidgetEvent);
-      option.addEventListener("pointerup", stopWidgetEvent);
-      option.addEventListener("click", (event) => {
-        stopWidgetEvent(event);
-        this.onSelect(priority);
-        closeMenu();
-      });
-      menu.append(option);
-    }
-
-    root.addEventListener("mouseleave", () => {
-      closeMenu();
-    });
-
-    root.append(trigger, menu);
-    return root;
-  }
-
-  getLabel(priority: "A" | "B" | "C") {
-    if (priority === "A") return this.labels.high;
-    if (priority === "B") return this.labels.medium;
-    return this.labels.low;
-  }
-
-  ignoreEvent() {
-    return true;
-  }
-}
-
-function setTaskPriorityOnLine(view: EditorView, lineNumber: number, priority: "A" | "B" | "C") {
-  const line = view.state.doc.line(lineNumber);
-  const match = line.text.match(/^(\s*-\s\[[ xX]\]\s+)(\[#([ABCabc])\]\s+)?/);
-  if (!match) return false;
-
-  const insertFrom = line.from + match[1].length;
-  const insertTo = insertFrom + (match[2]?.length ?? 0);
-  const marker = `[#${priority}] `;
-
-  view.dispatch({
-    changes: { from: insertFrom, to: insertTo, insert: marker },
-    selection: view.state.selection,
-    scrollIntoView: false,
-    userEvent: "input",
-  });
-  view.focus();
-  return true;
-}
-
-function createLivePreviewPlugin(
-  revealSyntaxOnActiveLine: boolean,
-  editable: boolean,
-  priorityLabels: TaskPriorityLabels,
-) {
+function createLivePreviewPlugin(revealSyntaxOnActiveLine: boolean) {
   return ViewPlugin.fromClass(
     class {
       decorations: DecorationSet;
@@ -880,7 +705,6 @@ function createLivePreviewPlugin(
         const hideDeco = Decoration.replace({});
         const linkPreviewMark = Decoration.mark({ class: "cm-link-preview" });
         const decos: { from: number; to: number; deco: Decoration }[] = [];
-        const decoratedTaskPriorityLines = new Set<number>();
 
         for (const { from, to } of view.visibleRanges) {
           syntaxTree(state).iterate({
@@ -931,52 +755,12 @@ function createLivePreviewPlugin(
                       ? firstChild.nextSibling.from
                       : lastChild.from;
                   if (textTo > textFrom) {
-                    const linkText = state.sliceDoc(textFrom, textTo);
-                    if (/^#(?:[ABCabc])$/.test(linkText)) {
-                      decos.push({
-                        from: textFrom,
-                        to: textTo,
-                        deco: Decoration.mark({ class: "cm-task-priority-hidden" }),
-                      });
-                    } else {
-                      decos.push({ from: textFrom, to: textTo, deco: linkPreviewMark });
-                    }
+                    decos.push({ from: textFrom, to: textTo, deco: linkPreviewMark });
                   }
                 }
               }
             },
           });
-
-          let line = state.doc.lineAt(from);
-          const endLine = state.doc.lineAt(Math.max(from, to - 1));
-          while (line.number <= endLine.number) {
-            const currentLineNumber = line.number;
-            const taskMatch = line.text.match(/^(\s*-\s\[[ xX]\]\s+)(\[#([ABCabc])\]\s+)?/);
-            if (taskMatch && !activeLines.has(currentLineNumber)) {
-              const currentPriority = (taskMatch[3]?.toUpperCase() ?? "B") as "A" | "B" | "C";
-              if (!decoratedTaskPriorityLines.has(currentLineNumber)) {
-                decos.push({
-                  from: line.to,
-                  to: line.to,
-                  deco: Decoration.widget({
-                    side: 1,
-                    widget: new TaskPriorityWidget(
-                      currentPriority,
-                      priorityLabels,
-                      editable,
-                      (nextPriority) => {
-                        void setTaskPriorityOnLine(view, currentLineNumber, nextPriority);
-                      },
-                    ),
-                  }),
-                });
-                decoratedTaskPriorityLines.add(currentLineNumber);
-              }
-            }
-
-            if (line.number === endLine.number) break;
-            line = state.doc.line(line.number + 1);
-          }
         }
 
         decos.sort((a, b) => a.from - b.from || a.to - b.to);
@@ -1244,14 +1028,6 @@ export function HybridMarkdownEditor({
   const localRef = useRef<EditorView | null>(null);
   const linkTextPlaceholder = t("memoryEditor.toolbar.linkTextPlaceholder");
   const createMemoryLabel = t("memoryEditor.warnings.createMemory");
-  const taskPriorityLabels = useMemo(
-    () => ({
-      high: t("memoryEditor.taskPriority.high"),
-      medium: t("memoryEditor.taskPriority.medium"),
-      low: t("memoryEditor.taskPriority.low"),
-    }),
-    [t],
-  );
   const stableWikilinkTargets =
     wikilinkTargets.length > 0 ? wikilinkTargets : EMPTY_WIKILINK_TARGETS;
 
@@ -1270,7 +1046,7 @@ export function HybridMarkdownEditor({
       EditorView.lineWrapping,
       createEditorTheme(themeVariant),
       structuralDecorations,
-      ...(showSyntax ? [] : [createLivePreviewPlugin(revealSyntaxOnActiveLine, editable, taskPriorityLabels)]),
+      ...(showSyntax ? [] : [createLivePreviewPlugin(revealSyntaxOnActiveLine)]),
       ...(showSyntax
         ? []
         : createWikilinkExtensions({
@@ -1290,8 +1066,6 @@ export function HybridMarkdownEditor({
     [
       themeVariant,
       showSyntax,
-      editable,
-      taskPriorityLabels,
       linkTextPlaceholder,
       createMemoryLabel,
       revealSyntaxOnActiveLine,

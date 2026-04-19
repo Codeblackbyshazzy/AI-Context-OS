@@ -1,0 +1,39 @@
+# Editor Live Preview Guardrails
+
+This note captures a regression we already hit in the Markdown editor and should not repeat.
+
+## Invariant
+
+`HybridMarkdownEditor` must preserve Obsidian-style live preview behavior:
+
+- inactive paragraphs render as clean rich text
+- raw Markdown markers are only visible in the active paragraph being edited
+- checklist lines must not show `- [ ]`, `- [x]`, or auxiliary inline markers in inactive paragraphs
+
+`main` is the reference behavior for this invariant.
+
+## What broke
+
+We introduced extra CodeMirror decorations and widgets for checklist priority rendering directly inside the live preview pipeline.
+
+That change was too invasive and caused `.md` pages to show raw Markdown syntax across the full document instead of only on the active paragraph.
+
+## Safe rule
+
+When modifying checklist UX in `src/components/editor/HybridMarkdownEditor.tsx`:
+
+- treat `createLivePreviewPlugin()` as sensitive core rendering logic
+- preserve the existing marker-hiding flow used in `main`
+- avoid overlapping `Decoration.replace`, `Decoration.mark`, and `Decoration.widget` ranges on task lines unless the behavior is verified manually
+- validate on real `.md` pages, not only isolated checklist examples
+- compare against `main` if the editor starts showing raw syntax outside the active paragraph
+
+## Safer implementation strategy
+
+Prefer changes that do not alter the core live preview hiding logic:
+
+- cursor placement improvements in `editorCommands.ts`
+- markdown mutations on click, like toggling `[ ]` to `[x]`
+- toolbar insertion improvements
+
+If a richer checklist priority UI is reintroduced later, it should be implemented in a way that does not interfere with the baseline live preview decoration model.

@@ -30,6 +30,7 @@ Contains development plans, technical reviews, and upcoming features:
 ### 3. Top-level guides
 Focused guides for specific product capabilities:
 - [Custom Themes](./themes.md)
+- [Editor Live Preview Guardrails](./editor-live-preview-guardrails.md)
 
 ## Scope of this folder
 
