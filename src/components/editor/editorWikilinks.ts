@@ -1,10 +1,11 @@
 import {
   autocompletion,
+  closeCompletion,
   completionKeymap,
   type Completion,
   type CompletionContext,
 } from "@codemirror/autocomplete";
-import { EditorSelection, type Extension, RangeSetBuilder } from "@codemirror/state";
+import { EditorSelection, Prec, type Extension, RangeSetBuilder } from "@codemirror/state";
 import {
   Decoration,
   EditorView,
@@ -468,7 +469,10 @@ function createWikilinkCompletionSource(options: WikilinkEditorOptions) {
         type: "new",
         apply(view, _completion, applyFrom, applyTo) {
           insertCanonicalWikilink(view, applyFrom, applyTo, id);
-          void options.onCreateMemory?.({ id, l0 });
+          closeCompletion(view);
+          queueMicrotask(() => {
+            void options.onCreateMemory?.({ id, l0 });
+          });
         },
       });
     }
@@ -543,6 +547,6 @@ export function createWikilinkExtensions(options: WikilinkEditorOptions): Extens
       optionClass: (completion) =>
         completion.type === "new" ? "cm-wikilink-create-option" : "cm-wikilink-option",
     }),
-    keymap.of(completionKeymap),
+    Prec.highest(keymap.of(completionKeymap)),
   ];
 }

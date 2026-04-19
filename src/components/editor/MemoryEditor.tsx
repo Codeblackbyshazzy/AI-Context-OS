@@ -76,9 +76,6 @@ export function MemoryEditor() {
   const deleteMemory = useAppStore((state) => state.deleteMemory);
   const loading = useAppStore((state) => state.loading);
   const memories = useAppStore((state) => state.memories);
-  const loadFileTree = useAppStore((state) => state.loadFileTree);
-  const loadGraph = useAppStore((state) => state.loadGraph);
-  const loadMemories = useAppStore((state) => state.loadMemories);
   const selectFile = useAppStore((state) => state.selectFile);
   const setError = useAppStore((state) => state.setError);
   const showMarkdownSyntax = useSettingsStore((s) => s.showMarkdownSyntax);
@@ -354,15 +351,15 @@ export function MemoryEditor() {
     [memories],
   );
 
-  const handleCreateWikilinkMemory = useCallback(
-    async ({ id, l0 }: WikilinkDraftMemory) => {
-      pendingWikilinkCreationsRef.current.add(id);
-      pendingWikilinkCreationsRef.current.add(l0);
+  const createLinkedMemory = useCallback(
+    async (draft: { id: string; l0: string; ontology: MemoryOntology }) => {
+      pendingWikilinkCreationsRef.current.add(draft.id);
+      pendingWikilinkCreationsRef.current.add(draft.l0);
       try {
         const created = await createMemory({
-          id,
-          ontology: "unknown",
-          l0,
+          id: draft.id,
+          ontology: draft.ontology,
+          l0: draft.l0,
           importance: 0.5,
           tags: [],
           l1_content: "",
@@ -376,18 +373,27 @@ export function MemoryEditor() {
             (warning) =>
               !(
                 warning.kind === "unresolved" &&
-                (warning.text === id || warning.text === l0)
+                (warning.text === draft.id || warning.text === draft.l0)
               ),
           ),
         );
+        return created;
       } catch (error) {
         setError(String(error));
+        return null;
       } finally {
-        pendingWikilinkCreationsRef.current.delete(id);
-        pendingWikilinkCreationsRef.current.delete(l0);
+        pendingWikilinkCreationsRef.current.delete(draft.id);
+        pendingWikilinkCreationsRef.current.delete(draft.l0);
       }
     },
     [setError],
+  );
+
+  const handleCreateWikilinkMemory = useCallback(
+    async ({ id, l0 }: WikilinkDraftMemory) => {
+      await createLinkedMemory({ id, l0, ontology: "unknown" });
+    },
+    [createLinkedMemory],
   );
 
   const applyWikilinkCandidate = useCallback(
@@ -411,26 +417,12 @@ export function MemoryEditor() {
 
   const confirmBrokenLinkCreation = useCallback(
     async (warning: WikilinkSaveWarning, draft: { id: string; l0: string; ontology: MemoryOntology }) => {
-      try {
-        const created = await createMemory({
-          id: draft.id,
-          ontology: draft.ontology,
-          l0: draft.l0,
-          importance: 0.5,
-          tags: [],
-          l1_content: "",
-          l2_content: "",
-        });
-        useAppStore.setState((state) => ({
-          memories: upsertMemoryMeta(state.memories, created.meta),
-        }));
-        applyWikilinkCandidate(warning, draft.id);
-        setBrokenLinkDraft(null);
-      } catch (error) {
-        setError(String(error));
-      }
+      setBrokenLinkDraft(null);
+      const created = await createLinkedMemory(draft);
+      if (!created) return;
+      applyWikilinkCandidate(warning, draft.id);
     },
-    [applyWikilinkCandidate, setError],
+    [applyWikilinkCandidate, createLinkedMemory],
   );
 
   if (!activeMemory || !meta) {
@@ -981,6 +973,17 @@ function filterTransientWikilinkWarnings(
   return warnings.filter(
     (warning) => !(warning.kind === "unresolved" && pendingCreations.has(warning.text)),
   );
+}
+
+function upsertMemoryMeta(memories: MemoryMeta[], nextMeta: MemoryMeta) {
+  const existingIndex = memories.findIndex((memory) => memory.id === nextMeta.id);
+  if (existingIndex === -1) {
+    return [...memories, nextMeta].sort((a, b) => a.id.localeCompare(b.id));
+  }
+
+  const next = [...memories];
+  next[existingIndex] = nextMeta;
+  return next;
 }
 
 type GroupedWarning = {
