@@ -10,7 +10,7 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 
-use crate::core::types::MemoryMeta;
+use crate::core::types::{Memory, MemoryMeta};
 
 // Match `[[inner]]` where the inner text contains neither `[` nor `]` nor
 // a newline. Iterates once per link.
