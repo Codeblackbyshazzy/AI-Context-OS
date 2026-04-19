@@ -119,10 +119,13 @@ impl SystemPaths {
         self.root.join(SOURCES_DIR)
     }
 
+    /// Generated router artifact for the active user workspace root.
+    /// This must follow the configured vault root, not the app source repo root.
     pub fn claude_md(&self) -> PathBuf {
         self.root.join("claude.md")
     }
 
+    /// Repo-agnostic agent instructions artifact for the active user workspace root.
     pub fn agents_md(&self) -> PathBuf {
         self.root.join("AGENTS.md")
     }

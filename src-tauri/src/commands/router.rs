@@ -23,6 +23,8 @@ pub(crate) fn regenerate_router_files(
     // Generate static adapter bootstrap from the manifest
     let neutral = render_static_router(&manifest);
 
+    // Important invariant: adapter artifacts are written into the active
+    // workspace/vault root selected by the app, not into the app source repo.
     // Write adapter artifacts from neutral content
     let claude_md = render_claude_adapter(&neutral);
     fs::write(root.join("claude.md"), &claude_md)
