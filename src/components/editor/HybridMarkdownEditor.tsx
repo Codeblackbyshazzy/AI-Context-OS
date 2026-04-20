@@ -13,6 +13,7 @@ import {
   type DecorationSet,
   type ViewUpdate,
   WidgetType,
+  drawSelection,
 } from "@codemirror/view";
 import { useEffect, useMemo, useRef } from "react";
 import { tags as t } from "@lezer/highlight";
@@ -119,8 +120,15 @@ function createEditorTheme(variant: keyof typeof editorThemePresets) {
     ".cm-activeLine": {
       backgroundColor: "transparent",
     },
-    ".cm-selectionBackground, ::selection": {
+    // CodeMirror's internal logic calculates exact selection rectangles.
+    ".cm-selectionBackground": {
       backgroundColor: "var(--bg-3) !important",
+    },
+    // The browser's native selection UI is notoriously buggy over complex 
+    // structured DOM elements like list item markers (::before). We make
+    // it perfectly transparent so only CM's own selection blocks are visible.
+    "& ::selection": {
+      backgroundColor: "transparent !important",
     },
     ".cm-cursor": {
       borderLeftColor: "var(--text-0)",
@@ -386,7 +394,8 @@ const structuralDecorations = ViewPlugin.fromClass(
     }
 
     update(update: ViewUpdate) {
-      if (update.docChanged || update.viewportChanged) {
+      const treeChanged = syntaxTree(update.state) !== syntaxTree(update.startState);
+      if (update.docChanged || update.viewportChanged || treeChanged) {
         this.decorations = this.buildDecorations(update.view);
       }
     }
@@ -695,7 +704,8 @@ function createLivePreviewPlugin(revealSyntaxOnActiveLine: boolean) {
       }
 
       update(update: ViewUpdate) {
-        if (update.docChanged || update.viewportChanged || update.selectionSet) {
+        const treeChanged = syntaxTree(update.state) !== syntaxTree(update.startState);
+        if (update.docChanged || update.viewportChanged || update.selectionSet || treeChanged) {
           this.decorations = this.buildDecorations(update.view);
         }
       }
@@ -1113,6 +1123,7 @@ export function HybridMarkdownEditor({
     () => [
       markdown({ base: markdownLanguage, codeLanguages: languages }),
       EditorView.lineWrapping,
+      drawSelection(),
       createEditorTheme(themeVariant),
       structuralDecorations,
       ...(showSyntax ? [] : [createLivePreviewPlugin(revealSyntaxOnActiveLine)]),
